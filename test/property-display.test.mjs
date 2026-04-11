@@ -235,3 +235,44 @@ test('groups life and mana drain pairs into single lines', () => {
     ['Drain Mana: 2-6']
   );
 });
+
+test('formats skill-proc triplet stats with skill name resolution', () => {
+  const tables = loadPd2Tables();
+
+  // encoding: values = [level, skillId, chance%]
+  assert.deepEqual(
+    formatSingle('item_skillonhit', [5, 98, 7], tables),
+    ['7% Chance to Cast Level 5 Might on Striking']
+  );
+  assert.deepEqual(
+    formatSingle('item_skillongethit', [3, 98, 10], tables),
+    ['10% Chance to Cast Level 3 Might When Struck']
+  );
+  assert.deepEqual(
+    formatSingle('item_skillondeath', [20, 98, 50], tables),
+    ['50% Chance to Cast Level 20 Might on Death']
+  );
+  assert.deepEqual(
+    formatSingle('item_skillonattack', [1, 98, 5], tables),
+    ['5% Chance to Cast Level 1 Might on Attack']
+  );
+  assert.deepEqual(
+    formatSingle('item_skillonkill', [8, 98, 15], tables),
+    ['15% Chance to Cast Level 8 Might on Kill']
+  );
+});
+
+test('formats class-wide skill level bonuses including unknown class fallback', () => {
+  assert.deepEqual(
+    formatSingle('item_addclassskills', [2, 3]),
+    ['+3 to Necromancer Skill Levels']
+  );
+  assert.deepEqual(
+    formatSingle('item_addclassskills', [3, 1]),
+    ['+1 to Paladin Skill Levels']
+  );
+  assert.deepEqual(
+    formatSingle('item_addclassskills', [99, 2]),
+    ['+2 to Class 99 Skill Levels']
+  );
+});

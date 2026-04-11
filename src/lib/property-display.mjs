@@ -384,6 +384,32 @@ function formatSingleProperty(property, pd2Tables) {
       const values = property.values ?? [];
       return `Aura When Equipped: ${getSkillName(values[0], pd2Tables)} (Level ${values[1] ?? 0})`;
     }
+    case 'item_skillonhit': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Striking`;
+    }
+    case 'item_skillongethit': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} When Struck`;
+    }
+    case 'item_skillondeath': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Death`;
+    }
+    case 'item_skillonattack': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Attack`;
+    }
+    case 'item_skillonkill': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Kill`;
+    }
+    case 'item_addclassskills': {
+      const values = property.values ?? [];
+      const classId = values[0];
+      const className = CLASS_NAMES[classId] ?? `Class ${classId}`;
+      return `${formatSignedNumber(values[1] ?? 0)} to ${className} Skill Levels`;
+    }
     default:
       break;
   }
