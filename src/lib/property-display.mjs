@@ -43,7 +43,7 @@ const SIMPLE_STAT_LABELS = {
   item_throw_mindamage: 'Throw Minimum Damage',
   item_slash_damage: 'Slash Damage',
   item_thrust_damage: 'Thrust Damage',
-  item_magicbonus: 'Better Chance of Getting Magic Items',
+  item_magicbonus: 'Magic Find',
   item_damagetomana: 'Damage Taken Goes To Mana',
   fireresist: 'Fire Resist',
   coldresist: 'Cold Resist',
@@ -72,9 +72,22 @@ const SIMPLE_STAT_LABELS = {
   item_find_magic_perlevel: 'Magic Find per Level',
   item_find_gold_perlevel: 'Gold Find per Level',
   item_addexperience: 'Experience Gained',
+  item_perlevelexp: 'Bonus Experience per Level',
+  item_goldbonus: 'Gold Find',
+  item_lightradius: 'Light Radius',
+  maxstamina: 'Stamina',
+  item_lifeleech: 'Life Stolen per Hit',
+  item_manaleech: 'Mana Stolen per Hit',
+  piercefire: 'Pierces Fire Resistance',
+  piercecold: 'Pierces Cold Resistance',
+  pierceltn: 'Pierces Lightning Resistance',
+  piercepois: 'Pierces Poison Resistance',
   item_crushingblow: 'Crushing Blow',
+  crushingblow: 'Crushing Blow',
   item_openwounds: 'Open Wounds',
+  openwounds: 'Open Wounds',
   item_deadlystrike: 'Deadly Strike',
+  deadlystrike: 'Deadly Strike',
   item_absorbcold_percent: 'Cold Absorb',
   item_absorbfire_percent: 'Fire Absorb',
   item_absorblight_percent: 'Lightning Absorb',
@@ -105,6 +118,7 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_mindamage_percent',
   'item_maxdamage_percent',
   'item_magicbonus',
+  'item_goldbonus',
   'item_damagetomana',
   'fireresist',
   'coldresist',
@@ -120,8 +134,17 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_fasterattackrate',
   'item_fasterblockrate',
   'item_crushingblow',
+  'crushingblow',
   'item_openwounds',
+  'openwounds',
   'item_deadlystrike',
+  'deadlystrike',
+  'item_lifeleech',
+  'item_manaleech',
+  'piercefire',
+  'piercecold',
+  'pierceltn',
+  'piercepois',
   'item_absorbcold_percent',
   'item_absorbfire_percent',
   'item_absorblight_percent',
@@ -151,17 +174,30 @@ const RIGHT_VALUE_LABEL_KEYS = new Set([
   'maxpoisonresist',
   'item_damagetomana',
   'item_magicbonus',
+  'item_goldbonus',
   'item_fastercastrate',
   'item_fastergethitrate',
   'item_fastermovevelocity',
   'item_fasterattackrate',
   'item_fasterblockrate',
   'item_crushingblow',
+  'crushingblow',
   'item_openwounds',
+  'openwounds',
   'item_deadlystrike',
+  'deadlystrike',
+  'item_lifeleech',
+  'item_manaleech',
+  'piercefire',
+  'piercecold',
+  'pierceltn',
+  'piercepois',
   'staminarecoverybonus',
   'manarecoverybonus',
-  'item_addexperience'
+  'item_addexperience',
+  'toblock',
+  'damagepercent',
+  'item_armor_percent'
 ]);
 
 function formatSignedNumber(value) {
@@ -237,11 +273,47 @@ function tryFormatGroupedProperty(properties, index) {
     return null;
   }
 
+  const thirdProperty = properties[index + 2];
+
+  if (property.statKey === 'poisonmindam' && nextProperty.statKey === 'poisonmaxdam' && thirdProperty?.statKey === 'poisonlength') {
+    const minValue = property.values?.[0];
+    const maxValue = nextProperty.values?.[0];
+    const lengthValue = thirdProperty.values?.[0];
+    if (Number.isFinite(minValue) && Number.isFinite(maxValue)) {
+      return {
+        lines: [{
+          text: `Adds Poison Damage: ${minValue}-${maxValue} over ${Math.round((lengthValue ?? 0) / 25)} seconds`,
+          statKey: 'poisonmindam:poisonmaxdam:poisonlength',
+          values: [minValue, maxValue, lengthValue]
+        }],
+        consumed: 3
+      };
+    }
+  }
+
+  if (property.statKey === 'coldmindam' && nextProperty.statKey === 'coldmaxdam' && thirdProperty?.statKey === 'coldlength') {
+    const minValue = property.values?.[0];
+    const maxValue = nextProperty.values?.[0];
+    const lengthValue = thirdProperty.values?.[0];
+    if (Number.isFinite(minValue) && Number.isFinite(maxValue)) {
+      return {
+        lines: [{
+          text: `Adds Cold Damage: ${minValue}-${maxValue} (${Math.round((lengthValue ?? 0) / 25)} sec. freeze)`,
+          statKey: 'coldmindam:coldmaxdam:coldlength',
+          values: [minValue, maxValue, lengthValue]
+        }],
+        consumed: 3
+      };
+    }
+  }
+
   const groupedPairs = [
     ['firemindam', 'firemaxdam', 'Adds Fire Damage'],
     ['lightmindam', 'lightmaxdam', 'Adds Lightning Damage'],
     ['coldmindam', 'coldmaxdam', 'Adds Cold Damage'],
-    ['poisonmindam', 'poisonmaxdam', 'Adds Poison Damage']
+    ['poisonmindam', 'poisonmaxdam', 'Adds Poison Damage'],
+    ['lifedrainmindam', 'lifedrainmaxdam', 'Drain Life'],
+    ['manadrainmindam', 'manadrainmaxdam', 'Drain Mana']
   ];
 
   for (const [minKey, maxKey, label] of groupedPairs) {
@@ -294,7 +366,24 @@ function formatSingleProperty(property, pd2Tables) {
     case 'item_vitality_perlevel':
     case 'item_find_magic_perlevel':
     case 'item_find_gold_perlevel':
+    case 'item_perlevelexp':
       return `${formatSimpleLabel(statKey)}: ${property.values?.join(', ') ?? 'n/a'} (per-level scaling)`;
+    case 'item_knockback':
+      return 'Knockback';
+    case 'item_stupidity':
+      return 'Hit Blinds Target';
+    case 'item_slow':
+      return `Slows Target by ${firstValue ?? 0}%`;
+    case 'item_fall':
+      return `Hit Causes Monster to Flee ${firstValue ?? 0}%`;
+    case 'item_charged_skill': {
+      const values = property.values ?? [];
+      return `Level ${values[1] ?? 0} ${getSkillName(values[0], pd2Tables)} (${values[2] ?? 0}/${values[3] ?? 0} Charges)`;
+    }
+    case 'item_aura': {
+      const values = property.values ?? [];
+      return `Aura When Equipped: ${getSkillName(values[0], pd2Tables)} (Level ${values[1] ?? 0})`;
+    }
     default:
       break;
   }
