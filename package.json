@@ -1,0 +1,11 @@
+{
+  "name": "pd2-mule",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "inspect": "node ./src/cli.mjs",
+    "ui": "node ./src/cli.mjs ui",
+    "test": "node --test"
+  }
+}

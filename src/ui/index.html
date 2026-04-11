@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PD2 Mule Inspector</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Read-only foundation</p>
+          <h1>PD2 Mule Inspector</h1>
+          <p class="hero-copy">
+            Parser summaries stay canonical. This shell only browses the data already decoded by the
+            parser and browser-index layer.
+          </p>
+        </div>
+        <div class="hero-meta" id="workspace-meta">Loading fixtures...</div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar">
+          <section class="panel-block">
+            <div class="section-header">
+              <h2>Files</h2>
+              <span id="source-count" class="section-pill">0</span>
+            </div>
+            <div id="source-list" class="source-list"></div>
+          </section>
+
+          <section class="panel-block">
+            <div class="section-header">
+              <h2>Pages</h2>
+              <span id="page-count" class="section-pill">0</span>
+            </div>
+            <div id="page-list" class="page-list empty-state">Select a stash file to browse pages.</div>
+          </section>
+        </aside>
+
+        <section class="main-pane">
+          <section class="panel-block filters-block">
+            <div class="section-header">
+              <h2>Browser</h2>
+              <span id="match-count" class="section-pill">0</span>
+            </div>
+            <form id="filters-form" class="filters-form">
+              <label>
+                <span>Search</span>
+                <input id="query-input" name="query" type="search" placeholder="shield, sacred targe, horadric cube">
+              </label>
+              <label>
+                <span>Quality</span>
+                <select id="quality-select" name="quality">
+                  <option value="">All</option>
+                  <option value="normal">Normal</option>
+                  <option value="superior">Superior</option>
+                  <option value="magic">Magic</option>
+                  <option value="set">Set</option>
+                  <option value="rare">Rare</option>
+                  <option value="unique">Unique</option>
+                  <option value="crafted">Crafted</option>
+                </select>
+              </label>
+              <label>
+                <span>Sort</span>
+                <select id="sort-select" name="sort">
+                  <option value="name">Name</option>
+                  <option value="code">Code</option>
+                  <option value="quality">Quality</option>
+                  <option value="props">Property Count</option>
+                  <option value="sockets">Sockets</option>
+                  <option value="position">Position</option>
+                </select>
+              </label>
+              <label class="checkbox-label">
+                <input id="complete-only-input" name="completeOnly" type="checkbox">
+                <span>Complete properties only</span>
+              </label>
+            </form>
+          </section>
+
+          <section id="summary-card" class="panel-block summary-card"></section>
+
+          <section id="grid-panels" class="grid-panels">
+            <div class="panel-block empty-state">Loading item grids...</div>
+          </section>
+
+          <section class="panel-block matches-block">
+            <div class="section-header">
+              <h2>Matches</h2>
+              <span id="selected-path" class="muted-copy"></span>
+            </div>
+            <div id="match-list" class="match-list"></div>
+          </section>
+        </section>
+
+        <aside class="details-pane">
+          <section class="panel-block sticky-panel">
+            <div class="section-header">
+              <h2>Item Details</h2>
+              <span id="detail-status" class="section-pill">None</span>
+            </div>
+            <div id="item-details" class="item-details empty-state">Select an item to inspect its read-only details.</div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
