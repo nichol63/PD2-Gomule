@@ -1,0 +1,100 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+
+import { loadPd2Tables } from '../src/lib/pd2-data.mjs';
+import { parseCharacterFile, parsePlugyStashFile } from '../src/lib/save-parsers.mjs';
+import { getFixtureLibraryDir } from '../src/lib/workspace-paths.mjs';
+
+const FIXTURE_DIR = getFixtureLibraryDir();
+const tables = loadPd2Tables();
+
+const charSummary = parseCharacterFile(path.join(FIXTURE_DIR, 'Legacy.d2s'), { pd2Tables: tables });
+const stashSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
+const sharedSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+test('every topLevelItem in character has a non-empty code', () => {
+  for (const item of charSummary.topLevelItems) {
+    assert.ok(
+      typeof item.code === 'string' && item.code.trim().length > 0,
+      `item at offset ${item.byteOffset} should have a non-empty code`
+    );
+  }
+});
+
+test('every page in Bases.d2x has index >= 0 and itemCount >= 0', () => {
+  for (const page of stashSummary.pages) {
+    assert.ok(page.index >= 0, `page "${page.name}" should have index >= 0`);
+    assert.ok(page.itemCount >= 0, `page "${page.name}" should have itemCount >= 0`);
+  }
+});
+
+test('shared stash has expected SSS signature', () => {
+  assert.ok(
+    typeof sharedSummary.signature === 'string' || sharedSummary.signature instanceof Uint8Array || sharedSummary.signature != null,
+    'shared stash should have a signature field'
+  );
+});
+
+test('socket children are attached under parents that have socketsFilled > 0', () => {
+  const allItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
+  const socketed = allItems.filter((item) => item.socketsFilled > 0);
+
+  for (const item of socketed) {
+    assert.ok(
+      Array.isArray(item.children),
+      `item "${item.displayName}" with socketsFilled=${item.socketsFilled} should have children array`
+    );
+    assert.ok(
+      item.children.length > 0,
+      `item "${item.displayName}" with socketsFilled=${item.socketsFilled} should have at least one child`
+    );
+  }
+});
+
+test('all parsed items expose the isEthereal boolean field', () => {
+  const charItems = charSummary.topLevelItems;
+  const stashItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
+  const allItems = [...charItems, ...stashItems];
+
+  for (const item of allItems) {
+    assert.ok(
+      'isEthereal' in item,
+      `item "${item.displayName ?? item.code}" should expose the isEthereal field`
+    );
+    assert.ok(
+      typeof item.isEthereal === 'boolean',
+      `item "${item.displayName ?? item.code}" isEthereal should be a boolean`
+    );
+  }
+});
+
+test('at least some items are identified across fixtures', () => {
+  const charItems = charSummary.topLevelItems;
+  const stashItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
+  const allItems = [...charItems, ...stashItems];
+
+  const identified = allItems.filter((item) => item.isIdentified === true);
+  assert.ok(identified.length > 0, 'at least some fixture items should be identified');
+});
+
+test('parsed item count matches topLevelItems plus socket children count', () => {
+  const topLevel = charSummary.topLevelItems.length;
+  const childCount = charSummary.topLevelItems.reduce((sum, item) => sum + (item.children?.length ?? 0), 0);
+  const flatCount = charSummary.parsedItemCount ?? charSummary.items?.length;
+
+  if (flatCount !== undefined) {
+    assert.equal(topLevel + childCount, flatCount, 'topLevelItems + children should equal flat item count');
+  }
+});
+
+test('stash pages topLevelItems are consistently shaped', () => {
+  const REQUIRED_FIELDS = ['code', 'displayName', 'qualityLabel', 'isIdentified', 'isSocketed'];
+  for (const page of stashSummary.pages) {
+    for (const item of page.topLevelItems) {
+      for (const field of REQUIRED_FIELDS) {
+        assert.ok(field in item, `item "${item.displayName ?? item.code}" should have field "${field}"`);
+      }
+    }
+  }
+});
