@@ -397,16 +397,31 @@ function renderItemDetails() {
     : '<div class="detail-group"><span class="muted-copy">No decoded properties.</span></div>';
   const children = item.children.length > 0
     ? `
-        <section class="detail-group">
+        <section class="detail-group detail-socket-children">
           <div class="detail-group__header">
             <strong>Socket Children</strong>
             <span>${item.children.length}</span>
           </div>
-          <ul class="detail-list">
-            ${item.children.map((child) => `
-              <li><strong>${escapeHtml(child.displayName)}</strong><span>${escapeHtml(child.code)} - ${child.propertyCount} props</span></li>
-            `).join('')}
-          </ul>
+          ${item.children.map((child) => {
+            const childLines = (child.propertyLists ?? [])
+              .flatMap((list) => list.displayLines ?? []);
+            const childListItems = childLines.length > 0
+              ? childLines.map((line) => `
+                  <li><span>${escapeHtml(line.text)}</span></li>
+                `).join('')
+              : '<li><span class="muted-copy">No decoded properties</span></li>';
+            return `
+              <section class="detail-group detail-group--nested">
+                <div class="detail-group__header">
+                  <strong class="quality-badge quality-${escapeHtml(child.qualityLabel)}">${escapeHtml(child.displayName)}</strong>
+                  <span>${escapeHtml(child.code)} - ${child.propertyCount} props</span>
+                </div>
+                <ul class="detail-list detail-list--compact">
+                  ${childListItems}
+                </ul>
+              </section>
+            `;
+          }).join('')}
         </section>
       `
     : '';

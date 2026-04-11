@@ -415,6 +415,23 @@ select {
 .detail-group__header.kind-runeword { color: var(--quality-magic); }
 .detail-group__header.kind-muted  { color: var(--muted); }
 
+/* Socket children nested detail groups */
+.detail-group--nested {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid rgba(236, 195, 121, 0.18);
+  margin-top: 0.5rem;
+}
+
+.detail-list--compact li {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.detail-socket-children > .detail-group--nested:first-of-type {
+  margin-top: 0.75rem;
+}
+
 /* Page progress bar */
 .page-card__bar-track {
   height: 4px;

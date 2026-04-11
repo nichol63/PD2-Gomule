@@ -103,3 +103,117 @@ test('buildInspectorView workspace-library source returns matches when query pro
   const view = buildInspectorView(workspace, { sourceId: wsSource.id, query: 'a' });
   assert.ok(Array.isArray(view.matches), 'workspace view should have matches array');
 });
+
+// Helper: find the first socketed item key across all panels/pages in a view.
+function findSocketedItemKey(workspace, catalog) {
+  const sources = [
+    catalog.sources.find((s) => s.kind === 'character'),
+    catalog.sources.find((s) => s.kind !== 'workspace-library' && s.kind !== 'character')
+  ].filter(Boolean);
+
+  for (const src of sources) {
+    const allView = buildInspectorView(workspace, { sourceId: src.id });
+    const pages = Array.isArray(allView.pages) && allView.pages.length > 0 ? allView.pages : [null];
+    for (const page of pages) {
+      const view = page
+        ? buildInspectorView(workspace, { sourceId: src.id, page: page.name })
+        : allView;
+      const panels = Array.isArray(view.panels) ? view.panels : [];
+      for (const panel of panels) {
+        const grid = Array.isArray(panel.items) ? panel.items : [];
+        for (const entry of grid) {
+          const candidate = entry?.item ?? entry;
+          const sockets = candidate?.totalSockets ?? candidate?.socketsFilled ?? 0;
+          const hasChildren = Array.isArray(candidate?.children) && candidate.children.length > 0;
+          if ((sockets > 0 || hasChildren) && candidate?.key) {
+            return { sourceId: src.id, page: page?.name, itemKey: candidate.key };
+          }
+        }
+      }
+      const matches = Array.isArray(view.matches) ? view.matches : [];
+      for (const m of matches) {
+        const sockets = m?.totalSockets ?? m?.socketsFilled ?? 0;
+        const hasChildren = Array.isArray(m?.children) && m.children.length > 0;
+        if ((sockets > 0 || hasChildren) && m?.key) {
+          return { sourceId: src.id, page: page?.name, itemKey: m.key };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+test('selected item children expose formatted propertyLists with displayLines', async () => {
+  const workspace = await loadInspectorWorkspace([CHAR_PATH, STASH_PATH], { pd2Tables: tables });
+  const catalog = getInspectorCatalog(workspace);
+
+  const target = findSocketedItemKey(workspace, catalog);
+  if (!target) return; // no socketed items with children found in fixtures — skip gracefully
+
+  const view = buildInspectorView(workspace, {
+    sourceId: target.sourceId,
+    page: target.page,
+    selectedItemKey: target.itemKey
+  });
+
+  const selected = view.selectedItem;
+  assert.ok(selected, 'selected item should resolve for the chosen itemKey');
+  assert.ok(Array.isArray(selected.children), 'selectedItem.children should be an array');
+
+  if (selected.children.length === 0) return;
+
+  for (const child of selected.children) {
+    assert.equal(typeof child.displayName, 'string', 'child.displayName should be a string');
+    assert.equal(typeof child.code, 'string', 'child.code should be a string');
+    assert.equal(typeof child.propertyCount, 'number', 'child.propertyCount should be a number');
+    assert.equal(typeof child.propertiesComplete, 'boolean', 'child.propertiesComplete should be boolean');
+    assert.ok(Array.isArray(child.propertyLists), 'child.propertyLists must always be an array');
+
+    for (const pl of child.propertyLists) {
+      assert.equal(typeof pl.kind, 'string', 'propertyList.kind should be a string');
+      assert.equal(typeof pl.complete, 'boolean', 'propertyList.complete should be a boolean');
+      assert.equal(typeof pl.propertyCount, 'number', 'propertyList.propertyCount should be a number');
+      assert.ok(Array.isArray(pl.properties), 'propertyList.properties should be an array');
+      assert.ok(Array.isArray(pl.displayLines), 'propertyList.displayLines should be an array');
+      assert.ok('error' in pl, 'propertyList should expose an error field (null or string)');
+      for (const line of pl.displayLines) {
+        assert.equal(typeof line.text, 'string', 'displayLine.text should be a string');
+        assert.ok(line.text.length > 0, 'displayLine.text should not be empty');
+      }
+    }
+  }
+});
+
+test('child items without propertyLists still expose an empty propertyLists array', async () => {
+  const workspace = await loadInspectorWorkspace([CHAR_PATH, STASH_PATH], { pd2Tables: tables });
+  const catalog = getInspectorCatalog(workspace);
+
+  const target = findSocketedItemKey(workspace, catalog);
+  if (!target) return; // no fixture with socketed children — skip
+
+  const view = buildInspectorView(workspace, {
+    sourceId: target.sourceId,
+    page: target.page,
+    selectedItemKey: target.itemKey
+  });
+
+  const selected = view.selectedItem;
+  assert.ok(selected, 'selected item should resolve');
+  assert.ok(Array.isArray(selected.children), 'children should be an array');
+
+  // Every child — whether or not it has decoded properties — must carry an array
+  // (not undefined, not null). Children with no properties should produce [].
+  for (const child of selected.children) {
+    assert.ok(
+      Array.isArray(child.propertyLists),
+      'child.propertyLists must be an array even when the child has zero decoded property lists'
+    );
+    if (child.propertyCount === 0) {
+      assert.equal(
+        child.propertyLists.length,
+        0,
+        'a child with propertyCount 0 should have an empty propertyLists array'
+      );
+    }
+  }
+});

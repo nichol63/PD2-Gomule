@@ -162,13 +162,15 @@ function serializePropertyList(propertyList) {
   };
 }
 
-function serializeChildItem(child) {
+function serializeChildItem(child, pd2Tables) {
   return {
     displayName: child.displayName,
     code: child.code,
     qualityLabel: child.qualityLabel,
     propertyCount: child.propertyCount ?? 0,
-    propertiesComplete: child.propertiesComplete !== false
+    propertiesComplete: child.propertiesComplete !== false,
+    propertyLists: (child.propertyLists ?? [])
+      .map((list) => formatPropertyListForDisplay(list, pd2Tables))
   };
 }
 
@@ -325,7 +327,7 @@ function createSelectedItem(entry, pd2Tables) {
     ].filter(Boolean),
     properties: (item.properties ?? []).map(serializeProperty),
     propertyLists,
-    children: (item.children ?? []).map(serializeChildItem)
+    children: (item.children ?? []).map((child) => serializeChildItem(child, pd2Tables))
   };
 }
 
