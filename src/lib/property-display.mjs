@@ -107,6 +107,25 @@ const SIMPLE_STAT_LABELS = {
   item_hp_percent: 'Life',
   item_maxmana_percent: 'Mana',
   item_maxhp_percent: 'Life',
+  item_kickdamage: 'Kick Damage',
+  item_healafterkill: 'Life After Each Kill',
+  item_healafterdemonkill: 'Life After Each Demon Kill',
+  item_healafterhit: 'Life After Each Hit',
+  item_manaafterkill: 'Mana After Each Kill',
+  item_demon_tohit: 'Attack Rating against Demons',
+  item_undead_tohit: 'Attack Rating against Undead',
+  magicmindam: 'Magic Minimum Damage',
+  magicmaxdam: 'Magic Maximum Damage',
+  item_maxdurability_percent: 'Increase Maximum Durability',
+  item_reducedprices: 'Reduces All Vendor Prices',
+  item_tohit_percent: 'Bonus to Attack Rating',
+  item_absorbmagic_percent: 'Magic Absorb',
+  item_staminadrainpct: 'Slower Stamina Drain',
+  item_poisonlengthresist: 'Poison Length Reduced',
+  item_demondamage_percent: 'Damage to Demons',
+  item_undeaddamage_percent: 'Damage to Undead',
+  maxmagicresist: 'Maximum Magic Resist',
+  magicresist: 'Magic Resist',
   gold: 'Gold',
   level: 'Level',
   statpts: 'Stat Points'
@@ -160,7 +179,17 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_addexperience',
   'toblock',
   'item_maxmana_percent',
-  'item_maxhp_percent'
+  'item_maxhp_percent',
+  'item_maxdurability_percent',
+  'item_reducedprices',
+  'item_tohit_percent',
+  'item_absorbmagic_percent',
+  'item_staminadrainpct',
+  'item_poisonlengthresist',
+  'item_demondamage_percent',
+  'item_undeaddamage_percent',
+  'maxmagicresist',
+  'magicresist'
 ]);
 
 const RIGHT_VALUE_LABEL_KEYS = new Set([
@@ -197,7 +226,13 @@ const RIGHT_VALUE_LABEL_KEYS = new Set([
   'item_addexperience',
   'toblock',
   'damagepercent',
-  'item_armor_percent'
+  'item_armor_percent',
+  'item_maxdurability_percent',
+  'item_reducedprices',
+  'item_tohit_percent',
+  'item_absorbmagic_percent',
+  'item_staminadrainpct',
+  'item_poisonlengthresist'
 ]);
 
 function formatSignedNumber(value) {
@@ -312,6 +347,7 @@ function tryFormatGroupedProperty(properties, index) {
     ['lightmindam', 'lightmaxdam', 'Adds Lightning Damage'],
     ['coldmindam', 'coldmaxdam', 'Adds Cold Damage'],
     ['poisonmindam', 'poisonmaxdam', 'Adds Poison Damage'],
+    ['magicmindam', 'magicmaxdam', 'Adds Magic Damage'],
     ['lifedrainmindam', 'lifedrainmaxdam', 'Drain Life'],
     ['manadrainmindam', 'manadrainmaxdam', 'Drain Mana']
   ];
@@ -372,6 +408,20 @@ function formatSingleProperty(property, pd2Tables) {
       return 'Knockback';
     case 'item_stupidity':
       return 'Hit Blinds Target';
+    case 'item_restinpeace':
+      return 'Slain Monsters Rest in Peace';
+    case 'item_halffreezeduration':
+      return 'Half Freeze Duration';
+    case 'item_indesctructible':
+      return 'Indestructible';
+    case 'item_cannotbefrozen':
+      return 'Cannot Be Frozen';
+    case 'item_preventheal':
+      return 'Prevent Monster Heal';
+    case 'item_ignoretargetac':
+      return "Ignores Target's Defense";
+    case 'item_throwable':
+      return 'Throwable';
     case 'item_slow':
       return `Slows Target by ${firstValue ?? 0}%`;
     case 'item_fall':

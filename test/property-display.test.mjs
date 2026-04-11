@@ -276,3 +276,129 @@ test('formats class-wide skill level bonuses including unknown class fallback', 
     ['+2 to Class 99 Skill Levels']
   );
 });
+
+test('formats new non-percent simple stat entries into "+N to Label" lines', () => {
+  assert.deepEqual(formatSingle('item_kickdamage', [16]), ['+16 to Kick Damage']);
+  assert.deepEqual(formatSingle('item_healafterkill', [1]), ['+1 to Life After Each Kill']);
+  assert.deepEqual(
+    formatSingle('item_healafterdemonkill', [84]),
+    ['+84 to Life After Each Demon Kill']
+  );
+  assert.deepEqual(formatSingle('item_healafterhit', [5]), ['+5 to Life After Each Hit']);
+  assert.deepEqual(formatSingle('item_manaafterkill', [4]), ['+4 to Mana After Each Kill']);
+  assert.deepEqual(
+    formatSingle('item_demon_tohit', [200]),
+    ['+200 to Attack Rating against Demons']
+  );
+  assert.deepEqual(
+    formatSingle('item_undead_tohit', [27]),
+    ['+27 to Attack Rating against Undead']
+  );
+});
+
+test('formats right-value percent simple stats into "Label +N%" lines', () => {
+  assert.deepEqual(
+    formatSingle('item_maxdurability_percent', [14]),
+    ['Increase Maximum Durability +14%']
+  );
+  assert.deepEqual(
+    formatSingle('item_reducedprices', [53]),
+    ['Reduces All Vendor Prices +53%']
+  );
+  assert.deepEqual(
+    formatSingle('item_tohit_percent', [5]),
+    ['Bonus to Attack Rating +5%']
+  );
+  assert.deepEqual(
+    formatSingle('item_absorbmagic_percent', [20]),
+    ['Magic Absorb +20%']
+  );
+  assert.deepEqual(
+    formatSingle('item_staminadrainpct', [77]),
+    ['Slower Stamina Drain +77%']
+  );
+  assert.deepEqual(
+    formatSingle('item_poisonlengthresist', [50]),
+    ['Poison Length Reduced +50%']
+  );
+});
+
+test('formats prefix percent simple stats into "+N% Label" lines', () => {
+  assert.deepEqual(
+    formatSingle('item_demondamage_percent', [149]),
+    ['+149% Damage to Demons']
+  );
+  assert.deepEqual(
+    formatSingle('item_undeaddamage_percent', [31]),
+    ['+31% Damage to Undead']
+  );
+  assert.deepEqual(formatSingle('maxmagicresist', [4]), ['+4% Maximum Magic Resist']);
+  assert.deepEqual(formatSingle('magicresist', [51]), ['+51% Magic Resist']);
+});
+
+test('formats new flat-label switch cases into static lines', () => {
+  assert.deepEqual(
+    formatSingle('item_restinpeace', [1]),
+    ['Slain Monsters Rest in Peace']
+  );
+  assert.deepEqual(formatSingle('item_halffreezeduration', [1]), ['Half Freeze Duration']);
+  assert.deepEqual(formatSingle('item_indesctructible', [1]), ['Indestructible']);
+  assert.deepEqual(formatSingle('item_cannotbefrozen', [1]), ['Cannot Be Frozen']);
+  assert.deepEqual(formatSingle('item_preventheal', [1]), ['Prevent Monster Heal']);
+  assert.deepEqual(
+    formatSingle('item_ignoretargetac', [1]),
+    ["Ignores Target's Defense"]
+  );
+  assert.deepEqual(formatSingle('item_throwable', [1]), ['Throwable']);
+});
+
+test('flat-label switch cases ignore the value array', () => {
+  assert.deepEqual(formatSingle('item_indesctructible', [0]), ['Indestructible']);
+  assert.deepEqual(formatSingle('item_indesctructible', [42]), ['Indestructible']);
+  assert.deepEqual(
+    formatSingle('item_restinpeace', []),
+    ['Slain Monsters Rest in Peace']
+  );
+});
+
+test('groups magic damage pair into a single line', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'magicmindam', values: [10] },
+      { statKey: 'magicmaxdam', values: [20] }
+    ]
+  }, null);
+
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    ['Adds Magic Damage: 10-20']
+  );
+});
+
+test('falls back to single magic damage stats when the pair is separated', () => {
+  assert.deepEqual(formatSingle('magicmindam', [10]), ['+10 to Magic Minimum Damage']);
+  assert.deepEqual(formatSingle('magicmaxdam', [20]), ['+20 to Magic Maximum Damage']);
+
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'magicmindam', values: [10] },
+      { statKey: 'strength', values: [5] },
+      { statKey: 'magicmaxdam', values: [20] }
+    ]
+  }, null);
+
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    [
+      '+10 to Magic Minimum Damage',
+      '+5 to Strength',
+      '+20 to Magic Maximum Damage'
+    ]
+  );
+});
