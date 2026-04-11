@@ -27,7 +27,8 @@ const elements = {
   qualitySelect: document.querySelector('#quality-select'),
   sortSelect: document.querySelector('#sort-select'),
   completeOnlyInput: document.querySelector('#complete-only-input'),
-  filtersForm: document.querySelector('#filters-form')
+  filtersForm: document.querySelector('#filters-form'),
+  itemTooltip: document.querySelector('#item-tooltip')
 };
 
 function escapeHtml(value) {
@@ -96,6 +97,46 @@ function setLoading(message) {
   elements.gridPanels.innerHTML = `<div class="panel-block empty-state">${escapeHtml(message)}</div>`;
 }
 
+function setupTooltip() {
+  const tip = elements.itemTooltip;
+  if (!tip) return;
+
+  elements.gridPanels.addEventListener('mousemove', (event) => {
+    const btn = event.target.closest('[data-item-key]');
+    if (!btn) return;
+
+    const name = btn.dataset.tooltipName ?? '';
+    const code = btn.dataset.tooltipCode ?? '';
+    const quality = btn.dataset.tooltipQuality ?? '';
+    const props = btn.dataset.tooltipProps ?? '0';
+    const sockets = btn.dataset.tooltipSockets ?? '0';
+
+    tip.innerHTML = `
+      <span class="tooltip-name quality-${escapeHtml(quality)}">${escapeHtml(name)}</span>
+      <div class="tooltip-row"><span>${escapeHtml(code)}</span><span>${escapeHtml(quality)}</span></div>
+      <div class="tooltip-row"><span>${escapeHtml(props)} props</span>${sockets !== '0' ? `<span>${escapeHtml(sockets)} sockets</span>` : ''}</div>
+    `;
+
+    const x = event.clientX + 14;
+    const y = event.clientY + 14;
+    const maxX = window.innerWidth - tip.offsetWidth - 8;
+    const maxY = window.innerHeight - tip.offsetHeight - 8;
+    tip.style.left = `${Math.min(x, maxX)}px`;
+    tip.style.top = `${Math.min(y, maxY)}px`;
+    tip.classList.add('is-visible');
+  });
+
+  elements.gridPanels.addEventListener('mouseleave', () => {
+    tip.classList.remove('is-visible');
+  });
+
+  elements.gridPanels.addEventListener('mouseover', (event) => {
+    if (!event.target.closest('[data-item-key]')) {
+      tip.classList.remove('is-visible');
+    }
+  });
+}
+
 function renderSourceList() {
   if (!state.catalog || state.catalog.sources.length === 0) {
     elements.sourceList.innerHTML = '<div class="empty-state">No save files loaded.</div>';
@@ -133,17 +174,25 @@ function renderPageList() {
 
   if (pages.length === 0) {
     elements.pageList.className = 'page-list empty-state';
-    elements.pageList.textContent = 'This file does not have PlugY stash pages.';
+    elements.pageList.textContent = 'This save holds no PlugY stash pages.';
     return;
   }
 
+  const maxCount = Math.max(1, ...pages.map((p) => p.topLevelCount));
+
   elements.pageList.className = 'page-list';
-  elements.pageList.innerHTML = pages.map((page) => `
+  elements.pageList.innerHTML = pages.map((page) => {
+    const pct = Math.round((page.topLevelCount / maxCount) * 100);
+    return `
     <button class="page-card ${page.selected ? 'is-selected' : ''}" data-page-name="${escapeHtml(page.name)}">
       <strong>${escapeHtml(page.name)}</strong>
       <span>${page.topLevelCount} top-level items</span>
+      <div class="page-card__bar-track">
+        <div class="page-card__bar-fill" style="width:${pct}%"></div>
+      </div>
     </button>
-  `).join('');
+  `;
+  }).join('');
 
   for (const button of elements.pageList.querySelectorAll('[data-page-name]')) {
     button.addEventListener('click', async () => {
@@ -201,7 +250,7 @@ function renderGridPanels() {
   }
 
   if (panels.length === 0) {
-    elements.gridPanels.innerHTML = '<div class="panel-block empty-state">No items match the current filters.</div>';
+    elements.gridPanels.innerHTML = '<div class="panel-block empty-state">The vault holds no relics matching your search.</div>';
     return;
   }
 
@@ -216,6 +265,13 @@ function renderGridPanels() {
           <button
             class="grid-item quality-${escapeHtml(item.qualityLabel)} ${item.selected ? 'is-selected' : ''} ${item.propertiesComplete ? '' : 'is-partial'}"
             data-item-key="${escapeHtml(item.itemKey)}"
+            data-col="${item.column}"
+            data-row="${item.row}"
+            data-tooltip-name="${escapeHtml(item.displayName)}"
+            data-tooltip-code="${escapeHtml(item.code)}"
+            data-tooltip-quality="${escapeHtml(item.qualityLabel)}"
+            data-tooltip-props="${item.propertyCount}"
+            data-tooltip-sockets="${item.totalSockets ?? 0}"
             style="grid-column:${item.column + 1} / span ${item.width}; grid-row:${item.row + 1} / span ${item.height};"
           >
             <span class="grid-item__name">${escapeHtml(item.displayName)}</span>
@@ -227,10 +283,40 @@ function renderGridPanels() {
     </section>
   `).join('');
 
-  for (const button of elements.gridPanels.querySelectorAll('[data-item-key]')) {
+  const allGridItems = [...elements.gridPanels.querySelectorAll('[data-item-key]')];
+
+  for (const button of allGridItems) {
     button.addEventListener('click', async () => {
       state.selectedItemKey = button.dataset.itemKey;
       await loadView();
+    });
+
+    button.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        state.selectedItemKey = button.dataset.itemKey;
+        await loadView();
+        return;
+      }
+
+      const col = parseInt(button.dataset.col, 10);
+      const row = parseInt(button.dataset.row, 10);
+      let targetCol = col;
+      let targetRow = row;
+
+      if (event.key === 'ArrowRight') { event.preventDefault(); targetCol = col + 1; }
+      else if (event.key === 'ArrowLeft') { event.preventDefault(); targetCol = col - 1; }
+      else if (event.key === 'ArrowDown') { event.preventDefault(); targetRow = row + 1; }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); targetRow = row - 1; }
+      else return;
+
+      const nearest = allGridItems.find(
+        (b) => parseInt(b.dataset.col, 10) === targetCol && parseInt(b.dataset.row, 10) === targetRow
+      ) ?? allGridItems.find(
+        (b) => Math.abs(parseInt(b.dataset.col, 10) - targetCol) <= 1 && Math.abs(parseInt(b.dataset.row, 10) - targetRow) <= 1
+      );
+
+      if (nearest) nearest.focus();
     });
   }
 }
@@ -239,7 +325,7 @@ function renderMatchList() {
   const matches = state.view?.matches ?? [];
   const hasActiveFilters = Boolean(state.query || state.quality || state.completeOnly);
   if (matches.length === 0 && state.view?.source?.kind === 'workspace-library' && !hasActiveFilters) {
-    elements.matchList.innerHTML = '<div class="empty-state">Use search or filters to browse the full loaded library.</div>';
+    elements.matchList.innerHTML = '<div class="empty-state">Seek across all loaded saves. Enter a search to begin.</div>';
     return;
   }
 
@@ -286,10 +372,17 @@ function renderItemDetails() {
   const propertyWarning = item.propertyParseError
     ? `<div class="detail-warning">Property stream is partial: ${escapeHtml(item.propertyParseError)}</div>`
     : '';
+  const kindClass = (kind) => {
+    if (kind === 'set') return 'kind-set';
+    if (kind === 'runeword') return 'kind-runeword';
+    if (kind === 'base') return '';
+    return 'kind-muted';
+  };
+
   const propertyLists = item.propertyLists.length > 0
     ? item.propertyLists.map((list) => `
         <section class="detail-group">
-          <div class="detail-group__header">
+          <div class="detail-group__header ${kindClass(list.kind)}">
             <strong>${escapeHtml(list.kind)}</strong>
             <span>${list.complete ? 'complete' : 'partial'} - ${list.propertyCount} stats</span>
           </div>
@@ -408,6 +501,7 @@ function bindEvents() {
 
 async function main() {
   bindEvents();
+  setupTooltip();
   setLoading('Loading inspector...');
 
   try {

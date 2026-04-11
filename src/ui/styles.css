@@ -366,10 +366,80 @@ select {
   color: var(--accent-strong);
 }
 
+/* Quality border-left stripes on grid items */
+.grid-item.quality-normal   { border-left: 3px solid var(--quality-normal); }
+.grid-item.quality-superior { border-left: 3px solid var(--quality-superior); }
+.grid-item.quality-magic    { border-left: 3px solid var(--quality-magic); }
+.grid-item.quality-set      { border-left: 3px solid var(--quality-set); }
+.grid-item.quality-rare     { border-left: 3px solid var(--quality-rare); }
+.grid-item.quality-unique   { border-left: 3px solid var(--quality-unique); }
+.grid-item.quality-crafted  { border-left: 3px solid var(--quality-crafted); }
+
+/* Floating item tooltip */
+#item-tooltip {
+  position: fixed;
+  z-index: 999;
+  display: none;
+  max-width: 18rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(243, 207, 141, 0.55);
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, rgba(40, 28, 22, 0.98), rgba(18, 12, 10, 0.98));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  color: var(--text);
+}
+
+#item-tooltip.is-visible {
+  display: block;
+}
+
+.tooltip-name {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* Property list header kind accent colors */
+.detail-group__header.kind-set    { color: var(--quality-set); }
+.detail-group__header.kind-runeword { color: var(--quality-magic); }
+.detail-group__header.kind-muted  { color: var(--muted); }
+
+/* Page progress bar */
+.page-card__bar-track {
+  height: 4px;
+  margin-top: 0.4rem;
+  border-radius: 999px;
+  background: rgba(243, 207, 141, 0.12);
+  overflow: hidden;
+}
+
+.page-card__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  opacity: 0.4;
+  transition: width 200ms ease;
+}
+
 @media (max-width: 1180px) {
   .workspace {
     grid-template-columns: 1fr;
   }
+
+  .sidebar     { order: 1; }
+  .main-pane   { order: 2; }
+  .details-pane { order: 3; }
 
   .sticky-panel {
     position: static;
