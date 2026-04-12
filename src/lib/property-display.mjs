@@ -412,6 +412,10 @@ function formatSingleProperty(property, pd2Tables) {
       return 'Slain Monsters Rest in Peace';
     case 'item_halffreezeduration':
       return 'Half Freeze Duration';
+    case 'corrupted':
+      return 'Corrupted';
+    case 'mirrored':
+      return 'Mirrored';
     case 'item_indesctructible':
       return 'Indestructible';
     case 'item_cannotbefrozen':
@@ -453,6 +457,10 @@ function formatSingleProperty(property, pd2Tables) {
     case 'item_skillonkill': {
       const values = property.values ?? [];
       return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Kill`;
+    }
+    case 'item_skillonlevelup': {
+      const values = property.values ?? [];
+      return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Level Up`;
     }
     case 'item_addclassskills': {
       const values = property.values ?? [];

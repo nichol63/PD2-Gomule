@@ -402,3 +402,34 @@ test('falls back to single magic damage stats when the pair is separated', () =>
     ]
   );
 });
+
+test('formats corrupted and mirrored as flat labels ignoring values', () => {
+  assert.deepEqual(formatSingle('corrupted', [692, 396]), ['Corrupted']);
+  assert.deepEqual(formatSingle('corrupted', [0, 0]), ['Corrupted']);
+  assert.deepEqual(formatSingle('corrupted', []), ['Corrupted']);
+  assert.deepEqual(formatSingle('mirrored', [1023, 496]), ['Mirrored']);
+  assert.deepEqual(formatSingle('mirrored', [99, 95]), ['Mirrored']);
+  assert.deepEqual(formatSingle('mirrored', []), ['Mirrored']);
+});
+
+test('formats item_skillonlevelup triplet with skill name resolution', () => {
+  const tables = loadPd2Tables();
+
+  // Known skill id 98 resolves to 'Might'
+  assert.deepEqual(
+    formatSingle('item_skillonlevelup', [5, 98, 20], tables),
+    ['20% Chance to Cast Level 5 Might on Level Up']
+  );
+
+  // Known skill id 112 resolves to 'Blessed Hammer'
+  assert.deepEqual(
+    formatSingle('item_skillonlevelup', [3, 112, 15], tables),
+    ['15% Chance to Cast Level 3 Blessed Hammer on Level Up']
+  );
+
+  // Unknown skill id falls back to 'Skill <id>'
+  assert.deepEqual(
+    formatSingle('item_skillonlevelup', [10, 999, 50], tables),
+    ['50% Chance to Cast Level 10 Skill 999 on Level Up']
+  );
+});
