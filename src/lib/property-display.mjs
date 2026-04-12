@@ -342,6 +342,7 @@ function formatMonsterLinkedProperty(property, amountLabel, amountValue) {
 const SUMMON_CAP_LABELS = {
   extra_skele_war: ['Skeleton Warrior', 'Skeleton Warriors'],
   extra_skele_mage: ['Skeletal Mage', 'Skeletal Mages'],
+  grims_extra_skele_mage: ['Skeletal Mage', 'Skeletal Mages'],
   extra_skele_archer: ['Skeleton Archer', 'Skeleton Archers'],
   extra_hydra: ['Hydra', 'Hydras'],
   extra_golem: ['Golem', 'Golems']
@@ -520,10 +521,15 @@ function formatSingleProperty(property, pd2Tables) {
     case 'extra_spirits':
     case 'extra_skele_war':
     case 'extra_skele_mage':
+    case 'grims_extra_skele_mage':
     case 'extra_skele_archer':
     case 'extra_hydra':
     case 'extra_golem':
       return formatSummonCapProperty(statKey, firstValue);
+    case 'extra_revives':
+      return `${formatSignedNumber(firstValue ?? 0)} to Maximum Revives`;
+    case 'extra_bonespears':
+      return `${formatSignedNumber(firstValue ?? 0)} to Bone Spear Missiles`;
     case 'item_addskill_tab': {
       const decodedTab = decodeSkillTab(firstValue);
       if (!decodedTab) {

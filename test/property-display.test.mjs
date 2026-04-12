@@ -76,6 +76,21 @@ test('formats summon-cap singular forms naturally', () => {
   assert.deepEqual(formatSingle('extra_spirits', [1]), ['+1 to Maximum Spirits']);
 });
 
+test('formats additional summon-cap stats from raw stat keys', () => {
+  assert.deepEqual(formatSingle('extra_revives', [1]), ['+1 to Maximum Revives']);
+  assert.deepEqual(formatSingle('extra_revives', [29]), ['+29 to Maximum Revives']);
+  assert.deepEqual(formatSingle('extra_bonespears', [1]), ['+1 to Bone Spear Missiles']);
+  assert.deepEqual(formatSingle('extra_bonespears', [24]), ['+24 to Bone Spear Missiles']);
+  assert.deepEqual(
+    formatSingle('grims_extra_skele_mage', [1]),
+    ['You may summon 1 extra Skeletal Mage']
+  );
+  assert.deepEqual(
+    formatSingle('grims_extra_skele_mage', [6]),
+    ['You may summon 6 extra Skeletal Mages']
+  );
+});
+
 test('formats skill tabs and grouped elemental damage using presentation-only helpers', () => {
   const tables = loadPd2Tables();
   const displayList = formatPropertyListForDisplay({
@@ -361,6 +376,54 @@ test('formats summon-cap stats from parsed fixture items', () => {
   assert.deepEqual(render(perfectSaphire, 'extra_skele_archer'), ['You may summon 14 extra Skeleton Archers']);
   assert.deepEqual(render(ghostSpear, 'extra_hydra'), ['You may summon 2 extra Hydras']);
   assert.deepEqual(render(archonStaff, 'extra_golem'), ['You may summon 6 extra Golems']);
+});
+
+test('formats safe summon-cap stats from parsed fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+  const findItem = (displayName, statKey, value) =>
+    summary.pages
+      .flatMap((page) => page.items ?? page.topLevelItems ?? [])
+      .find(
+        (item) =>
+          item.displayName === displayName &&
+          item.properties.some(
+            (property) =>
+              property.statKey === statKey &&
+              property.values?.[0] === value
+          )
+      );
+
+  const unearthedWand = findItem('Unearthed Wand', 'extra_revives', 29);
+  const elderStaff = findItem('Elder Staff', 'extra_bonespears', 31);
+  const lichWand = findItem('Lich Wand', 'extra_bonespears', 31);
+  const giantThresher = findItem('Giant Thresher', 'grims_extra_skele_mage', 6);
+
+  assert.ok(unearthedWand, 'expected Unearthed Wand to expose extra_revives in the shared stash fixture');
+  assert.ok(elderStaff, 'expected Elder Staff to expose extra_bonespears in the shared stash fixture');
+  assert.ok(lichWand, 'expected Lich Wand to expose extra_bonespears in the shared stash fixture');
+  assert.ok(
+    giantThresher,
+    'expected Giant Thresher to expose grims_extra_skele_mage in the shared stash fixture'
+  );
+
+  const render = (item, statKey) =>
+    formatPropertyListForDisplay(
+      {
+        ...item.propertyLists[0],
+        properties: item.propertyLists[0].properties.filter((property) => property.statKey === statKey)
+      },
+      tables
+    ).displayLines.map((line) => line.text);
+
+  assert.deepEqual(render(unearthedWand, 'extra_revives'), ['+29 to Maximum Revives']);
+  assert.deepEqual(render(elderStaff, 'extra_bonespears'), ['+31 to Bone Spear Missiles']);
+  assert.deepEqual(render(lichWand, 'extra_bonespears'), ['+31 to Bone Spear Missiles']);
+  assert.deepEqual(
+    render(giantThresher, 'grims_extra_skele_mage'),
+    ['You may summon 6 extra Skeletal Mages']
+  );
 });
 
 test('formats monster-linked display stats with explicit monster names and fallback identifiers', () => {
