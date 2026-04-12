@@ -575,13 +575,39 @@ function formatPropertiesForDisplay(properties, pd2Tables) {
   return lines;
 }
 
+function isParserNoiseProperty(property) {
+  // ItemStatCost rows with an empty "Save Bits" column land with saveBits === 0
+  // after the `?? 0` fallback in pd2-data.mjs. The parser reads zero bits and
+  // emits a [0] value for these stats — always parser noise from bit-walk
+  // over-read. Drop them at display time until the parser is fixed.
+  // NOTE: test-constructed properties without a saveBits field have
+  // property.saveBits === undefined, which strict-!== 0 keeps untouched.
+  return property.saveBits === 0;
+}
+
+function partitionNoiseProperties(properties) {
+  const real = [];
+  let noiseCount = 0;
+  for (const property of properties) {
+    if (isParserNoiseProperty(property)) {
+      noiseCount += 1;
+    } else {
+      real.push(property);
+    }
+  }
+  return { real, noiseCount };
+}
+
 export function formatPropertyListForDisplay(propertyList, pd2Tables) {
+  const rawProperties = propertyList.properties ?? [];
+  const { real, noiseCount } = partitionNoiseProperties(rawProperties);
   return {
     kind: propertyList.kind,
     complete: propertyList.complete !== false,
     error: propertyList.error ?? null,
-    propertyCount: propertyList.properties?.length ?? 0,
-    properties: propertyList.properties ?? [],
-    displayLines: formatPropertiesForDisplay(propertyList.properties ?? [], pd2Tables)
+    propertyCount: real.length,
+    noiseCount,
+    properties: real,
+    displayLines: formatPropertiesForDisplay(real, pd2Tables)
   };
 }

@@ -543,3 +543,157 @@ test('formats Batch B2 stats: hpregen, damage reduction family, requirements red
     ['Requirements -50%']
   );
 });
+
+test('drops parser noise (saveBits=0) while preserving real stats and legacy test-shape properties', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'fireresist', saveBits: 8, values: [30] },      // real → kept
+      { statKey: 'unit_dooverlay', saveBits: 0, values: [0] },   // noise → dropped
+      { statKey: 'strength', values: [10] },                     // undefined saveBits → kept
+      { statKey: 'experience', saveBits: 0, values: [0] },       // noise → dropped
+      { statKey: 'coldresist', saveBits: 8, values: [25] }       // real → kept
+    ]
+  }, null);
+
+  assert.equal(displayList.propertyCount, 3);
+  assert.equal(displayList.noiseCount, 2);
+  assert.deepEqual(
+    displayList.properties.map((p) => p.statKey),
+    ['fireresist', 'strength', 'coldresist']
+  );
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    [
+      'Fire Resist +30%',
+      '+10 to Strength',
+      'Cold Resist +25%'
+    ]
+  );
+});
+
+test('noiseCount is 0 when no property has saveBits=0', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'fireresist', saveBits: 8, values: [30] },
+      { statKey: 'coldresist', saveBits: 8, values: [20] }
+    ]
+  }, null);
+
+  assert.equal(displayList.propertyCount, 2);
+  assert.equal(displayList.noiseCount, 0);
+  assert.equal(displayList.properties.length, 2);
+});
+
+test('fully-noise property list collapses to empty displayLines', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'experience', saveBits: 0, values: [0] },
+      { statKey: 'goldbank', saveBits: 0, values: [0] },
+      { statKey: 'unit_dooverlay', saveBits: 0, values: [0] }
+    ]
+  }, null);
+
+  assert.equal(displayList.propertyCount, 0);
+  assert.equal(displayList.noiseCount, 3);
+  assert.deepEqual(displayList.displayLines, []);
+  assert.deepEqual(displayList.properties, []);
+});
+
+test('grouped magic damage pair detection bridges across filtered noise', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'magicmindam', saveBits: 10, values: [10] },
+      { statKey: 'unit_dooverlay', saveBits: 0, values: [0] },   // noise between partners
+      { statKey: 'magicmaxdam', saveBits: 10, values: [20] }
+    ]
+  }, null);
+
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    ['Adds Magic Damage: 10-20']
+  );
+  assert.equal(displayList.noiseCount, 1);
+  assert.equal(displayList.propertyCount, 2);
+});
+
+test('existing test-shape properties (saveBits undefined) still format unchanged', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'strength', values: [10] },
+      { statKey: 'dexterity', values: [5] }
+    ]
+  }, null);
+
+  assert.equal(displayList.noiseCount, 0);
+  assert.equal(displayList.propertyCount, 2);
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    ['+10 to Strength', '+5 to Dexterity']
+  );
+});
+
+test('filters a real fixture item whose property list is 100% parser noise (War Pike)', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
+  const page = summary.pages.find((p) => p.name === 'Season 5 Weapons');
+  assert.ok(page, 'fixture sanity: Legacy.d2x should contain a Season 5 Weapons page');
+  const warPike = page.topLevelItems.find((item) => item.code === '7p7');
+  assert.ok(warPike, 'fixture sanity: Season 5 Weapons should contain a War Pike (7p7)');
+
+  const rawList = warPike.propertyLists[0];
+  assert.equal(rawList.properties.length, 2, 'fixture sanity: raw War Pike has 2 props');
+  assert.ok(
+    rawList.properties.every((p) => p.saveBits === 0),
+    'fixture sanity: both raw War Pike props are saveBits=0 parser noise'
+  );
+
+  const displayList = formatPropertyListForDisplay(rawList, tables);
+  assert.equal(displayList.propertyCount, 0);
+  assert.equal(displayList.noiseCount, 2);
+  assert.deepEqual(displayList.displayLines, []);
+  assert.deepEqual(displayList.properties, []);
+});
+
+test('filters a real fixture item with mixed real/noise props (Corona, Legacy.d2x)', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
+  const page = summary.pages.find((p) => p.name === 'Season 4 Armor');
+  assert.ok(page, 'fixture sanity: Legacy.d2x should contain a Season 4 Armor page');
+  const corona = page.topLevelItems[6];
+  assert.ok(corona, 'fixture sanity: Season 4 Armor should have a 7th top-level item');
+  assert.equal(corona.displayName, 'Corona', 'fixture sanity: topLevelItems[6] is the Corona');
+
+  const rawList = corona.propertyLists[0];
+  assert.equal(rawList.properties.length, 10, 'fixture sanity: raw Corona has 10 props');
+
+  const displayList = formatPropertyListForDisplay(rawList, tables);
+  assert.equal(displayList.propertyCount, 7);
+  assert.equal(displayList.noiseCount, 3);
+
+  const droppedKeys = ['item_crush_damage_percent', 'item_tohit_percent_vs_monster', 'unit_dooverlay'];
+  for (const key of droppedKeys) {
+    assert.ok(
+      !displayList.properties.some((p) => p.statKey === key),
+      `dropped noise stat ${key} should not appear in filtered properties`
+    );
+    assert.ok(
+      !displayList.displayLines.some((line) => line.statKey === key),
+      `dropped noise stat ${key} should not appear in displayLines`
+    );
+  }
+});
