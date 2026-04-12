@@ -496,6 +496,68 @@ test('formats item_skillonlevelup triplet with skill name resolution', () => {
   );
 });
 
+test('formats item_skilloncast from parsed fixture data with parser metadata', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(
+    path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'),
+    { pd2Tables: tables }
+  );
+
+  const findProperty = (displayName, values) =>
+    summary.pages
+      .flatMap((page) => page.items ?? page.topLevelItems ?? [])
+      .find(
+        (item) =>
+          item.displayName === displayName &&
+          item.properties.some(
+            (property) =>
+              property.statKey === 'item_skilloncast' &&
+              property.values?.[0] === values[0] &&
+              property.values?.[1] === values[1]
+          )
+      );
+
+  const wirtsLeg = findProperty("Wirt's Leg", [2064, 29]);
+  const elderStaff = findProperty('Elder Staff', [1094, 10]);
+  const fullRejuvPotion = findProperty('Full Rejuv Potion', [60645, 88]);
+
+  assert.ok(wirtsLeg, "expected Wirt's Leg to exist in the shared stash fixture");
+  assert.ok(elderStaff, 'expected the [1094,10] Elder Staff to exist in the shared stash fixture');
+  assert.ok(fullRejuvPotion, 'expected Full Rejuv Potion to exist in the shared stash fixture');
+
+  const render = (item) =>
+    formatPropertyListForDisplay(
+      {
+        kind: 'base',
+        complete: true,
+        error: null,
+        properties: item.properties.filter((property) => property.statKey === 'item_skilloncast')
+      },
+      tables
+    ).displayLines.map((line) => line.text);
+
+  assert.deepEqual(render(wirtsLeg), ['29% Chance to Cast Level 16 Valkyrie on Casting']);
+  assert.deepEqual(render(elderStaff), ['10% Chance to Cast Level 6 Slow Movement on Casting']);
+  assert.deepEqual(render(fullRejuvPotion), ['88% Chance to Cast Level 37 Skill 947 on Casting']);
+});
+
+test('formats item_skilloncast from raw packed values without parser metadata', () => {
+  const tables = loadPd2Tables();
+
+  assert.deepEqual(
+    formatSingle('item_skilloncast', [2064, 29], tables),
+    ['29% Chance to Cast Level 16 Valkyrie on Casting']
+  );
+  assert.deepEqual(
+    formatSingle('item_skilloncast', [1094, 10], tables),
+    ['10% Chance to Cast Level 6 Slow Movement on Casting']
+  );
+  assert.deepEqual(
+    formatSingle('item_skilloncast', [60645, 88]),
+    ['88% Chance to Cast Level 37 Skill 947 on Casting']
+  );
+});
+
 test('formats per-level flat stats as +N Label (Based on Character Level)', () => {
   assert.deepEqual(formatSingle('item_armor_perlevel', [4]), ['+4 Defense (Based on Character Level)']);
   assert.deepEqual(formatSingle('item_hp_perlevel', [6]), ['+6 Life (Based on Character Level)']);

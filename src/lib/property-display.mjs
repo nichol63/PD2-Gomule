@@ -335,6 +335,29 @@ function formatMonsterLinkedProperty(property, amountLabel, amountValue) {
   return `${formatSignedNumber(amountValue ?? 0)} ${amountLabel} ${formatMonsterIdentifier(property)}`;
 }
 
+function formatSkillOnCastProperty(property, pd2Tables) {
+  const values = property.values ?? [];
+  const packedValue = values[0] ?? 0;
+  const rawChance = values[1] ?? 0;
+  const rawSkillId = packedValue >> 6;
+  const rawLevel = packedValue & 63;
+  const hasCastMetadata =
+    property.castChance !== undefined ||
+    property.castSkillLevel !== undefined ||
+    property.castSkillId !== undefined ||
+    property.castSkillName !== undefined;
+
+  if (hasCastMetadata) {
+    const chance = property.castChance ?? rawChance;
+    const level = property.castSkillLevel ?? rawLevel;
+    const skillName = property.castSkillName
+      ?? getSkillName(property.castSkillId ?? rawSkillId, pd2Tables);
+    return `${chance}% Chance to Cast Level ${level} ${skillName} on Casting`;
+  }
+
+  return `${rawChance}% Chance to Cast Level ${rawLevel} ${getSkillName(rawSkillId, pd2Tables)} on Casting`;
+}
+
 function decodeSkillTab(tabCode) {
   if (!Number.isInteger(tabCode) || tabCode < 0) {
     return null;
@@ -507,6 +530,8 @@ function formatSingleProperty(property, pd2Tables) {
       const values = property.values ?? [];
       return `Aura When Equipped: ${getSkillName(values[0], pd2Tables)} (Level ${values[1] ?? 0})`;
     }
+    case 'item_skilloncast':
+      return formatSkillOnCastProperty(property, pd2Tables);
     case 'item_skillonhit': {
       const values = property.values ?? [];
       return `${values[2] ?? 0}% Chance to Cast Level ${values[0] ?? 0} ${getSkillName(values[1], pd2Tables)} on Striking`;
