@@ -277,6 +277,23 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
     values
   };
 
+  if (statId === 200) {
+    const [packedValue, chance] = values;
+    const castSkillId = packedValue >> 6;
+    const castSkillLevel = packedValue & 63;
+
+    property.castSkillId = castSkillId;
+    property.castSkillLevel = castSkillLevel;
+    property.castChance = chance;
+
+    const skill = pd2Tables.resolveSkill(castSkillId);
+    if (skill) {
+      property.castSkillName = skill.name;
+      property.castSkillClass = skill.charClass;
+      property.castSkillDesc = skill.skillDesc;
+    }
+  }
+
   if (statId === 155 || statId === 179 || statId === 180) {
     property.monsterId = values[0];
 

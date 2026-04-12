@@ -33,6 +33,25 @@ function findTopLevelItem(summary, itemName) {
   return item;
 }
 
+function requireProperty(item, statId, rawValues) {
+  const property = item.properties.find((entry) => {
+    if (entry.statId !== statId) {
+      return false;
+    }
+    if (rawValues == null) {
+      return true;
+    }
+    return Array.isArray(entry.values)
+      && entry.values.length === rawValues.length
+      && entry.values.every((value, index) => value === rawValues[index]);
+  });
+  assert.ok(property, `expected item "${item.displayName}" to expose stat id ${statId}`);
+  if (rawValues != null) {
+    assert.deepEqual(property.values, rawValues);
+  }
+  return property;
+}
+
 test('every topLevelItem in character has a non-empty code', () => {
   for (const item of charSummary.topLevelItems) {
     assert.ok(
@@ -150,6 +169,53 @@ test('parser preserves monster metadata on real fixture items', () => {
   assert.ok(monsterProperty, 'Monarch should expose damage_vs_montype');
   assert.equal(monsterProperty.monsterName, 'GrotesqueWyrm');
   assert.deepEqual(monsterProperty.values, [855, 421]);
+});
+
+test('parser decodes packed item_skilloncast metadata on real fixture items', () => {
+  const wirtLegPage = requirePage(sharedSummary, 'Quest Items + Misc');
+  const wirtLeg = requireTopLevelItem(wirtLegPage, "Wirt's Leg");
+  const wirtSkillOnCast = requireProperty(wirtLeg, 200, [2064, 29]);
+
+  assert.deepEqual(wirtSkillOnCast.values, [2064, 29]);
+  assert.equal(wirtSkillOnCast.castSkillId, 32);
+  assert.equal(wirtSkillOnCast.castSkillLevel, 16);
+  assert.equal(wirtSkillOnCast.castChance, 29);
+  assert.equal(wirtSkillOnCast.castSkillName, 'Valkyrie');
+  assert.equal(typeof wirtSkillOnCast.castSkillClass, 'string');
+  assert.equal(typeof wirtSkillOnCast.castSkillDesc, 'string');
+
+  const stavesPage = requirePage(sharedSummary, 'Staves 2,3');
+  const elderStaff = stavesPage.topLevelItems.find(
+    (item) => item.displayName === 'Elder Staff'
+      && item.properties.some((property) => property.statId === 200 && property.values[0] === 1094 && property.values[1] === 10)
+  );
+  assert.ok(elderStaff, 'expected Elder Staff with packed skill-on-cast payload to exist');
+  const elderSkillOnCast = requireProperty(elderStaff, 200, [1094, 10]);
+
+  assert.deepEqual(elderSkillOnCast.values, [1094, 10]);
+  assert.equal(elderSkillOnCast.castSkillId, 17);
+  assert.equal(elderSkillOnCast.castSkillLevel, 6);
+  assert.equal(elderSkillOnCast.castChance, 10);
+  assert.equal(elderSkillOnCast.castSkillName, 'Slow Movement');
+  assert.equal(typeof elderSkillOnCast.castSkillClass, 'string');
+  assert.equal(typeof elderSkillOnCast.castSkillDesc, 'string');
+
+  const rejuvPage = requirePage(sharedSummary, 'Rejuvenation');
+  const fullRejuvPotion = rejuvPage.topLevelItems.find(
+    (item) => item.displayName === 'Full Rejuv Potion'
+      && item.properties.some((property) => property.statId === 200 && property.values[0] === 60645 && property.values[1] === 88)
+  );
+  assert.ok(fullRejuvPotion, 'expected Full Rejuv Potion with packed skill-on-cast payload to exist');
+  const fullRejuvSkillOnCast = requireProperty(fullRejuvPotion, 200, [60645, 88]);
+
+  assert.deepEqual(fullRejuvSkillOnCast.values, [60645, 88]);
+  assert.equal(fullRejuvSkillOnCast.castSkillId, 947);
+  assert.equal(fullRejuvSkillOnCast.castSkillLevel, 37);
+  assert.equal(fullRejuvSkillOnCast.castChance, 88);
+  assert.ok(
+    fullRejuvSkillOnCast.castSkillName == null,
+    'unresolved skill ids should not fabricate a skill name'
+  );
 });
 
 test('parser filters state out of parsed properties for real fixture items', () => {
