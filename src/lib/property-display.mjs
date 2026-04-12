@@ -339,6 +339,31 @@ function formatMonsterLinkedProperty(property, amountLabel, amountValue) {
   return `${formatSignedNumber(amountValue ?? 0)} ${amountLabel} ${formatMonsterIdentifier(property)}`;
 }
 
+const SUMMON_CAP_LABELS = {
+  extra_skele_war: ['Skeleton Warrior', 'Skeleton Warriors'],
+  extra_skele_mage: ['Skeletal Mage', 'Skeletal Mages'],
+  extra_skele_archer: ['Skeleton Archer', 'Skeleton Archers'],
+  extra_hydra: ['Hydra', 'Hydras'],
+  extra_golem: ['Golem', 'Golems']
+};
+
+function formatSummonCapProperty(statKey, value) {
+  const count = Number.isFinite(value) ? value : 0;
+
+  if (statKey === 'extra_spirits') {
+    return `${formatSignedNumber(count)} to Maximum Spirits`;
+  }
+
+  const labelPair = SUMMON_CAP_LABELS[statKey];
+  if (!labelPair) {
+    return null;
+  }
+
+  const [singularLabel, pluralLabel] = labelPair;
+  const label = count === 1 ? singularLabel : pluralLabel;
+  return `You may summon ${count} extra ${label}`;
+}
+
 function formatSkillOnCastProperty(property, pd2Tables) {
   const values = property.values ?? [];
   const packedValue = values[0] ?? 0;
@@ -492,6 +517,13 @@ function formatSingleProperty(property, pd2Tables) {
       return formatMonsterLinkedProperty(property, 'to Damage versus', secondValue);
     case 'item_reanimate':
       return `${secondValue ?? 0}% Reanimate as: ${formatMonsterIdentifier(property)}`;
+    case 'extra_spirits':
+    case 'extra_skele_war':
+    case 'extra_skele_mage':
+    case 'extra_skele_archer':
+    case 'extra_hydra':
+    case 'extra_golem':
+      return formatSummonCapProperty(statKey, firstValue);
     case 'item_addskill_tab': {
       const decodedTab = decodeSkillTab(firstValue);
       if (!decodedTab) {

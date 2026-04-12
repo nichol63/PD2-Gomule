@@ -42,6 +42,40 @@ test('formats skill bonuses from fixture items into readable lines', () => {
   assert.ok(displayList.displayLines.some((line) => line.text === '+2 to Might'));
 });
 
+test('formats summon-cap presentation strings from raw stat keys', () => {
+  assert.deepEqual(formatSingle('extra_spirits', [1]), ['+1 to Maximum Spirits']);
+  assert.deepEqual(formatSingle('extra_spirits', [3]), ['+3 to Maximum Spirits']);
+  assert.deepEqual(
+    formatSingle('extra_skele_war', [2]),
+    ['You may summon 2 extra Skeleton Warriors']
+  );
+  assert.deepEqual(
+    formatSingle('extra_skele_mage', [2]),
+    ['You may summon 2 extra Skeletal Mages']
+  );
+  assert.deepEqual(
+    formatSingle('extra_skele_archer', [12]),
+    ['You may summon 12 extra Skeleton Archers']
+  );
+  assert.deepEqual(
+    formatSingle('extra_hydra', [17]),
+    ['You may summon 17 extra Hydras']
+  );
+  assert.deepEqual(
+    formatSingle('extra_golem', [3]),
+    ['You may summon 3 extra Golems']
+  );
+});
+
+test('formats summon-cap singular forms naturally', () => {
+  assert.deepEqual(formatSingle('extra_skele_war', [1]), ['You may summon 1 extra Skeleton Warrior']);
+  assert.deepEqual(formatSingle('extra_skele_mage', [1]), ['You may summon 1 extra Skeletal Mage']);
+  assert.deepEqual(formatSingle('extra_skele_archer', [1]), ['You may summon 1 extra Skeleton Archer']);
+  assert.deepEqual(formatSingle('extra_hydra', [1]), ['You may summon 1 extra Hydra']);
+  assert.deepEqual(formatSingle('extra_golem', [1]), ['You may summon 1 extra Golem']);
+  assert.deepEqual(formatSingle('extra_spirits', [1]), ['+1 to Maximum Spirits']);
+});
+
 test('formats skill tabs and grouped elemental damage using presentation-only helpers', () => {
   const tables = loadPd2Tables();
   const displayList = formatPropertyListForDisplay({
@@ -273,6 +307,60 @@ test('formats skill-proc triplet stats with skill name resolution', () => {
     formatSingle('item_skillonkill', [8, 98, 15], tables),
     ['15% Chance to Cast Level 8 Might on Kill']
   );
+});
+
+test('formats summon-cap stats from parsed fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+  const findItem = (displayName, statKey, value) =>
+    summary.pages
+      .flatMap((page) => page.items ?? page.topLevelItems ?? [])
+      .find(
+        (item) =>
+          item.displayName === displayName &&
+          item.properties.some(
+            (property) =>
+              property.statKey === statKey &&
+              property.values?.[0] === value
+          )
+      );
+
+  const earthSpirit = findItem('Earth Spirit', 'extra_spirits', 1);
+  const perfectDiamond = findItem('Perfect Diamond', 'extra_skele_war', 16);
+  const ithRune = findItem('Ith Rune', 'extra_skele_mage', 17);
+  const perfectSaphire = findItem('Perfect Saphire', 'extra_skele_archer', 14);
+  const ghostSpear = findItem('Ghost Spear', 'extra_hydra', 2);
+  const archonStaff = findItem('Archon Staff', 'extra_golem', 6);
+
+  assert.ok(earthSpirit, 'expected Earth Spirit to expose extra_spirits in the shared stash fixture');
+  assert.ok(
+    perfectDiamond,
+    'expected Perfect Diamond to expose extra_skele_war in the shared stash fixture'
+  );
+  assert.ok(ithRune, 'expected Ith Rune to expose extra_skele_mage in the shared stash fixture');
+  assert.ok(
+    perfectSaphire,
+    'expected Perfect Saphire to expose extra_skele_archer in the shared stash fixture'
+  );
+  assert.ok(ghostSpear, 'expected Ghost Spear to expose extra_hydra in the shared stash fixture');
+  assert.ok(archonStaff, 'expected Archon Staff to expose extra_golem in the shared stash fixture');
+
+  const render = (item, statKey) =>
+    formatPropertyListForDisplay(
+      {
+        ...item.propertyLists[0],
+        properties: item.propertyLists[0].properties.filter((property) => property.statKey === statKey)
+      },
+      tables
+    ).displayLines.map((line) => line.text);
+
+  assert.deepEqual(render(earthSpirit, 'extra_spirits'), ['+1 to Maximum Spirits']);
+  assert.deepEqual(render(perfectDiamond, 'extra_skele_war'), ['You may summon 16 extra Skeleton Warriors']);
+  assert.deepEqual(render(ithRune, 'extra_skele_mage'), ['You may summon 17 extra Skeletal Mages']);
+  assert.deepEqual(render(perfectSaphire, 'extra_skele_archer'), ['You may summon 14 extra Skeleton Archers']);
+  assert.deepEqual(render(ghostSpear, 'extra_hydra'), ['You may summon 2 extra Hydras']);
+  assert.deepEqual(render(archonStaff, 'extra_golem'), ['You may summon 6 extra Golems']);
 });
 
 test('formats monster-linked display stats with explicit monster names and fallback identifiers', () => {
