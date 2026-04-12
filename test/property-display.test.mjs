@@ -495,3 +495,51 @@ test('unknown perlevel stat not in PERLEVEL_STAT_RULES falls through to generic 
     'unknown perlevel stat should not use the per-level format'
   );
 });
+
+test('formats Batch B2 stats: hpregen, damage reduction family, requirements reduction', () => {
+  // hpregen → "Replenish Life +N" switch case: flat right-side with signed prefix
+  assert.deepEqual(formatSingle('hpregen', [9]), ['Replenish Life +9']);
+  assert.deepEqual(formatSingle('hpregen', [3]), ['Replenish Life +3']);
+  assert.deepEqual(formatSingle('hpregen', [-30]), ['Replenish Life -30']);
+
+  // normal_damage_reduction → "Damage Reduced by N" switch case: flat right-side, no sign prefix
+  assert.deepEqual(
+    formatSingle('normal_damage_reduction', [21]),
+    ['Damage Reduced by 21']
+  );
+  assert.deepEqual(
+    formatSingle('normal_damage_reduction', [1]),
+    ['Damage Reduced by 1']
+  );
+
+  // magic_damage_reduction → "Magic Damage Reduced by N"
+  assert.deepEqual(
+    formatSingle('magic_damage_reduction', [2]),
+    ['Magic Damage Reduced by 2']
+  );
+  assert.deepEqual(
+    formatSingle('magic_damage_reduction', [6]),
+    ['Magic Damage Reduced by 6']
+  );
+
+  // damageresist → "Damage Reduced by N%" switch case: percent right-side, "by" wording
+  assert.deepEqual(
+    formatSingle('damageresist', [10]),
+    ['Damage Reduced by 10%']
+  );
+  assert.deepEqual(
+    formatSingle('damageresist', [20]),
+    ['Damage Reduced by 20%']
+  );
+
+  // item_req_percent → "Requirements -N%" via SIMPLE_STAT_LABELS + PERCENT + RIGHT_VALUE path
+  // D2 in-game values are always negative (requirements only go down), but the test also covers a hypothetical positive value for robustness
+  assert.deepEqual(
+    formatSingle('item_req_percent', [-15]),
+    ['Requirements -15%']
+  );
+  assert.deepEqual(
+    formatSingle('item_req_percent', [-50]),
+    ['Requirements -50%']
+  );
+});

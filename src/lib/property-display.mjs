@@ -118,6 +118,7 @@ const SIMPLE_STAT_LABELS = {
   item_undeaddamage_percent: 'Damage to Undead',
   maxmagicresist: 'Maximum Magic Resist',
   magicresist: 'Magic Resist',
+  item_req_percent: 'Requirements',
   gold: 'Gold',
   level: 'Level',
   statpts: 'Stat Points'
@@ -181,7 +182,8 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_demondamage_percent',
   'item_undeaddamage_percent',
   'maxmagicresist',
-  'magicresist'
+  'magicresist',
+  'item_req_percent'
 ]);
 
 const RIGHT_VALUE_LABEL_KEYS = new Set([
@@ -224,7 +226,8 @@ const RIGHT_VALUE_LABEL_KEYS = new Set([
   'item_tohit_percent',
   'item_absorbmagic_percent',
   'item_staminadrainpct',
-  'item_poisonlengthresist'
+  'item_poisonlengthresist',
+  'item_req_percent'
 ]);
 
 const PERLEVEL_STAT_RULES = {
@@ -520,6 +523,14 @@ function formatSingleProperty(property, pd2Tables) {
       const className = CLASS_NAMES[classId] ?? `Class ${classId}`;
       return `${formatSignedNumber(values[1] ?? 0)} to ${className} Skill Levels`;
     }
+    case 'damageresist':
+      return `Damage Reduced by ${firstValue ?? 0}%`;
+    case 'hpregen':
+      return `Replenish Life ${formatSignedNumber(firstValue ?? 0)}`;
+    case 'magic_damage_reduction':
+      return `Magic Damage Reduced by ${firstValue ?? 0}`;
+    case 'normal_damage_reduction':
+      return `Damage Reduced by ${firstValue ?? 0}`;
     default:
       break;
   }
