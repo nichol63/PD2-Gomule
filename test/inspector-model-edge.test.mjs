@@ -15,6 +15,7 @@ const tables = loadPd2Tables();
 
 const CHAR_PATH = path.join(FIXTURE_DIR, 'Legacy.d2s');
 const STASH_PATH = path.join(FIXTURE_DIR, 'Bases.d2x');
+const LEGACY_STASH_PATH = path.join(FIXTURE_DIR, 'Legacy.d2x');
 
 test('buildInspectorView with no selectedItemKey returns selectedItem null', async () => {
   const workspace = await loadInspectorWorkspace([CHAR_PATH], { pd2Tables: tables });
@@ -182,6 +183,66 @@ test('selected item children expose formatted propertyLists with displayLines', 
       }
     }
   }
+});
+
+test('selectedItem propertyLists expose noiseCount alongside filtered propertyCount', async () => {
+  // Corona in Legacy.d2x Season 4 Armor has 10 raw props / 7 real / 3 noise on
+  // its single base propertyList. The UI depends on selectedItem.propertyLists[0]
+  // carrying noiseCount so it can render the "(N noise filtered)" annotation
+  // in the details panel. Also asserts the top-level selectedItem.propertyCount
+  // is the filtered count (7) because inspector-model reads it off the browse
+  // entry built by createBrowseEntry.
+  const workspace = await loadInspectorWorkspace([LEGACY_STASH_PATH], { pd2Tables: tables });
+  const catalog = getInspectorCatalog(workspace);
+  const legacySource = catalog.sources.find((s) => s.kind !== 'workspace-library');
+
+  const view = buildInspectorView(workspace, {
+    sourceId: legacySource.id,
+    page: 'Season 4 Armor',
+    query: 'corona'
+  });
+
+  const selected = view.selectedItem;
+  assert.ok(selected, 'Corona should resolve as selected item');
+  assert.equal(selected.displayName, 'Corona');
+  assert.equal(selected.propertyCount, 7, 'selectedItem.propertyCount should be filtered (10 raw - 3 noise)');
+  assert.ok(Array.isArray(selected.propertyLists) && selected.propertyLists.length > 0);
+
+  const baseList = selected.propertyLists[0];
+  assert.equal(baseList.propertyCount, 7, 'formatted propertyList.propertyCount should be filtered');
+  assert.equal(baseList.noiseCount, 3, 'formatted propertyList.noiseCount should report 3 dropped noise stats');
+  assert.ok(Array.isArray(baseList.displayLines));
+  // Defensive: dropped noise stats must not appear in displayLines
+  const droppedKeys = ['item_crush_damage_percent', 'item_tohit_percent_vs_monster', 'unit_dooverlay'];
+  for (const key of droppedKeys) {
+    assert.ok(
+      !baseList.displayLines.some((line) => line.statKey === key),
+      `dropped noise stat ${key} should not appear in selectedItem displayLines`
+    );
+  }
+});
+
+test('selectedItem propertyLists expose noiseCount = 0 when item has no parser noise', async () => {
+  // pa1 (Sacred Targe) in Bases.d2x Reg Paladin has 4 clean resistance props.
+  // UI must NOT render "(0 noise filtered)" — the app.js ternary gates on
+  // noiseCount > 0, so the API exposing noiseCount: 0 is the contract.
+  const workspace = await loadInspectorWorkspace([STASH_PATH], { pd2Tables: tables });
+  const catalog = getInspectorCatalog(workspace);
+  const stashSource = catalog.sources.find((s) => s.kind !== 'workspace-library');
+
+  const view = buildInspectorView(workspace, {
+    sourceId: stashSource.id,
+    page: 'Reg Paladin',
+    query: 'sacred targe'
+  });
+
+  const selected = view.selectedItem;
+  assert.ok(selected, 'Sacred Targe should resolve as selected item');
+  assert.equal(selected.code, 'pa1');
+  assert.equal(selected.propertyCount, 4);
+  assert.ok(selected.propertyLists.length > 0);
+  assert.equal(selected.propertyLists[0].propertyCount, 4);
+  assert.equal(selected.propertyLists[0].noiseCount, 0);
 });
 
 test('child items without propertyLists still expose an empty propertyLists array', async () => {

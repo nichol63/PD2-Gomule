@@ -384,7 +384,7 @@ function renderItemDetails() {
         <section class="detail-group">
           <div class="detail-group__header ${kindClass(list.kind)}">
             <strong>${escapeHtml(list.kind)}</strong>
-            <span>${list.complete ? 'complete' : 'partial'} - ${list.propertyCount} stats</span>
+            <span>${list.complete ? 'complete' : 'partial'} - ${list.propertyCount} stats${list.noiseCount > 0 ? ` (${list.noiseCount} noise filtered)` : ''}</span>
           </div>
           ${list.error ? `<div class="detail-warning">${escapeHtml(list.error)}</div>` : ''}
           <ul class="detail-list">

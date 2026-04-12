@@ -122,3 +122,57 @@ test('collectBrowseEntries from shared stash produces entries', () => {
   const entries = collectBrowseEntries(sharedSummary);
   assert.ok(Array.isArray(entries), 'should return an array');
 });
+
+test('createBrowseEntry propertyCount excludes parser-noise (saveBits=0) stats', () => {
+  // Corona in Legacy.d2x Season 4 Armor has 10 raw props / 7 real / 3 noise.
+  // The browse entry must report the filtered count (7), not the raw count (10),
+  // so grid tiles, match rows, and the details panel all agree on the same
+  // number. This mirrors formatPropertyListForDisplay's filter in
+  // property-display.mjs.
+  const legacyX = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
+  const entries = collectBrowseEntries(legacyX, { page: 'Season 4 Armor' });
+  const corona = entries.find((entry) => entry.displayName === 'Corona');
+
+  assert.ok(corona, 'Corona should be present in Season 4 Armor page');
+  // fixture sanity: raw parser still reports 10 (this assertion guards against
+  // accidentally mutating the parser output — browse entries are derived)
+  assert.equal(corona.item.propertyCount, 10, 'raw parser propertyCount should still be 10');
+  assert.equal(corona.propertyCount, 7, 'browse entry propertyCount should drop 3 noise stats');
+});
+
+test('createBrowseEntry propertyCount matches raw count when item has no parser noise', () => {
+  // pa1 (Sacred Targe) in Bases.d2x Reg Paladin has 4 clean resistance props.
+  // Because no property has saveBits=0, browse entry count must equal raw count.
+  const entries = collectBrowseEntries(stashSummary, { page: 'Reg Paladin' });
+  const shield = entries.find((entry) => entry.code === 'pa1');
+
+  assert.ok(shield, 'Sacred Targe should be present in Reg Paladin page');
+  assert.equal(shield.item.propertyCount, 4);
+  assert.equal(shield.propertyCount, 4);
+});
+
+test('createBrowseEntry preserves test-shape items whose properties lack saveBits', () => {
+  // Regression guard: undefined !== 0, so a test-constructed item with no
+  // saveBits field on its properties must still count all of them. This keeps
+  // existing unit tests that build synthetic items from breaking.
+  const fakeSummary = {
+    kind: 'character',
+    filePath: '/tmp/synthetic.d2s',
+    fileName: 'synthetic.d2s',
+    name: 'Synthetic',
+    topLevelItems: [{
+      displayName: 'Synthetic Item',
+      code: 'syn',
+      qualityLabel: 'normal',
+      propertyCount: 3,
+      properties: [
+        { statKey: 'strength', values: [10] },
+        { statKey: 'dexterity', values: [5] },
+        { statKey: 'vitality', values: [7] }
+      ]
+    }]
+  };
+  const entries = collectBrowseEntries(fakeSummary);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].propertyCount, 3);
+});

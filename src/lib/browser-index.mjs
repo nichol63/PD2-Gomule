@@ -38,6 +38,23 @@ function getQualityRank(item) {
   return QUALITY_SORT_ORDER[item.qualityLabel] ?? 0;
 }
 
+// Mirrors the parser-noise filter in property-display.mjs (isParserNoiseProperty).
+// Drops properties whose saveBits is strict-equal to 0 — those come from
+// ItemStatCost rows with an empty "Save Bits" column and are always parser-
+// noise from bit-walk over-read. Test-shape properties with undefined saveBits
+// are kept (undefined !== 0). This keeps grid-tile/match-row/details-panel
+// counts in sync with formatPropertyListForDisplay's filtered propertyCount.
+function countRealProperties(item) {
+  const properties = item.properties ?? [];
+  let count = 0;
+  for (const property of properties) {
+    if (property.saveBits !== 0) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 function buildSearchText(item, context) {
   const propertyKeys = item.properties?.map((entry) => entry.statKey).join(' ') ?? '';
   const childNames = item.children?.map((entry) => `${entry.displayName} ${entry.code}`).join(' ') ?? '';
@@ -74,7 +91,7 @@ function createBrowseEntry(item, context, itemIndex) {
     code: item.code,
     qualityLabel: item.qualityLabel,
     qualityRank: getQualityRank(item),
-    propertyCount: item.propertyCount ?? 0,
+    propertyCount: countRealProperties(item),
     propertiesComplete: item.propertiesComplete !== false,
     socketsFilled: item.socketsFilled ?? 0,
     totalSockets: item.totalSockets ?? 0,
