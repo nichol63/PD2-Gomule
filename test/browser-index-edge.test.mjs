@@ -124,20 +124,16 @@ test('collectBrowseEntries from shared stash produces entries', () => {
 });
 
 test('createBrowseEntry propertyCount excludes parser-noise (saveBits=0) stats', () => {
-  // Corona in Legacy.d2x Season 4 Armor has 10 raw props / 7 real / 3 noise.
-  // The browse entry must report the filtered count (7), not the raw count (10),
-  // so grid tiles, match rows, and the details panel all agree on the same
-  // number. This mirrors formatPropertyListForDisplay's filter in
-  // property-display.mjs.
+  // Corona in Legacy.d2x Season 4 Armor now arrives from the parser with the
+  // zero-saveBits noise already dropped, so both the raw parser count and the
+  // browse-entry count stay at the 7 real stats.
   const legacyX = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const entries = collectBrowseEntries(legacyX, { page: 'Season 4 Armor' });
   const corona = entries.find((entry) => entry.displayName === 'Corona');
 
   assert.ok(corona, 'Corona should be present in Season 4 Armor page');
-  // fixture sanity: raw parser still reports 10 (this assertion guards against
-  // accidentally mutating the parser output — browse entries are derived)
-  assert.equal(corona.item.propertyCount, 10, 'raw parser propertyCount should still be 10');
-  assert.equal(corona.propertyCount, 7, 'browse entry propertyCount should drop 3 noise stats');
+  assert.equal(corona.item.propertyCount, 7, 'raw parser propertyCount should already exclude zero-saveBits noise');
+  assert.equal(corona.propertyCount, 7, 'browse entry propertyCount should match the cleaned parser count');
 });
 
 test('createBrowseEntry propertyCount matches raw count when item has no parser noise', () => {

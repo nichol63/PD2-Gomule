@@ -11,7 +11,20 @@ const tables = loadPd2Tables();
 
 const charSummary = parseCharacterFile(path.join(FIXTURE_DIR, 'Legacy.d2s'), { pd2Tables: tables });
 const stashSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
+const legacyStashSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
 const sharedSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+function requirePage(summary, pageName) {
+  const page = summary.pages.find((entry) => entry.name === pageName);
+  assert.ok(page, `expected page "${pageName}" to exist`);
+  return page;
+}
+
+function requireTopLevelItem(page, itemName) {
+  const item = page.topLevelItems.find((entry) => entry.displayName === itemName);
+  assert.ok(item, `expected item "${itemName}" on page "${page.name}"`);
+  return item;
+}
 
 test('every topLevelItem in character has a non-empty code', () => {
   for (const item of charSummary.topLevelItems) {
@@ -97,4 +110,26 @@ test('stash pages topLevelItems are consistently shaped', () => {
       }
     }
   }
+});
+
+test('parser stops at first zero-saveBits property instead of emitting parser noise', () => {
+  const page = requirePage(legacyStashSummary, 'Season 5 Weapons');
+  const warPike = requireTopLevelItem(page, 'War Pike');
+
+  assert.equal(warPike.propertyCount, 0);
+  assert.equal(
+    warPike.properties.filter((property) => property.saveBits === 0).length,
+    0,
+    'War Pike should not retain any zero-saveBits parsed properties'
+  );
+});
+
+test('parser infers socket metadata from filled sockets and attached children', () => {
+  const page = requirePage(legacyStashSummary, 'Season 5 Armor');
+  const monarch = requireTopLevelItem(page, 'Monarch');
+
+  assert.equal(monarch.isSocketed, true);
+  assert.equal(monarch.socketsFilled, 4);
+  assert.equal(monarch.totalSockets, 4);
+  assert.equal(monarch.children.length, 4);
 });

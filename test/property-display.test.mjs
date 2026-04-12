@@ -647,7 +647,7 @@ test('existing test-shape properties (saveBits undefined) still format unchanged
   );
 });
 
-test('filters a real fixture item whose property list is 100% parser noise (War Pike)', () => {
+test('formatter is a no-op for a real fixture item whose parser-level noise is already removed (War Pike)', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const page = summary.pages.find((p) => p.name === 'Season 5 Weapons');
@@ -656,20 +656,16 @@ test('filters a real fixture item whose property list is 100% parser noise (War 
   assert.ok(warPike, 'fixture sanity: Season 5 Weapons should contain a War Pike (7p7)');
 
   const rawList = warPike.propertyLists[0];
-  assert.equal(rawList.properties.length, 2, 'fixture sanity: raw War Pike has 2 props');
-  assert.ok(
-    rawList.properties.every((p) => p.saveBits === 0),
-    'fixture sanity: both raw War Pike props are saveBits=0 parser noise'
-  );
+  assert.equal(rawList.properties.length, 0, 'fixture sanity: parser should already drop the War Pike noise rows');
 
   const displayList = formatPropertyListForDisplay(rawList, tables);
   assert.equal(displayList.propertyCount, 0);
-  assert.equal(displayList.noiseCount, 2);
+  assert.equal(displayList.noiseCount, 0);
   assert.deepEqual(displayList.displayLines, []);
   assert.deepEqual(displayList.properties, []);
 });
 
-test('filters a real fixture item with mixed real/noise props (Corona, Legacy.d2x)', () => {
+test('formatter is a no-op for a mixed real/noise fixture once parser-level noise is removed (Corona, Legacy.d2x)', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const page = summary.pages.find((p) => p.name === 'Season 4 Armor');
@@ -679,11 +675,11 @@ test('filters a real fixture item with mixed real/noise props (Corona, Legacy.d2
   assert.equal(corona.displayName, 'Corona', 'fixture sanity: topLevelItems[6] is the Corona');
 
   const rawList = corona.propertyLists[0];
-  assert.equal(rawList.properties.length, 10, 'fixture sanity: raw Corona has 10 props');
+  assert.equal(rawList.properties.length, 7, 'fixture sanity: parser should already drop Corona zero-saveBits noise');
 
   const displayList = formatPropertyListForDisplay(rawList, tables);
   assert.equal(displayList.propertyCount, 7);
-  assert.equal(displayList.noiseCount, 3);
+  assert.equal(displayList.noiseCount, 0);
 
   const droppedKeys = ['item_crush_damage_percent', 'item_tohit_percent_vs_monster', 'unit_dooverlay'];
   for (const key of droppedKeys) {

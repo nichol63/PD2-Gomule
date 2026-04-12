@@ -230,6 +230,9 @@ function requireItemStat(pd2Tables, statId) {
 
 function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
   const stat = requireItemStat(pd2Tables, statId);
+  if (stat.saveBits === 0) {
+    return null;
+  }
   const values = [];
 
   if (statId === 201 || statId === 197 || statId === 199 ||
@@ -288,7 +291,10 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
         throw new Error(`Property list exceeded ${MAX_PROPERTY_BITS} bits`);
       }
 
-      properties.push(parseLegacyProperty(reader, rootProp, pd2Tables, qFlag, listKind));
+      const property = parseLegacyProperty(reader, rootProp, pd2Tables, qFlag, listKind);
+      if (property !== null) {
+        properties.push(property);
+      }
 
       if (rootProp === 17) {
         properties.push(parseLegacyProperty(reader, 18, pd2Tables, qFlag, listKind));
@@ -448,6 +454,7 @@ function parseExtendedCore(reader, summary, pd2Tables) {
   summary.propertyCount = summary.properties.length;
   summary.propertiesComplete = summary.propertyLists.every((entry) => entry.complete);
   summary.propertyParseError = summary.propertyLists.find((entry) => !entry.complete)?.error ?? null;
+  normalizeSocketMetadata(summary);
 }
 
 function isPlausibleLegacyItemSummary(summary, options = {}) {
@@ -484,6 +491,19 @@ function canHaveSocketChildren(summary) {
   );
 }
 
+function normalizeSocketMetadata(summary) {
+  const inferredSockets = Math.max(
+    summary.socketsFilled ?? 0,
+    summary.children?.length ?? 0,
+    summary.totalSockets ?? 0
+  );
+
+  if (inferredSockets > 0) {
+    summary.isSocketed = true;
+    summary.totalSockets = inferredSockets;
+  }
+}
+
 function attachSocketChildren(items) {
   const topLevelItems = [];
 
@@ -510,6 +530,8 @@ function attachSocketChildren(items) {
       item.children.push(child);
       childIndex += 1;
     }
+
+    normalizeSocketMetadata(item);
   }
 
   return topLevelItems;
@@ -654,6 +676,7 @@ export function parseLegacyItemTree(buffer, offset, stopOffset, pd2Tables) {
     summary.children = children;
   }
 
+  normalizeSocketMetadata(summary);
   summary.nextOffset = nextCandidate?.byteOffset ?? stopOffset;
   return summary;
 }
