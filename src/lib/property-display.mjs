@@ -64,15 +64,7 @@ const SIMPLE_STAT_LABELS = {
   toblock: 'Chance to Block',
   map_play_toblock: 'Chance to Block',
   item_allskills: 'All Skills',
-  item_hp_perlevel: 'Life per Level',
-  item_mana_perlevel: 'Mana per Level',
-  item_strength_perlevel: 'Strength per Level',
-  item_dexterity_perlevel: 'Dexterity per Level',
-  item_vitality_perlevel: 'Vitality per Level',
-  item_find_magic_perlevel: 'Magic Find per Level',
-  item_find_gold_perlevel: 'Gold Find per Level',
   item_addexperience: 'Experience Gained',
-  item_perlevelexp: 'Bonus Experience per Level',
   item_goldbonus: 'Gold Find',
   item_lightradius: 'Light Radius',
   maxstamina: 'Stamina',
@@ -235,8 +227,72 @@ const RIGHT_VALUE_LABEL_KEYS = new Set([
   'item_poisonlengthresist'
 ]);
 
+const PERLEVEL_STAT_RULES = {
+  item_armor_perlevel: { label: 'Defense', format: 'flat' },
+  item_armorpercent_perlevel: { label: 'Enhanced Defense', format: 'percent_signed' },
+  item_hp_perlevel: { label: 'Life', format: 'flat' },
+  item_mana_perlevel: { label: 'Mana', format: 'flat' },
+  item_maxdamage_perlevel: { label: 'Maximum Damage', format: 'flat' },
+  item_maxdamage_percent_perlevel: { label: 'Enhanced Maximum Damage', format: 'percent_signed' },
+  item_strength_perlevel: { label: 'Strength', format: 'flat' },
+  item_dexterity_perlevel: { label: 'Dexterity', format: 'flat' },
+  item_energy_perlevel: { label: 'Energy', format: 'flat' },
+  item_vitality_perlevel: { label: 'Vitality', format: 'flat' },
+  item_tohit_perlevel: { label: 'Attack Rating', format: 'flat' },
+  item_tohitpercent_perlevel: { label: 'Bonus to Attack Rating', format: 'percent' },
+  item_cold_damagemax_perlevel: { label: 'Maximum Cold Damage', format: 'flat' },
+  item_fire_damagemax_perlevel: { label: 'Maximum Fire Damage', format: 'flat' },
+  item_ltng_damagemax_perlevel: { label: 'Maximum Lightning Damage', format: 'flat' },
+  item_pois_damagemax_perlevel: { label: 'Maximum Poison Damage', format: 'flat' },
+  item_resist_cold_perlevel: { label: 'Cold Resist', format: 'percent' },
+  item_resist_fire_perlevel: { label: 'Fire Resist', format: 'percent' },
+  item_resist_ltng_perlevel: { label: 'Lightning Resist', format: 'percent' },
+  item_resist_pois_perlevel: { label: 'Poison Resist', format: 'percent' },
+  item_absorb_cold_perlevel: { label: 'Cold Absorb', format: 'flat' },
+  item_absorb_fire_perlevel: { label: 'Fire Absorb', format: 'flat' },
+  item_absorb_ltng_perlevel: { label: 'Lightning Absorb', format: 'flat' },
+  item_absorb_pois_perlevel: { label: 'Poison Absorb', format: 'flat' },
+  item_thorns_perlevel: { label: 'Thorns', format: 'flat_unsigned' },
+  item_find_gold_perlevel: { label: 'Gold Find', format: 'percent' },
+  item_find_magic_perlevel: { label: 'Magic Find', format: 'percent' },
+  item_regenstamina_perlevel: { label: 'Stamina Recovery', format: 'percent_signed' },
+  item_stamina_perlevel: { label: 'Stamina', format: 'flat' },
+  item_damage_demon_perlevel: { label: 'Damage to Demons', format: 'percent_signed' },
+  item_damage_undead_perlevel: { label: 'Damage to Undead', format: 'percent_signed' },
+  item_tohit_demon_perlevel: { label: 'Attack Rating against Demons', format: 'flat' },
+  item_tohit_undead_perlevel: { label: 'Attack Rating against Undead', format: 'flat' },
+  item_crushingblow_perlevel: { label: 'Crushing Blow', format: 'percent' },
+  item_openwounds_perlevel: { label: 'Open Wounds', format: 'percent' },
+  item_kick_damage_perlevel: { label: 'Kick Damage', format: 'flat' },
+  item_deadlystrike_perlevel: { label: 'Deadly Strike', format: 'percent' }
+};
+
 function formatSignedNumber(value) {
   return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function formatPerlevelProperty(statKey, value) {
+  const rule = PERLEVEL_STAT_RULES[statKey];
+  if (!rule) {
+    return null;
+  }
+
+  const numericValue = Number.isFinite(value) ? value : 0;
+  const label = rule.label;
+  const suffix = '(Based on Character Level)';
+
+  switch (rule.format) {
+    case 'flat':
+      return `${formatSignedNumber(numericValue)} ${label} ${suffix}`;
+    case 'percent':
+      return `${numericValue}% ${label} ${suffix}`;
+    case 'percent_signed':
+      return `${formatSignedNumber(numericValue)}% ${label} ${suffix}`;
+    case 'flat_unsigned':
+      return `${numericValue} ${label} ${suffix}`;
+    default:
+      return null;
+  }
 }
 
 function humanizeStatKey(statKey) {
@@ -378,6 +434,11 @@ function formatSingleProperty(property, pd2Tables) {
   const firstValue = property.values?.[0];
   const secondValue = property.values?.[1];
 
+  const perlevelLine = formatPerlevelProperty(statKey, firstValue);
+  if (perlevelLine !== null) {
+    return perlevelLine;
+  }
+
   switch (statKey) {
     case 'item_allskills':
       return `${formatSignedNumber(firstValue ?? 0)} to All Skills`;
@@ -395,15 +456,6 @@ function formatSingleProperty(property, pd2Tables) {
 
       return `${formatSignedNumber(secondValue ?? 0)} to ${decodedTab.tabName} (${decodedTab.className} Only)`;
     }
-    case 'item_hp_perlevel':
-    case 'item_mana_perlevel':
-    case 'item_strength_perlevel':
-    case 'item_dexterity_perlevel':
-    case 'item_vitality_perlevel':
-    case 'item_find_magic_perlevel':
-    case 'item_find_gold_perlevel':
-    case 'item_perlevelexp':
-      return `${formatSimpleLabel(statKey)}: ${property.values?.join(', ') ?? 'n/a'} (per-level scaling)`;
     case 'item_knockback':
       return 'Knockback';
     case 'item_stupidity':

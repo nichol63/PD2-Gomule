@@ -107,10 +107,6 @@ test('formats new switch-case stat keys into readable lines', () => {
   assert.deepEqual(formatSingle('item_stupidity', []), ['Hit Blinds Target']);
   assert.deepEqual(formatSingle('item_slow', [20]), ['Slows Target by 20%']);
   assert.deepEqual(formatSingle('item_fall', [25]), ['Hit Causes Monster to Flee 25%']);
-  assert.deepEqual(
-    formatSingle('item_perlevelexp', [2]),
-    ['Bonus Experience per Level: 2 (per-level scaling)']
-  );
 });
 
 test('formats charged skill and aura stats using skill name resolution', () => {
@@ -431,5 +427,71 @@ test('formats item_skillonlevelup triplet with skill name resolution', () => {
   assert.deepEqual(
     formatSingle('item_skillonlevelup', [10, 999, 50], tables),
     ['50% Chance to Cast Level 10 Skill 999 on Level Up']
+  );
+});
+
+test('formats per-level flat stats as +N Label (Based on Character Level)', () => {
+  assert.deepEqual(formatSingle('item_armor_perlevel', [4]), ['+4 Defense (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_hp_perlevel', [6]), ['+6 Life (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_hp_perlevel', [0]), ['+0 Life (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_mana_perlevel', [32]), ['+32 Mana (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_maxdamage_perlevel', [4]), ['+4 Maximum Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_strength_perlevel', [49]), ['+49 Strength (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_dexterity_perlevel', [14]), ['+14 Dexterity (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_energy_perlevel', [14]), ['+14 Energy (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_vitality_perlevel', [47]), ['+47 Vitality (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_tohit_perlevel', [33]), ['+33 Attack Rating (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_cold_damagemax_perlevel', [22]), ['+22 Maximum Cold Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_fire_damagemax_perlevel', [33]), ['+33 Maximum Fire Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_ltng_damagemax_perlevel', [24]), ['+24 Maximum Lightning Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_pois_damagemax_perlevel', [21]), ['+21 Maximum Poison Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_absorb_cold_perlevel', [44]), ['+44 Cold Absorb (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_absorb_fire_perlevel', [9]), ['+9 Fire Absorb (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_absorb_ltng_perlevel', [14]), ['+14 Lightning Absorb (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_absorb_pois_perlevel', [54]), ['+54 Poison Absorb (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_stamina_perlevel', [60]), ['+60 Stamina (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_tohit_demon_perlevel', [43]), ['+43 Attack Rating against Demons (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_tohit_undead_perlevel', [25]), ['+25 Attack Rating against Undead (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_kick_damage_perlevel', [42]), ['+42 Kick Damage (Based on Character Level)']);
+});
+
+test('formats per-level percent stats as N% Label (Based on Character Level)', () => {
+  assert.deepEqual(formatSingle('item_tohitpercent_perlevel', [2]), ['2% Bonus to Attack Rating (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_resist_cold_perlevel', [23]), ['23% Cold Resist (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_resist_fire_perlevel', [54]), ['54% Fire Resist (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_resist_ltng_perlevel', [14]), ['14% Lightning Resist (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_resist_pois_perlevel', [21]), ['21% Poison Resist (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_find_gold_perlevel', [62]), ['62% Gold Find (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_find_magic_perlevel', [32]), ['32% Magic Find (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_crushingblow_perlevel', [60]), ['60% Crushing Blow (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_openwounds_perlevel', [11]), ['11% Open Wounds (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_deadlystrike_perlevel', [2]), ['2% Deadly Strike (Based on Character Level)']);
+});
+
+test('formats per-level signed-percent stats as +N% Label (Based on Character Level)', () => {
+  assert.deepEqual(formatSingle('item_armorpercent_perlevel', [35]), ['+35% Enhanced Defense (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_maxdamage_percent_perlevel', [8]), ['+8% Enhanced Maximum Damage (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_regenstamina_perlevel', [57]), ['+57% Stamina Recovery (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_damage_demon_perlevel', [36]), ['+36% Damage to Demons (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_damage_undead_perlevel', [9]), ['+9% Damage to Undead (Based on Character Level)']);
+});
+
+test('formats item_thorns_perlevel as flat unsigned value', () => {
+  assert.deepEqual(formatSingle('item_thorns_perlevel', [32]), ['32 Thorns (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_thorns_perlevel', [2624]), ['2624 Thorns (Based on Character Level)']);
+});
+
+test('formats per-level stats with negative values correctly', () => {
+  assert.deepEqual(formatSingle('item_hp_perlevel', [-3]), ['-3 Life (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_damage_demon_perlevel', [-5]), ['-5% Damage to Demons (Based on Character Level)']);
+  assert.deepEqual(formatSingle('item_resist_cold_perlevel', [-10]), ['-10% Cold Resist (Based on Character Level)']);
+});
+
+test('unknown perlevel stat not in PERLEVEL_STAT_RULES falls through to generic formatter', () => {
+  const lines = formatSingle('item_fake_perlevel', [5]);
+  assert.equal(lines.length, 1);
+  assert.ok(
+    !lines[0].includes('(Based on Character Level)'),
+    'unknown perlevel stat should not use the per-level format'
   );
 });
