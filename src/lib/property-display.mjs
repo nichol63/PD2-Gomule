@@ -327,6 +327,14 @@ function formatSimpleLabel(statKey) {
   return SIMPLE_STAT_LABELS[statKey] ?? humanizeStatKey(statKey);
 }
 
+function formatMonsterIdentifier(property) {
+  return property.monsterName ?? property.values?.[0] ?? 'Unknown Monster';
+}
+
+function formatMonsterLinkedProperty(property, amountLabel, amountValue) {
+  return `${formatSignedNumber(amountValue ?? 0)} ${amountLabel} ${formatMonsterIdentifier(property)}`;
+}
+
 function decodeSkillTab(tabCode) {
   if (!Number.isInteger(tabCode) || tabCode < 0) {
     return null;
@@ -451,6 +459,12 @@ function formatSingleProperty(property, pd2Tables) {
       return `${formatSignedNumber(secondValue ?? 0)} to ${getSkillName(firstValue, pd2Tables)} (Oskill)`;
     case 'item_splashonhit':
       return `Melee Splash ${secondValue ?? firstValue ?? 0}%`;
+    case 'attack_vs_montype':
+      return formatMonsterLinkedProperty(property, 'to Attack Rating versus', secondValue);
+    case 'damage_vs_montype':
+      return formatMonsterLinkedProperty(property, 'to Damage versus', secondValue);
+    case 'item_reanimate':
+      return `${secondValue ?? 0}% Reanimate as: ${formatMonsterIdentifier(property)}`;
     case 'item_addskill_tab': {
       const decodedTab = decodeSkillTab(firstValue);
       if (!decodedTab) {

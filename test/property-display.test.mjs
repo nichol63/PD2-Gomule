@@ -76,6 +76,16 @@ function formatSingle(statKey, values, tables = null) {
   return displayList.displayLines.map((line) => line.text);
 }
 
+function formatSingleWithMeta(statKey, values, meta = {}, tables = null) {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [{ statKey, values, ...meta }]
+  }, tables);
+  return displayList.displayLines.map((line) => line.text);
+}
+
 test('formats corrected label/set stats into readable lines', () => {
   assert.deepEqual(formatSingle('item_magicbonus', [25]), ['Magic Find +25%']);
   assert.deepEqual(formatSingle('toblock', [5]), ['Chance to Block +5%']);
@@ -258,6 +268,34 @@ test('formats skill-proc triplet stats with skill name resolution', () => {
   );
 });
 
+test('formats monster-linked display stats with explicit monster names and fallback identifiers', () => {
+  assert.deepEqual(
+    formatSingleWithMeta('attack_vs_montype', [996, 63], { monsterName: 'WestmarchBoss' }),
+    ['+63 to Attack Rating versus WestmarchBoss']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('damage_vs_montype', [229, 59], { monsterName: 'Radament' }),
+    ['+59 to Damage versus Radament']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('item_reanimate', [795, 74], { monsterName: 'Ancient Barbarian 1' }),
+    ['74% Reanimate as: Ancient Barbarian 1']
+  );
+
+  assert.deepEqual(
+    formatSingleWithMeta('attack_vs_montype', [996, 63]),
+    ['+63 to Attack Rating versus 996']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('damage_vs_montype', [229, 59]),
+    ['+59 to Damage versus 229']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('item_reanimate', [795, 74]),
+    ['74% Reanimate as: 795']
+  );
+});
+
 test('formats class-wide skill level bonuses including unknown class fallback', () => {
   assert.deepEqual(
     formatSingle('item_addclassskills', [2, 3]),
@@ -270,6 +308,34 @@ test('formats class-wide skill level bonuses including unknown class fallback', 
   assert.deepEqual(
     formatSingle('item_addclassskills', [99, 2]),
     ['+2 to Class 99 Skill Levels']
+  );
+});
+
+test('formats monster-linked display stats from parsed fixture data', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
+  const monarch = summary.pages
+    .flatMap((page) => page.items ?? page.topLevelItems ?? [])
+    .find((item) => item.displayName === 'Monarch');
+
+  assert.ok(monarch, 'expected Monarch to exist in the legacy stash fixture');
+
+  const monsterProperty = monarch.properties.find(
+    (property) => property.statKey === 'damage_vs_montype'
+  );
+
+  assert.ok(monsterProperty, 'Monarch should expose damage_vs_montype');
+
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [monsterProperty]
+  }, tables);
+
+  assert.deepEqual(
+    displayList.displayLines.map((line) => line.text),
+    ['+421 to Damage versus GrotesqueWyrm']
   );
 });
 
