@@ -181,6 +181,8 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_poisonlengthresist',
   'item_demondamage_percent',
   'item_undeaddamage_percent',
+  'curse_effectiveness',
+  'item_leap_speed',
   'maxmagicresist',
   'magicresist',
   'item_req_percent'
@@ -227,6 +229,8 @@ const RIGHT_VALUE_LABEL_KEYS = new Set([
   'item_absorbmagic_percent',
   'item_staminadrainpct',
   'item_poisonlengthresist',
+  'curse_effectiveness',
+  'item_leap_speed',
   'item_req_percent'
 ]);
 

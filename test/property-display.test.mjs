@@ -104,6 +104,13 @@ test('formats newly supported simple stat keys into readable lines', () => {
   assert.deepEqual(formatSingle('item_manaleech', [5]), ['Mana Stolen per Hit +5%']);
 });
 
+test('formats percent-style simple stat keys using their display labels', () => {
+  assert.deepEqual(formatSingle('curse_effectiveness', [20]), ['Curse Effectiveness +20%']);
+  assert.deepEqual(formatSingle('curse_effectiveness', [-43]), ['Curse Effectiveness -43%']);
+  assert.deepEqual(formatSingle('item_leap_speed', [30]), ['Leap Speed +30%']);
+  assert.deepEqual(formatSingle('item_leap_speed', [12]), ['Leap Speed +12%']);
+});
+
 test('formats pierce resistance stats including negative values', () => {
   assert.deepEqual(formatSingle('piercefire', [25]), ['Pierces Fire Resistance +25%']);
   assert.deepEqual(formatSingle('piercefire', [-15]), ['Pierces Fire Resistance -15%']);
