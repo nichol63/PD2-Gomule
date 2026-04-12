@@ -10,6 +10,7 @@ const ITEM_TABLE_FILES = [
 ];
 const ITEM_STAT_COST_FILE = 'ItemStatCost.txt';
 const SKILLS_FILE = 'Skills.txt';
+const MONSTER_TABLE_FILE = 'MonStats.txt';
 
 const CODE_COLUMNS_BY_TABLE = {
   'armor.txt': ['code', 'normcode', 'ubercode', 'ultracode'],
@@ -95,10 +96,36 @@ function buildSkillRecord(row) {
   };
 }
 
+function getRowValue(row, ...keys) {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+
+  return '';
+}
+
+function buildMonsterRecord(row) {
+  const id = parseOptionalInt(getRowValue(row, 'hcIdx', 'hcIDx', 'hcID', 'ID'));
+  const nameKey = getRowValue(row, 'NameStr', 'namestr').trim();
+  const code = getRowValue(row, 'Code', 'code').trim();
+  const name = getRowValue(row, 'Name', 'name', 'DisplayName').trim() || nameKey || code;
+
+  return {
+    id,
+    code,
+    name,
+    nameKey
+  };
+}
+
 export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
   const itemsByCode = new Map();
   const itemStatsById = new Map();
   const skillsById = new Map();
+  const monstersById = new Map();
 
   for (const tableFile of ITEM_TABLE_FILES) {
     const tablePath = path.join(dataDir, tableFile);
@@ -137,11 +164,22 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     skillsById.set(skillRecord.id, skillRecord);
   }
 
+  const monsterRows = loadTableRows(path.join(dataDir, MONSTER_TABLE_FILE));
+  for (const row of monsterRows) {
+    const monsterRecord = buildMonsterRecord(row);
+    if (monsterRecord.id === null) {
+      continue;
+    }
+
+    monstersById.set(monsterRecord.id, monsterRecord);
+  }
+
   return {
     dataDir,
     itemsByCode,
     itemStatsById,
     skillsById,
+    monstersById,
     resolveItemCode(code) {
       return itemsByCode.get(code) ?? null;
     },
@@ -150,6 +188,9 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     },
     resolveSkill(id) {
       return skillsById.get(id) ?? null;
+    },
+    resolveMonster(id) {
+      return monstersById.get(id) ?? null;
     }
   };
 }

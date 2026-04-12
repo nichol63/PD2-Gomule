@@ -26,6 +26,13 @@ function requireTopLevelItem(page, itemName) {
   return item;
 }
 
+function findTopLevelItem(summary, itemName) {
+  const item = summary.topLevelItems?.find((entry) => entry.displayName === itemName)
+    ?? summary.pages?.flatMap((page) => page.topLevelItems).find((entry) => entry.displayName === itemName);
+  assert.ok(item, `expected item "${itemName}" to exist in fixture summary`);
+  return item;
+}
+
 test('every topLevelItem in character has a non-empty code', () => {
   for (const item of charSummary.topLevelItems) {
     assert.ok(
@@ -132,4 +139,25 @@ test('parser infers socket metadata from filled sockets and attached children', 
   assert.equal(monarch.socketsFilled, 4);
   assert.equal(monarch.totalSockets, 4);
   assert.equal(monarch.children.length, 4);
+});
+
+test('parser preserves monster metadata on real fixture items', () => {
+  const monarch = findTopLevelItem(legacyStashSummary, 'Monarch');
+  const monsterProperty = monarch.properties.find(
+    (property) => property.statKey === 'damage_vs_montype'
+  );
+
+  assert.ok(monsterProperty, 'Monarch should expose damage_vs_montype');
+  assert.equal(monsterProperty.monsterName, 'GrotesqueWyrm');
+  assert.deepEqual(monsterProperty.values, [855, 421]);
+});
+
+test('parser filters state out of parsed properties for real fixture items', () => {
+  const flawlessSkull = findTopLevelItem(sharedSummary, 'Flawless Skull');
+
+  assert.equal(
+    flawlessSkull.properties.some((property) => property.statKey === 'state'),
+    false,
+    'Flawless Skull should not retain a parsed state property'
+  );
 });

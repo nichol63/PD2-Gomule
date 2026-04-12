@@ -229,6 +229,10 @@ function requireItemStat(pd2Tables, statId) {
 }
 
 function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
+  if (statId === 98) {
+    return null;
+  }
+
   const stat = requireItemStat(pd2Tables, statId);
   if (stat.saveBits === 0) {
     return null;
@@ -258,7 +262,7 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
     values.push(reader.read(stat.saveBits) - stat.saveAdd);
   }
 
-  return {
+  const property = {
     statId,
     statKey: stat.stat,
     qFlag,
@@ -272,6 +276,19 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
     descStringNegKey: stat.descStringNegKey,
     values
   };
+
+  if (statId === 155 || statId === 179 || statId === 180) {
+    property.monsterId = values[0];
+
+    const monster = pd2Tables.resolveMonster(values[0]);
+    if (monster) {
+      property.monsterCode = monster.code;
+      property.monsterName = monster.name;
+      property.monsterNameKey = monster.nameKey;
+    }
+  }
+
+  return property;
 }
 
 function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
@@ -297,19 +314,43 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
       }
 
       if (rootProp === 17) {
-        properties.push(parseLegacyProperty(reader, 18, pd2Tables, qFlag, listKind));
+        const expandedProperty = parseLegacyProperty(reader, 18, pd2Tables, qFlag, listKind);
+        if (expandedProperty !== null) {
+          properties.push(expandedProperty);
+        }
       } else if (rootProp === 48) {
-        properties.push(parseLegacyProperty(reader, 49, pd2Tables, qFlag, listKind));
+        const expandedProperty = parseLegacyProperty(reader, 49, pd2Tables, qFlag, listKind);
+        if (expandedProperty !== null) {
+          properties.push(expandedProperty);
+        }
       } else if (rootProp === 50) {
-        properties.push(parseLegacyProperty(reader, 51, pd2Tables, qFlag, listKind));
+        const expandedProperty = parseLegacyProperty(reader, 51, pd2Tables, qFlag, listKind);
+        if (expandedProperty !== null) {
+          properties.push(expandedProperty);
+        }
       } else if (rootProp === 52) {
-        properties.push(parseLegacyProperty(reader, 53, pd2Tables, qFlag, listKind));
+        const expandedProperty = parseLegacyProperty(reader, 53, pd2Tables, qFlag, listKind);
+        if (expandedProperty !== null) {
+          properties.push(expandedProperty);
+        }
       } else if (rootProp === 54) {
-        properties.push(parseLegacyProperty(reader, 55, pd2Tables, qFlag, listKind));
-        properties.push(parseLegacyProperty(reader, 56, pd2Tables, qFlag, listKind));
+        const expandedProperty55 = parseLegacyProperty(reader, 55, pd2Tables, qFlag, listKind);
+        if (expandedProperty55 !== null) {
+          properties.push(expandedProperty55);
+        }
+        const expandedProperty56 = parseLegacyProperty(reader, 56, pd2Tables, qFlag, listKind);
+        if (expandedProperty56 !== null) {
+          properties.push(expandedProperty56);
+        }
       } else if (rootProp === 57) {
-        properties.push(parseLegacyProperty(reader, 58, pd2Tables, qFlag, listKind));
-        properties.push(parseLegacyProperty(reader, 59, pd2Tables, qFlag, listKind));
+        const expandedProperty58 = parseLegacyProperty(reader, 58, pd2Tables, qFlag, listKind);
+        if (expandedProperty58 !== null) {
+          properties.push(expandedProperty58);
+        }
+        const expandedProperty59 = parseLegacyProperty(reader, 59, pd2Tables, qFlag, listKind);
+        if (expandedProperty59 !== null) {
+          properties.push(expandedProperty59);
+        }
       }
 
       rootProp = reader.read(9);

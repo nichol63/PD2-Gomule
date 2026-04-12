@@ -24,6 +24,16 @@ test('loads PD2 item tables from the local workspace', () => {
   assert.equal(fireResist.saveAdd, 50);
 });
 
+test('loads PD2 monster tables from the local workspace', () => {
+  const tables = loadPd2Tables();
+
+  assert.equal(typeof tables.resolveMonster, 'function');
+  assert.equal(tables.resolveMonster(229)?.name, 'Radament');
+  assert.equal(tables.resolveMonster(242)?.name, 'Mephisto');
+  assert.equal(tables.resolveMonster(855)?.name, 'GrotesqueWyrm');
+  assert.equal(tables.resolveMonster(996)?.name, 'WestmarchBoss');
+});
+
 test('parses the legacy PD2 character header', () => {
   const summary = parseCharacterFile(path.join(FIXTURE_DIR, 'Legacy.d2s'));
 
