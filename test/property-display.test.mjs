@@ -1221,3 +1221,29 @@ test('formats map_mon_skillondeath via descFunc=15 packed encoding', () => {
     ['Monsters 1% Chance to Cast Level 17 Skill 775 on Death']
   );
 });
+
+test('formats remaining simple stat labels correctly', () => {
+  // lifedrainmindam — percentage display (left-side, matching D2 "+N% Life Stolen" pattern)
+  assert.deepEqual(formatSingle('lifedrainmindam', [8]), ['+8% Minimum Life Stolen Per Hit']);
+  // passive_mastery_melee_crit — percentage display
+  assert.deepEqual(formatSingle('passive_mastery_melee_crit', [15]), ['+15% Melee Critical Strike']);
+  // passive_critical_strike — percentage display
+  assert.deepEqual(formatSingle('passive_critical_strike', [10]), ['+10% Critical Strike']);
+  // pvp_lld_cd — flat display
+  assert.deepEqual(formatSingle('pvp_lld_cd', [6]), ['+6 to PvP Low Level Duel Cooldown']);
+});
+
+test('hides transform_dye from display output', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'transform_dye', values: [12651795] },
+      { statKey: 'strength', values: [10] }
+    ]
+  }, null);
+  // transform_dye should be hidden (null return), only strength shows
+  assert.equal(displayList.displayLines.length, 1);
+  assert.equal(displayList.displayLines[0].statKey, 'strength');
+});

@@ -469,6 +469,13 @@ select {
   padding-bottom: 0.35rem;
 }
 
+.detail-group--nested:hover {
+  background: var(--panel-highlight);
+  border-left-color: var(--accent-strong);
+  border-radius: 0 0.4rem 0.4rem 0;
+  transition: background 0.15s ease, border-left-color 0.15s ease;
+}
+
 .detail-socket-children > .detail-group--nested:first-of-type {
   margin-top: 0.75rem;
 }

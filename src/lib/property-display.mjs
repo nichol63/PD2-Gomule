@@ -134,7 +134,11 @@ const SIMPLE_STAT_LABELS = {
   item_req_percent: 'Requirements',
   gold: 'Gold',
   level: 'Level',
-  statpts: 'Stat Points'
+  statpts: 'Stat Points',
+  lifedrainmindam: 'Minimum Life Stolen Per Hit',
+  passive_mastery_melee_crit: 'Melee Critical Strike',
+  passive_critical_strike: 'Critical Strike',
+  pvp_lld_cd: 'PvP Low Level Duel Cooldown'
 };
 
 const PERCENT_LABEL_KEYS = new Set([
@@ -209,7 +213,10 @@ const PERCENT_LABEL_KEYS = new Set([
   'item_leap_speed',
   'maxmagicresist',
   'magicresist',
-  'item_req_percent'
+  'item_req_percent',
+  'lifedrainmindam',
+  'passive_mastery_melee_crit',
+  'passive_critical_strike'
 ]);
 
 const RIGHT_VALUE_LABEL_KEYS = new Set([
@@ -868,6 +875,8 @@ function formatSingleProperty(property, pd2Tables) {
       const values = property.values ?? [];
       return `Level ${values[1] ?? 0} ${getSkillName(values[0], pd2Tables)} When Equipped`;
     }
+    case 'transform_dye':
+      return null; // internal cosmetic dye color — hide from display
     default:
       break;
   }
