@@ -1185,3 +1185,39 @@ test('formats item_elemskill_* from real fixture items', () => {
     assert.ok(lines[0].includes('to Poison Skills'), 'fixture item_elemskill_poison should format with Poison Skills label');
   }
 });
+
+test('formats item_skillonequip with skill name resolution', () => {
+  const tables = loadPd2Tables();
+  // values[0] = skillId, values[1] = level
+  assert.deepEqual(
+    formatSingle('item_skillonequip', [98, 12], tables),
+    ['Level 12 Might When Equipped']
+  );
+  assert.deepEqual(
+    formatSingle('item_skillonequip', [112, 5], tables),
+    ['Level 5 Blessed Hammer When Equipped']
+  );
+  // Unknown skill falls back to Skill N
+  assert.deepEqual(
+    formatSingle('item_skillonequip', [9999, 3], tables),
+    ['Level 3 Skill 9999 When Equipped']
+  );
+});
+
+test('formats map_mon_skillondeath via descFunc=15 packed encoding', () => {
+  const tables = loadPd2Tables();
+  // packed = (skillId << 6) | level, values[1] = chance
+  // skillId=121 (Fist of the Heavens), level=58, chance=15
+  const packed = (121 << 6) | 58;
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_skillondeath', [packed, 15],
+      { descFunc: 15, descVal: 2, descStringKey: 'Moditemskondeath', descString2Key: '' }, tables),
+    ['Monsters 15% Chance to Cast Level 58 Fist of the Heavens on Death']
+  );
+  // Unknown skill falls back to Skill N
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_skillondeath', [(775 << 6) | 17, 1],
+      { descFunc: 15, descVal: 2, descStringKey: 'Moditemskondeath', descString2Key: '' }, tables),
+    ['Monsters 1% Chance to Cast Level 17 Skill 775 on Death']
+  );
+});

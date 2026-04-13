@@ -680,6 +680,15 @@ function formatMapStat(property, pd2Tables) {
       return descVal === 2
         ? `${label} ${label2}`
         : `${label} ${label2}`;
+    case 15: {
+      // Skill-on-event: packed value = (skillId << 6) | level, chance = values[1]
+      const packed = property.values?.[0] ?? 0;
+      const chance = property.values?.[1] ?? 0;
+      const skillId = packed >> 6;
+      const level = packed & 63;
+      const skillName = getSkillName(skillId, pd2Tables);
+      return `Monsters ${chance}% Chance to Cast Level ${level} ${skillName} on Death`;
+    }
     default:
       // Fallback for stats without a descFunc (hidden or unrecognized)
       return `${label} ${value}`;
@@ -855,6 +864,10 @@ function formatSingleProperty(property, pd2Tables) {
       return `${formatSignedNumber(firstValue ?? 0)}% Increased Corpse Explosion Radius`;
     case 'heroic':
       return 'Heroic';
+    case 'item_skillonequip': {
+      const values = property.values ?? [];
+      return `Level ${values[1] ?? 0} ${getSkillName(values[0], pd2Tables)} When Equipped`;
+    }
     default:
       break;
   }

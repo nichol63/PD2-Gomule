@@ -284,7 +284,8 @@ function createPanels(entries, selectedItemKey) {
     .map((panel) => ({
       ...panel,
       columns: Math.max(panel.columns, 4),
-      rows: Math.max(panel.rows, 4)
+      rows: Math.max(panel.rows, 4),
+      socketedItemCount: panel.items.filter((item) => item.totalSockets > 0).length
     }))
     .sort(sortPanels);
 }

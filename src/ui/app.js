@@ -264,6 +264,7 @@ function renderGridPanels() {
       <div class="section-header">
         <h2>${escapeHtml(panel.label)}</h2>
         <span class="section-pill">${panel.items.length}</span>
+        ${panel.socketedItemCount > 0 ? `<span class="section-pill section-pill--sockets">${panel.socketedItemCount} socketed</span>` : ''}
       </div>
       <div class="item-grid" style="--grid-columns:${panel.columns}; --grid-rows:${panel.rows};">
         ${panel.items.map((item) => `
@@ -344,7 +345,7 @@ function renderMatchList() {
       <strong>${escapeHtml(entry.displayName)}</strong>
       <span>${escapeHtml(entry.sourceLabel)}</span>
       <span>${escapeHtml(entry.code)} - ${escapeHtml(entry.qualityLabel)}</span>
-      <span>${escapeHtml(entry.locationLabel)} - ${entry.propertyCount} props</span>
+      <span>${escapeHtml(entry.locationLabel)} - ${entry.propertyCount} props${entry.totalSockets > 0 ? ` - ${entry.totalSockets} sockets` : ''}</span>
     </button>
   `).join('');
 
@@ -524,6 +525,21 @@ function bindEvents() {
 
   elements.filtersForm.addEventListener('submit', (event) => {
     event.preventDefault();
+  });
+
+  document.querySelector('#clear-filters').addEventListener('click', async () => {
+    state.query = '';
+    state.quality = '';
+    state.sort = 'name';
+    state.completeOnly = false;
+    state.socketFilter = '';
+    elements.queryInput.value = '';
+    elements.qualitySelect.value = '';
+    elements.sortSelect.value = 'name';
+    elements.completeOnlyInput.checked = false;
+    elements.socketFilterSelect.value = '';
+    setLoading('Clearing filters...');
+    await loadView();
   });
 }
 

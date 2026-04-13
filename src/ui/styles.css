@@ -130,6 +130,11 @@ select {
   color: var(--accent-strong);
 }
 
+.section-pill--sockets {
+  background: rgba(105, 105, 255, 0.15);
+  color: var(--text-secondary, #aaa);
+}
+
 .source-list,
 .page-list,
 .match-list,
@@ -209,6 +214,20 @@ select {
   border-radius: 0.75rem;
   background: rgba(15, 10, 9, 0.72);
   color: var(--text);
+}
+
+.clear-filters-btn {
+  background: var(--surface-2, #2a2a2a);
+  color: var(--text-secondary, #aaa);
+  border: 1px solid var(--border, #444);
+  border-radius: 4px;
+  padding: 0.3em 0.8em;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+.clear-filters-btn:hover {
+  color: var(--text-primary, #eee);
+  border-color: var(--accent, #e7b058);
 }
 
 .checkbox-label {
@@ -314,6 +333,12 @@ select {
   background: rgba(231, 176, 88, 0.16);
   color: var(--accent-strong);
 }
+
+.quality-badge.quality-magic { background: rgba(105, 105, 255, 0.15); }
+.quality-badge.quality-rare { background: rgba(255, 255, 100, 0.12); }
+.quality-badge.quality-unique { background: rgba(196, 152, 90, 0.18); }
+.quality-badge.quality-set { background: rgba(0, 200, 0, 0.12); }
+.quality-badge.quality-crafted { background: rgba(255, 160, 50, 0.15); }
 
 .detail-group {
   padding-top: 1rem;
