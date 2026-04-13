@@ -7,6 +7,7 @@ const state = {
   quality: '',
   sort: 'name',
   completeOnly: false,
+  socketFilter: '',
   selectedItemKey: null
 };
 
@@ -27,6 +28,7 @@ const elements = {
   qualitySelect: document.querySelector('#quality-select'),
   sortSelect: document.querySelector('#sort-select'),
   completeOnlyInput: document.querySelector('#complete-only-input'),
+  socketFilterSelect: document.querySelector('#socket-filter'),
   filtersForm: document.querySelector('#filters-form'),
   itemTooltip: document.querySelector('#item-tooltip')
 };
@@ -59,6 +61,9 @@ function createSearchParams() {
   }
   if (state.completeOnly) {
     params.set('completeOnly', 'true');
+  }
+  if (state.socketFilter) {
+    params.set('socketFilter', state.socketFilter);
   }
   if (state.selectedItemKey) {
     params.set('selectedItemKey', state.selectedItemKey);
@@ -263,7 +268,7 @@ function renderGridPanels() {
       <div class="item-grid" style="--grid-columns:${panel.columns}; --grid-rows:${panel.rows};">
         ${panel.items.map((item) => `
           <button
-            class="grid-item quality-${escapeHtml(item.qualityLabel)} ${item.selected ? 'is-selected' : ''} ${item.propertiesComplete ? '' : 'is-partial'}"
+            class="grid-item quality-${escapeHtml(item.qualityLabel)} ${item.selected ? 'is-selected' : ''} ${item.propertiesComplete ? '' : 'is-partial'} ${item.isRuneword ? 'is-runeword' : ''}"
             data-item-key="${escapeHtml(item.itemKey)}"
             data-col="${item.column}"
             data-row="${item.row}"
@@ -335,7 +340,7 @@ function renderMatchList() {
   }
 
   elements.matchList.innerHTML = matches.map((entry) => `
-    <button class="match-row ${entry.selected ? 'is-selected' : ''}" data-item-key="${escapeHtml(entry.itemKey)}">
+    <button class="match-row ${entry.selected ? 'is-selected' : ''} ${entry.isRuneword ? 'is-runeword' : ''}" data-item-key="${escapeHtml(entry.itemKey)}">
       <strong>${escapeHtml(entry.displayName)}</strong>
       <span>${escapeHtml(entry.sourceLabel)}</span>
       <span>${escapeHtml(entry.code)} - ${escapeHtml(entry.qualityLabel)}</span>
@@ -384,7 +389,7 @@ function renderItemDetails() {
         <section class="detail-group">
           <div class="detail-group__header ${kindClass(list.kind)}">
             <strong>${escapeHtml(list.kind)}</strong>
-            <span>${list.complete ? 'complete' : 'partial'} - ${list.propertyCount} stats${list.noiseCount > 0 ? ` (${list.noiseCount} noise filtered)` : ''}</span>
+            <span>${list.complete ? 'complete' : 'partial'} - ${list.propertyCount} stats</span>
           </div>
           ${list.error ? `<div class="detail-warning">${escapeHtml(list.error)}</div>` : ''}
           <ul class="detail-list">
@@ -430,6 +435,7 @@ function renderItemDetails() {
     <header class="detail-header">
       <span class="quality-badge quality-${escapeHtml(item.qualityLabel)}">${escapeHtml(item.qualityLabel)}</span>
       <h3>${escapeHtml(item.displayName)}</h3>
+      ${item.isRuneword && item.runewordRecipe ? `<div class="runeword-recipe">${escapeHtml(item.runewordRecipe)}</div>` : ''}
       <p>${escapeHtml(item.code)} - ${escapeHtml(item.sourceLabel)} - ${escapeHtml(item.panelLabel)}</p>
     </header>
 
@@ -506,6 +512,13 @@ function bindEvents() {
     state.completeOnly = elements.completeOnlyInput.checked;
     state.selectedItemKey = null;
     setLoading('Filtering incomplete properties...');
+    await loadView();
+  });
+
+  elements.socketFilterSelect.addEventListener('change', async () => {
+    state.socketFilter = elements.socketFilterSelect.value;
+    state.selectedItemKey = null;
+    setLoading('Filtering by sockets...');
     await loadView();
   });
 

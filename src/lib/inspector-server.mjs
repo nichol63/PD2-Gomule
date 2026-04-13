@@ -72,6 +72,7 @@ function createRequestHandler(workspace) {
         quality: url.searchParams.get('quality') ?? '',
         sort: normalizeQueryValue(url.searchParams.get('sort')) ?? 'name',
         completeOnly: url.searchParams.get('completeOnly') ?? false,
+        socketFilter: normalizeQueryValue(url.searchParams.get('socketFilter')) ?? '',
         selectedItemKey: normalizeQueryValue(url.searchParams.get('selectedItemKey'))
       });
 

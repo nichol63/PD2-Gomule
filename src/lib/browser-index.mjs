@@ -172,6 +172,7 @@ export function filterBrowseEntries(entries, options = {}) {
   const queryTokens = tokenizeText(options.query ?? '');
   const quality = normalizeText(options.quality ?? '');
   const completeOnly = options.completeOnly === true;
+  const socketFilter = options.socketFilter ?? '';
 
   return entries.filter((entry) => {
     if (queryTokens.length > 0) {
@@ -186,6 +187,14 @@ export function filterBrowseEntries(entries, options = {}) {
     }
 
     if (completeOnly && !entry.propertiesComplete) {
+      return false;
+    }
+
+    if (socketFilter === 'has-sockets' && entry.totalSockets <= 0) {
+      return false;
+    }
+
+    if (socketFilter === 'filled' && entry.socketsFilled <= 0) {
       return false;
     }
 

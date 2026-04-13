@@ -96,6 +96,20 @@ const SIMPLE_STAT_LABELS = {
   passive_ltng_pierce: 'Enemy Lightning Resistance',
   passive_cold_pierce: 'Enemy Cold Resistance',
   passive_pois_pierce: 'Enemy Poison Resistance',
+  passive_fire_pierce: 'Enemy Fire Resistance',
+  passive_phys_pierce: 'Enemy Physical Resistance',
+  passive_mag_pierce: 'Enemy Magic Resistance',
+  passive_mag_mastery: 'Magic Skill Damage',
+  item_pierce_fire: 'Enemy Fire Resistance',
+  item_pierce_ltng: 'Enemy Lightning Resistance',
+  item_pierce_cold: 'Enemy Cold Resistance',
+  item_pierce_pois: 'Enemy Poison Resistance',
+  curse_resistance: 'Curse Duration Reduced',
+  item_normaldamage: 'Normal Damage',
+  item_extra_stack: 'Increased Stack Size',
+  max_curses: 'Maximum Curses',
+  inc_splash_radius: 'Increased Splash Radius',
+  item_pierce: 'Chance of Piercing Attack',
   item_hp_percent: 'Life',
   item_maxmana_percent: 'Mana',
   item_maxhp_percent: 'Life',
@@ -169,6 +183,17 @@ const PERCENT_LABEL_KEYS = new Set([
   'passive_ltng_pierce',
   'passive_cold_pierce',
   'passive_pois_pierce',
+  'passive_fire_pierce',
+  'passive_phys_pierce',
+  'passive_mag_pierce',
+  'passive_mag_mastery',
+  'item_pierce_fire',
+  'item_pierce_ltng',
+  'item_pierce_cold',
+  'item_pierce_pois',
+  'curse_resistance',
+  'item_pierce',
+  'inc_splash_radius',
   'item_addexperience',
   'toblock',
   'item_maxmana_percent',
@@ -345,7 +370,8 @@ const SUMMON_CAP_LABELS = {
   grims_extra_skele_mage: ['Skeletal Mage', 'Skeletal Mages'],
   extra_skele_archer: ['Skeleton Archer', 'Skeleton Archers'],
   extra_hydra: ['Hydra', 'Hydras'],
-  extra_golem: ['Golem', 'Golems']
+  extra_golem: ['Golem', 'Golems'],
+  extra_valk: ['Valkyrie', 'Valkyries']
 };
 
 function formatSummonCapProperty(statKey, value) {
@@ -525,6 +551,7 @@ function formatSingleProperty(property, pd2Tables) {
     case 'extra_skele_archer':
     case 'extra_hydra':
     case 'extra_golem':
+    case 'extra_valk':
       return formatSummonCapProperty(statKey, firstValue);
     case 'extra_revives':
       return `${formatSignedNumber(firstValue ?? 0)} to Maximum Revives`;
@@ -612,6 +639,48 @@ function formatSingleProperty(property, pd2Tables) {
       return `Magic Damage Reduced by ${firstValue ?? 0}`;
     case 'normal_damage_reduction':
       return `Damage Reduced by ${firstValue ?? 0}`;
+    case 'item_elemskill_cold':
+      return `${formatSignedNumber(secondValue ?? 0)} to Cold Skills`;
+    case 'item_elemskill_fire':
+      return `${formatSignedNumber(secondValue ?? 0)} to Fire Skills`;
+    case 'item_elemskill_lightning':
+      return `${formatSignedNumber(secondValue ?? 0)} to Lightning Skills`;
+    case 'item_elemskill_poison':
+      return `${formatSignedNumber(secondValue ?? 0)} to Poison Skills`;
+    case 'item_elemskill_magic':
+      return `${formatSignedNumber(secondValue ?? 0)} to Magic Skills`;
+    case 'item_elemskill':
+      return `${formatSignedNumber(secondValue ?? 0)} to Elemental Skills`;
+    case 'item_howl':
+      return `Hit Causes Monster to Flee ${firstValue ?? 0}%`;
+    case 'item_damagetargetac':
+      return `-${Math.abs(firstValue ?? 0)} to Target's Defense`;
+    case 'item_fractionaltargetac':
+      return `-${Math.abs(firstValue ?? 0)}% Target Defense`;
+    case 'item_freeze':
+      return `Freezes Target +${firstValue ?? 0}`;
+    case 'item_magicarrow':
+      return 'Fires Magic Arrows';
+    case 'item_explosivearrow':
+      return 'Fires Explosive Arrows/Bolts';
+    case 'item_replenish_durability':
+      return `Repairs 1 Durability in ${firstValue ?? 0} Seconds`;
+    case 'item_replenish_quantity':
+      return 'Replenishes Quantity';
+    case 'item_replenish_charges':
+      return 'Replenishes Charges';
+    case 'item_numsockets_textonly':
+      return `Socketed (${firstValue ?? 0})`;
+    case 'dragonflightreduction':
+      return `${formatSignedNumber(firstValue ?? 0)}% Dragon Flight Cooldown Reduction`;
+    case 'joustreduction':
+      return `${formatSignedNumber(firstValue ?? 0)}% Joust Cooldown Reduction`;
+    case 'gustreduction':
+      return `${formatSignedNumber(firstValue ?? 0)}% Gust Cooldown Reduction`;
+    case 'corpseexplosionradius':
+      return `${formatSignedNumber(firstValue ?? 0)}% Increased Corpse Explosion Radius`;
+    case 'heroic':
+      return 'Heroic';
     default:
       break;
   }

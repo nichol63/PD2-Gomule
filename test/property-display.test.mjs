@@ -979,3 +979,95 @@ test('formatter is a no-op for a mixed real/noise fixture once parser-level nois
     );
   }
 });
+
+test('formats item_elemskill_* stats using values[1] as the bonus level', () => {
+  assert.deepEqual(formatSingle('item_elemskill_cold', [0, 1]), ['+1 to Cold Skills']);
+  assert.deepEqual(formatSingle('item_elemskill_fire', [1, 3]), ['+3 to Fire Skills']);
+  assert.deepEqual(formatSingle('item_elemskill_lightning', [0, 5]), ['+5 to Lightning Skills']);
+  assert.deepEqual(formatSingle('item_elemskill_poison', [2, 6]), ['+6 to Poison Skills']);
+  assert.deepEqual(formatSingle('item_elemskill_magic', [6, 2]), ['+2 to Magic Skills']);
+  assert.deepEqual(formatSingle('item_elemskill', [3, 1]), ['+1 to Elemental Skills']);
+  assert.deepEqual(formatSingle('item_elemskill_cold', [0, 0]), ['+0 to Cold Skills']);
+});
+
+test('formats extra_valk summon cap with singular and plural forms', () => {
+  assert.deepEqual(formatSingle('extra_valk', [1]), ['You may summon 1 extra Valkyrie']);
+  assert.deepEqual(formatSingle('extra_valk', [9]), ['You may summon 9 extra Valkyries']);
+});
+
+test('formats pierce and mastery stats as percent labels', () => {
+  assert.deepEqual(formatSingle('passive_fire_pierce', [15]), ['+15% Enemy Fire Resistance']);
+  assert.deepEqual(formatSingle('passive_phys_pierce', [5]), ['+5% Enemy Physical Resistance']);
+  assert.deepEqual(formatSingle('passive_mag_pierce', [10]), ['+10% Enemy Magic Resistance']);
+  assert.deepEqual(formatSingle('passive_mag_mastery', [53]), ['+53% Magic Skill Damage']);
+  assert.deepEqual(formatSingle('item_pierce_fire', [-25]), ['-25% Enemy Fire Resistance']);
+  assert.deepEqual(formatSingle('item_pierce_ltng', [-50]), ['-50% Enemy Lightning Resistance']);
+  assert.deepEqual(formatSingle('item_pierce_cold', [-2]), ['-2% Enemy Cold Resistance']);
+  assert.deepEqual(formatSingle('item_pierce_pois', [-16]), ['-16% Enemy Poison Resistance']);
+  assert.deepEqual(formatSingle('item_pierce', [101]), ['+101% Chance of Piercing Attack']);
+  assert.deepEqual(formatSingle('curse_resistance', [56]), ['+56% Curse Duration Reduced']);
+  assert.deepEqual(formatSingle('inc_splash_radius', [15]), ['+15% Increased Splash Radius']);
+});
+
+test('formats target defense reduction stats with forced negative sign', () => {
+  assert.deepEqual(formatSingle('item_damagetargetac', [128]), ["-128 to Target's Defense"]);
+  assert.deepEqual(formatSingle('item_damagetargetac', [766]), ["-766 to Target's Defense"]);
+  assert.deepEqual(formatSingle('item_fractionaltargetac', [25]), ['-25% Target Defense']);
+  assert.deepEqual(formatSingle('item_fractionaltargetac', [57]), ['-57% Target Defense']);
+});
+
+test('formats howl, freeze, and other combat switch-case stats', () => {
+  assert.deepEqual(formatSingle('item_howl', [33]), ['Hit Causes Monster to Flee 33%']);
+  assert.deepEqual(formatSingle('item_howl', [108]), ['Hit Causes Monster to Flee 108%']);
+  assert.deepEqual(formatSingle('item_freeze', [13]), ['Freezes Target +13']);
+  assert.deepEqual(formatSingle('item_freeze', [2]), ['Freezes Target +2']);
+  assert.deepEqual(formatSingle('item_normaldamage', [30]), ['+30 to Normal Damage']);
+  assert.deepEqual(formatSingle('item_extra_stack', [197]), ['+197 to Increased Stack Size']);
+  assert.deepEqual(formatSingle('max_curses', [2]), ['+2 to Maximum Curses']);
+});
+
+test('formats boolean/flag stats as static labels', () => {
+  assert.deepEqual(formatSingle('item_magicarrow', [16]), ['Fires Magic Arrows']);
+  assert.deepEqual(formatSingle('item_explosivearrow', [6]), ['Fires Explosive Arrows/Bolts']);
+  assert.deepEqual(formatSingle('item_replenish_quantity', [16]), ['Replenishes Quantity']);
+  assert.deepEqual(formatSingle('item_replenish_charges', [49]), ['Replenishes Charges']);
+  assert.deepEqual(formatSingle('heroic', [4]), ['Heroic']);
+});
+
+test('formats replenish durability with time value', () => {
+  assert.deepEqual(formatSingle('item_replenish_durability', [5]), ['Repairs 1 Durability in 5 Seconds']);
+  assert.deepEqual(formatSingle('item_replenish_durability', [44]), ['Repairs 1 Durability in 44 Seconds']);
+});
+
+test('formats numsockets textonly and PD2 cooldown reduction stats', () => {
+  assert.deepEqual(formatSingle('item_numsockets_textonly', [4]), ['Socketed (4)']);
+  assert.deepEqual(formatSingle('dragonflightreduction', [31]), ['+31% Dragon Flight Cooldown Reduction']);
+  assert.deepEqual(formatSingle('joustreduction', [13]), ['+13% Joust Cooldown Reduction']);
+  assert.deepEqual(formatSingle('gustreduction', [50]), ['+50% Gust Cooldown Reduction']);
+  assert.deepEqual(formatSingle('corpseexplosionradius', [31]), ['+31% Increased Corpse Explosion Radius']);
+});
+
+test('formats item_elemskill_* from real fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+  const findItemWithStat = (statKey) =>
+    summary.pages
+      .flatMap((page) => page.items ?? page.topLevelItems ?? [])
+      .find((item) => item.properties.some((p) => p.statKey === statKey));
+
+  const itemWithCold = findItemWithStat('item_elemskill_cold');
+  const itemWithPoison = findItemWithStat('item_elemskill_poison');
+
+  if (itemWithCold) {
+    const prop = itemWithCold.properties.find((p) => p.statKey === 'item_elemskill_cold');
+    const lines = formatSingle('item_elemskill_cold', prop.values, tables);
+    assert.ok(lines[0].includes('to Cold Skills'), 'fixture item_elemskill_cold should format with Cold Skills label');
+  }
+
+  if (itemWithPoison) {
+    const prop = itemWithPoison.properties.find((p) => p.statKey === 'item_elemskill_poison');
+    const lines = formatSingle('item_elemskill_poison', prop.values, tables);
+    assert.ok(lines[0].includes('to Poison Skills'), 'fixture item_elemskill_poison should format with Poison Skills label');
+  }
+});

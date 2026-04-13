@@ -221,6 +221,7 @@ function createMatchEntry(entry, selectedItemKey) {
     propertyCount: entry.propertyCount,
     propertiesComplete: entry.propertiesComplete,
     totalSockets: entry.totalSockets,
+    isRuneword: entry.item?.isRuneword ?? false,
     sourceLabel: getEntrySourceLabel(entry),
     locationLabel: describeLocation(entry)
   };
@@ -239,6 +240,7 @@ function createPanelItem(entry, selectedItemKey) {
     propertiesComplete: entry.propertiesComplete,
     socketsFilled: entry.socketsFilled,
     totalSockets: entry.totalSockets,
+    isRuneword: entry.item?.isRuneword ?? false,
     column: entry.column ?? 0,
     row: entry.row ?? 0,
     width: entry.item.invWidth ?? 1,
@@ -295,11 +297,17 @@ function createSelectedItem(entry, pd2Tables) {
   const { item } = entry;
   const propertyLists = (item.propertyLists ?? [])
     .map((propertyList) => formatPropertyListForDisplay(propertyList, pd2Tables));
+  const isRuneword = item.isRuneword ?? false;
+  const runewordRecipe = isRuneword && item.children?.length
+    ? item.children.map((child) => child.displayName).join(' + ')
+    : null;
   return {
     itemKey: getItemKey(entry),
     displayName: entry.displayName,
     code: entry.code,
     qualityLabel: entry.qualityLabel,
+    isRuneword,
+    runewordRecipe,
     sourceLabel: getEntrySourceLabel(entry),
     panelLabel: describeLocation(entry),
     dimensions: `${item.invWidth ?? 1} x ${item.invHeight ?? 1}`,
@@ -461,6 +469,7 @@ function buildWorkspaceInspectorView(workspace, options = {}) {
     (options.query && `${options.query}`.trim())
     || (options.quality && `${options.quality}`.trim())
     || normalizeCompleteOnly(options.completeOnly)
+    || (options.socketFilter && `${options.socketFilter}`.trim())
   );
 
   if (!hasActiveFilters) {
@@ -531,12 +540,13 @@ export function buildInspectorView(workspace, options = {}) {
     query: options.query ?? '',
     quality: options.quality ?? '',
     sort: options.sort ?? 'name',
-    completeOnly: normalizeCompleteOnly(options.completeOnly)
+    completeOnly: normalizeCompleteOnly(options.completeOnly),
+    socketFilter: options.socketFilter ?? ''
   };
   const visibleEntries = collectBrowseEntries(summary, { page: browseOptions.page });
   const filteredEntries = filterBrowseEntries(visibleEntries, browseOptions);
   const sortedEntries = sortBrowseEntries(filteredEntries, browseOptions.sort);
-  const hasActiveFilters = browseOptions.query || browseOptions.quality || browseOptions.completeOnly;
+  const hasActiveFilters = browseOptions.query || browseOptions.quality || browseOptions.completeOnly || browseOptions.socketFilter;
   const selectedEntry = sortedEntries.find((entry) => getItemKey(entry) === options.selectedItemKey)
     ?? sortedEntries[0]
     ?? (hasActiveFilters ? null : visibleEntries[0] ?? null);

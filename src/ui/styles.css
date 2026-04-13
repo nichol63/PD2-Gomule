@@ -375,6 +375,22 @@ select {
 .grid-item.quality-unique   { border-left: 3px solid var(--quality-unique); }
 .grid-item.quality-crafted  { border-left: 3px solid var(--quality-crafted); }
 
+/* Runeword prominence */
+.grid-item.is-runeword {
+  border-left: 3px solid var(--quality-unique, #c4985a);
+}
+
+.match-row.is-runeword {
+  border-left: 3px solid var(--quality-unique, #c4985a);
+}
+
+.runeword-recipe {
+  color: var(--quality-unique, #c4985a);
+  font-size: 0.85em;
+  margin-bottom: 0.5em;
+  font-style: italic;
+}
+
 /* Floating item tooltip */
 #item-tooltip {
   position: fixed;
