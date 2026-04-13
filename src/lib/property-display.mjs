@@ -62,7 +62,6 @@ const SIMPLE_STAT_LABELS = {
   item_attackertakeslightdamage: 'Attacker Takes Lightning Damage',
   item_splashonhit: 'Melee Splash',
   toblock: 'Chance to Block',
-  map_play_toblock: 'Chance to Block',
   item_allskills: 'All Skills',
   item_addexperience: 'Experience Gained',
   item_goldbonus: 'Gold Find',
@@ -519,10 +518,185 @@ function tryFormatGroupedProperty(properties, index) {
   return null;
 }
 
+// ── Map stat data-driven formatter ──────────────────────────────────
+// PD2 string table — maps descstrpos and descstr2 keys to display text.
+// Standard ModStr* keys verified from .tbl files; Map*/PD2-custom keys
+// inferred from key names, stat semantics, and PD2 community wording.
+const MAP_STAT_STRINGS = {
+  // descstrpos keys (prefix labels)
+  MapMonHave: 'Monsters Have',
+  MapPlayHave: 'Players Have',
+  MapMonIgnore: 'Monsters Ignore',
+  MapMonTake: 'Monsters Take',
+  MapMon: 'Monsters',
+  MapGlobMF: 'Magic Find',
+  MapGlobGF: 'Gold Find',
+  MapGlobDensity: 'Monster Density',
+  MapGlobExp: 'Experience Gained',
+  MapGlobLevel: 'Area Level',
+  MapGlobMonRarity: 'Monster Rarity',
+  MapGlobExtraBoss: 'Extra Boss',
+  MapGlobSkirmishMode: 'Skirmish Mode',
+  MapBossSkillers: 'Boss Drops Skiller Grand Charms',
+  MapBossCorruptedUnique: 'Boss Drops Corrupted Unique',
+  MapBossFacet: 'Boss Drops Facet',
+  MapAddMonDoll: 'Additional Monster Type: Dolls',
+  MapAddMonSucc: 'Additional Monster Type: Succubi',
+  MapAddMonVamp: 'Additional Monster Type: Vampires',
+  MapAddMonCow: 'Additional Monster Type: Cows',
+  MapAddMonHorde: 'Additional Monster Type: Horde',
+  MapAddMonGhost: 'Additional Monster Type: Ghosts',
+  MapAddMonSouls: 'Additional Monster Type: Souls',
+  MapAddMonFetish: 'Additional Monster Type: Fetish',
+  MapAddMonShriek: 'Additional Monster Type: Shriek',
+  StrCorruptNum: 'Defense',
+  StrForceMapEvent: 'Force Map Event',
+  // descstr2 keys — verified from .tbl files
+  ModStr1h: 'Attack Rating',
+  ModStr1j: 'Fire Resist',
+  ModStr1k: 'Cold Resist',
+  ModStr1l: 'Lightning Resist',
+  ModStr1n: 'Poison Resist',
+  ModStr1o: 'Maximum Fire Damage',
+  ModStr1p: 'Minimum Fire Damage',
+  ModStr1q: 'Maximum Lightning Damage',
+  ModStr1r: 'Minimum Lightning Damage',
+  ModStr1s: 'Maximum Cold Damage',
+  ModStr1t: 'Minimum Cold Damage',
+  ModStr2g: 'Maximum Life',
+  ModStr2h: 'Maximum Mana',
+  ModStr2l: 'Replenish Life',
+  Modstr2v: 'Enhanced Defense',
+  ModStr2w: 'Drain Life',
+  ModStr2z: 'Life Stolen per Hit',
+  ModStr3m: 'Open Wounds',
+  ModStr4h: 'Maximum Poison Damage',
+  ModStr4i: 'Minimum Poison Damage',
+  ModStr4m: 'Increased Attack Speed',
+  ModStr4p: 'Faster Hit Recovery',
+  ModStr4v: 'Faster Cast Rate',
+  ModStr5c: 'Crushing Blow',
+  ModStr5g: 'Fire Absorb',
+  ModStr5i: 'Lightning Absorb',
+  ModStr5k: 'Magic Absorb',
+  ModStr5m: 'Cold Absorb',
+  ModStr5q: 'Deadly Strike',
+  ModStr5u: 'Maximum Fire Resist',
+  ModStr5v: 'Maximum Cold Resist',
+  ModStr5w: 'Maximum Lightning Resist',
+  ModStr5y: 'Maximum Poison Resist',
+  ModStr5z: 'Cannot Be Frozen',
+  strModMagicDamage: 'Magic Damage',
+  ModitemdamFiresk: 'Fire Skill Damage',
+  ModitemdamLtngsk: 'Lightning Skill Damage',
+  ModitemdamColdsk: 'Cold Skill Damage',
+  ModitemdamPoissk: 'Poison Skill Damage',
+  // descstr2 keys — PD2-custom (inferred from stat semantics)
+  MapEnhancedDmg: 'Enhanced Damage',
+  MapFlatPhysRed: 'Physical Damage Reduction',
+  MapMaxHP: 'Maximum Life',
+  MapMonCurse: 'Curse Resistance',
+  MapMonSplash: 'Melee Splash',
+  MapMonVelocity: 'Faster Run/Walk',
+  MapPlayBlock: 'Chance to Block',
+  MapMonFirePierce: 'Fire Resistance',
+  MapMonLtngPierce: 'Lightning Resistance',
+  MapMonColdPierce: 'Cold Resistance',
+  MapMonPoisPierce: 'Poison Resistance',
+  MapPhysExtraFire: 'Physical Damage as Extra Fire',
+  MapPhysExtraLtng: 'Physical Damage as Extra Lightning',
+  MapPhysExtraCold: 'Physical Damage as Extra Cold',
+  MapPhysExtraPois: 'Physical Damage as Extra Poison',
+  MapPhysExtraMag: 'Physical Damage as Extra Magic',
+  MapMonIncreasedJewelry: 'Increased Jewelry Drops',
+  MapMonIncreasedWeapons: 'Increased Weapon Drops',
+  MapMonIncreasedArmor: 'Increased Armor Drops',
+  MapMonIncreasedCrafting: 'Increased Crafting Material Drops',
+  MapMonIncreasedCharms: 'Increased Charm Drops',
+  MapMonIncreasedCorrupted: 'Increased Corrupted Drops',
+  MapMonIncreasedJewels: 'Increased Jewel Drops',
+  ModStr2u_PD2: 'Damage Reduced',
+  ModVelocity: 'Faster Run/Walk',
+  ModPierceChance: 'Chance of Piercing Attack',
+  StrMapLightRadius: 'Light Radius'
+};
+
+// Hidden map stats that are supporting values for grouped damage pairs
+const MAP_HIDDEN_STATS = new Set(['map_mon_coldlength', 'map_mon_poisonlength']);
+
+function resolveMapString(key) {
+  return MAP_STAT_STRINGS[key] ?? key;
+}
+
+function formatMapStat(property, pd2Tables) {
+  const statKey = property.statKey ?? '';
+
+  // Hidden supporting stats produce no display line
+  if (MAP_HIDDEN_STATS.has(statKey)) {
+    return null;
+  }
+
+  const descFunc = property.descFunc;
+  const descVal = property.descVal ?? 2;
+  const label = resolveMapString(property.descStringKey);
+  const label2 = resolveMapString(property.descString2Key);
+  const value = property.values?.[0] ?? 0;
+
+  // descFunc determines the value formatting:
+  //   1: +val label           6: +val label label2
+  //   2: val% label           7: val% label label2
+  //   3: val label             8: +val% label label2
+  //   4: +val% label          9: val label label2
+  switch (descFunc) {
+    case 1:
+      return descVal === 1
+        ? `${formatSignedNumber(value)} ${label}`
+        : `${label} ${formatSignedNumber(value)}`;
+    case 2:
+      return descVal === 1
+        ? `${value}% ${label}`
+        : `${label} ${value}%`;
+    case 3:
+      return descVal === 1
+        ? `${value} ${label}`
+        : `${label}`;
+    case 4:
+      return descVal === 1
+        ? `${formatSignedNumber(value)}% ${label}`
+        : `${label} ${formatSignedNumber(value)}%`;
+    case 6:
+      return descVal === 2
+        ? `${label} ${formatSignedNumber(value)} ${label2}`
+        : `${formatSignedNumber(value)} ${label} ${label2}`;
+    case 7:
+      return descVal === 2
+        ? `${label} ${label2} ${value}%`
+        : `${value}% ${label} ${label2}`;
+    case 8:
+      return descVal === 2
+        ? `${label} ${label2} ${formatSignedNumber(value)}%`
+        : `${formatSignedNumber(value)}% ${label} ${label2}`;
+    case 9:
+      return descVal === 2
+        ? `${label} ${label2}`
+        : `${label} ${label2}`;
+    default:
+      // Fallback for stats without a descFunc (hidden or unrecognized)
+      return `${label} ${value}`;
+  }
+}
+
 function formatSingleProperty(property, pd2Tables) {
   const statKey = property.statKey ?? '';
   const firstValue = property.values?.[0];
   const secondValue = property.values?.[1];
+
+  // Map stats use a data-driven formatter based on descFunc/descVal/descstr2.
+  // Hidden supporting stats (e.g. map_mon_coldlength) return null and are
+  // suppressed from display entirely via the filter in formatPropertiesForDisplay.
+  if (statKey.startsWith('map_')) {
+    return formatMapStat(property, pd2Tables);
+  }
 
   const perlevelLine = formatPerlevelProperty(statKey, firstValue);
   if (perlevelLine !== null) {
@@ -715,8 +889,13 @@ function formatPropertiesForDisplay(properties, pd2Tables) {
     }
 
     const property = properties[index];
+    const text = formatSingleProperty(property, pd2Tables);
+    // null means the stat is intentionally hidden (e.g. map supporting stats)
+    if (text === null) {
+      continue;
+    }
     lines.push({
-      text: formatSingleProperty(property, pd2Tables),
+      text,
       statKey: property.statKey,
       values: property.values
     });

@@ -271,9 +271,11 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
     saveAdd: stat.saveAdd,
     saveParamBits: stat.saveParamBits,
     descFunc: stat.descFunc,
+    descVal: stat.descVal,
     descPriority: stat.descPriority,
     descStringKey: stat.descStringKey,
     descStringNegKey: stat.descStringNegKey,
+    descString2Key: stat.descString2Key,
     values
   };
 

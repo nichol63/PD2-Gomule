@@ -81,6 +81,7 @@ function buildItemStatRecord(row) {
     descVal: parseOptionalInt(row.descval),
     descStringKey: row.descstrpos?.trim() || '',
     descStringNegKey: row.descstrneg?.trim() || '',
+    descString2Key: row.descstr2?.trim() || '',
     groupId: parseOptionalInt(row.dgrp),
     groupFunc: parseOptionalInt(row.dgrpfunc),
     groupVal: parseOptionalInt(row.dgrpval)

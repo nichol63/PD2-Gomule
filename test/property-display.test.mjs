@@ -1047,6 +1047,120 @@ test('formats numsockets textonly and PD2 cooldown reduction stats', () => {
   assert.deepEqual(formatSingle('corpseexplosionradius', [31]), ['+31% Increased Corpse Explosion Radius']);
 });
 
+test('formats map_mon_* stats via data-driven descFunc formatter', () => {
+  // descFunc=8: +val% label label2
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_fastercastrate', [60], { descFunc: 8, descVal: 2, descStringKey: 'MapMonHave', descString2Key: 'ModStr4v' }),
+    ['Monsters Have Faster Cast Rate +60%']
+  );
+  // descFunc=7: val% label label2
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_crushingblow', [17], { descFunc: 7, descVal: 2, descStringKey: 'MapMonHave', descString2Key: 'ModStr5c' }),
+    ['Monsters Have Crushing Blow 17%']
+  );
+  // descFunc=6: +val label label2
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_firemindam', [114], { descFunc: 6, descVal: 2, descStringKey: 'MapMonHave', descString2Key: 'ModStr1p' }),
+    ['Monsters Have +114 Minimum Fire Damage']
+  );
+  // descFunc=9: label label2 (no value displayed)
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_cannotbefrozen', [1], { descFunc: 9, descVal: 2, descStringKey: 'MapMonHave', descString2Key: 'ModStr5z' }),
+    ['Monsters Have Cannot Be Frozen']
+  );
+});
+
+test('formats map_play_* stats via data-driven descFunc formatter', () => {
+  // descFunc=7 with negative value
+  assert.deepEqual(
+    formatSingleWithMeta('map_play_fireresist', [-15], { descFunc: 7, descVal: 2, descStringKey: 'MapPlayHave', descString2Key: 'ModStr1j' }),
+    ['Players Have Fire Resist -15%']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('map_play_toblock', [-16], { descFunc: 7, descVal: 2, descStringKey: 'MapPlayHave', descString2Key: 'MapPlayBlock' }),
+    ['Players Have Chance to Block -16%']
+  );
+  // descFunc=8 with negative value
+  assert.deepEqual(
+    formatSingleWithMeta('map_play_fastergethitrate', [-12], { descFunc: 8, descVal: 2, descStringKey: 'MapPlayHave', descString2Key: 'ModStr4p' }),
+    ['Players Have Faster Hit Recovery -12%']
+  );
+});
+
+test('formats map_glob_* stats via data-driven descFunc formatter', () => {
+  // descFunc=1
+  assert.deepEqual(
+    formatSingleWithMeta('map_glob_arealevel', [1], { descFunc: 1, descVal: 1, descStringKey: 'MapGlobLevel', descString2Key: '' }),
+    ['+1 Area Level']
+  );
+  // descFunc=4
+  assert.deepEqual(
+    formatSingleWithMeta('map_glob_density', [64], { descFunc: 4, descVal: 1, descStringKey: 'MapGlobDensity', descString2Key: '' }),
+    ['+64% Monster Density']
+  );
+  // descFunc=3 (flag-style)
+  assert.deepEqual(
+    formatSingleWithMeta('map_glob_boss_dropcorruptedunique', [1], { descFunc: 3, descVal: 0, descStringKey: 'MapBossCorruptedUnique', descString2Key: '' }),
+    ['Boss Drops Corrupted Unique']
+  );
+  // descFunc=3 monster type
+  assert.deepEqual(
+    formatSingleWithMeta('map_glob_add_mon_cow', [391], { descFunc: 3, descVal: 0, descStringKey: 'MapAddMonCow', descString2Key: '' }),
+    ['Additional Monster Type: Cows']
+  );
+});
+
+test('suppresses hidden map supporting stats from display output', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'map_mon_coldmindam', values: [100], descFunc: 6, descVal: 2, descStringKey: 'MapMonHave', descString2Key: 'ModStr1t' },
+      { statKey: 'map_mon_coldlength', values: [169], descFunc: null, descVal: null, descStringKey: '', descString2Key: '' },
+      { statKey: 'map_mon_poisonlength', values: [257], descFunc: null, descVal: null, descStringKey: '', descString2Key: '' }
+    ]
+  }, null);
+
+  assert.equal(displayList.displayLines.length, 1, 'hidden stats should be suppressed');
+  assert.equal(displayList.displayLines[0].text, 'Monsters Have +100 Minimum Cold Damage');
+  assert.ok(!displayList.displayLines.some(l => l.statKey === 'map_mon_coldlength'), 'coldlength hidden');
+  assert.ok(!displayList.displayLines.some(l => l.statKey === 'map_mon_poisonlength'), 'poisonlength hidden');
+});
+
+test('formats map stats from real fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+
+  // Find a map item with map stats
+  const mapItem = summary.pages
+    .flatMap((page) => page.topLevelItems ?? [])
+    .find((item) => item.displayName?.includes('Map') &&
+      item.properties?.some((p) => p.statKey?.startsWith('map_mon_') || p.statKey?.startsWith('map_play_')));
+
+  if (mapItem) {
+    const mapProps = mapItem.properties.filter(p => p.statKey?.startsWith('map_'));
+    const formatted = formatPropertyListForDisplay({
+      kind: 'base',
+      complete: true,
+      error: null,
+      properties: mapProps
+    }, tables);
+
+    // All map stats should produce display lines (except hidden ones)
+    const nonHiddenCount = mapProps.filter(p => p.statKey !== 'map_mon_coldlength' && p.statKey !== 'map_mon_poisonlength').length;
+    assert.equal(formatted.displayLines.length, nonHiddenCount, 'all non-hidden map stats should produce display lines');
+
+    // Verify no display line falls back to humanize pattern
+    for (const line of formatted.displayLines) {
+      assert.ok(
+        !line.text.match(/^[A-Z][a-z]+[A-Z]/),
+        `map stat ${line.statKey} should not use humanized fallback: ${line.text}`
+      );
+    }
+  }
+});
+
 test('formats item_elemskill_* from real fixture items', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
