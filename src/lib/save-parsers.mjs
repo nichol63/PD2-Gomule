@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadPd2Tables } from './pd2-data.mjs';
-import { parseLegacyItemList } from './legacy-item-parser.mjs';
+import { buildLegacyTopLevelItems, parseLegacyItemList } from './legacy-item-parser.mjs';
 import {
   findAscii,
   isPrintableAscii,
@@ -19,6 +19,14 @@ const CLASS_NAMES = {
   5: 'Druid',
   6: 'Assassin'
 };
+
+function createSourceSpan(startOffset, endOffset) {
+  return {
+    startOffset,
+    endOffset,
+    length: Math.max(0, endOffset - startOffset)
+  };
+}
 
 function readFileBuffer(filePath) {
   return fs.readFileSync(filePath);
@@ -66,6 +74,7 @@ export function parseCharacterFile(filePath, options = {}) {
     level,
     itemListOffset,
     itemCount,
+    itemRegion: parsedItems.sourceSpan ?? null,
     items: parsedItems.items,
     topLevelItems: parsedItems.topLevelItems,
     parsedItemCount: parsedItems.items.length,
@@ -162,6 +171,7 @@ export function parsePlugyStashFile(filePath, options = {}) {
   }
 
   const pages = rawPages.map((page, index) => {
+    const pageStopOffset = rawPages[index + 1]?.offset ?? buffer.length;
     const parsedItems = parseLegacyItemList(
       buffer,
       page.itemListOffset + 4,
@@ -170,12 +180,22 @@ export function parsePlugyStashFile(filePath, options = {}) {
       pd2Tables
     );
 
+    // Shared-stash fixtures can contain plausible-looking later page headers inside
+    // item payload bytes. Keep parsing against the full file for resilience, then
+    // clamp the page-local item view by start offset while preserving the parser's
+    // original per-item spans and next-offset metadata.
+    const items = parsedItems.items.filter((item) => item.byteOffset < pageStopOffset);
+    const topLevelItems = buildLegacyTopLevelItems(items);
+
     return {
       ...page,
-      items: parsedItems.items,
-      topLevelItems: parsedItems.topLevelItems,
-      parsedItemCount: parsedItems.items.length,
-      parsedNodeCount: parsedItems.flatItems.length
+      pageRegion: createSourceSpan(page.offset, pageStopOffset),
+      itemRegion: createSourceSpan(page.itemListOffset + 4, pageStopOffset),
+      clampedItemCount: parsedItems.items.length - items.length,
+      items,
+      topLevelItems,
+      parsedItemCount: items.length,
+      parsedNodeCount: items.length
     };
   });
 

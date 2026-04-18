@@ -305,6 +305,48 @@ const PERLEVEL_STAT_RULES = {
   item_deadlystrike_perlevel: { label: 'Deadly Strike', format: 'percent' }
 };
 
+const BYTIME_PEAK_PERIODS = ['Day', 'Dusk', 'Night', 'Dawn'];
+
+const BYTIME_STAT_RULES = {
+  item_armor_bytime: { label: 'Defense', format: 'flat' },
+  item_armorpercent_bytime: { label: 'Enhanced Defense', format: 'percent' },
+  item_hp_bytime: { label: 'Life', format: 'flat' },
+  item_mana_bytime: { label: 'Mana', format: 'flat' },
+  item_maxdamage_bytime: { label: 'Maximum Damage', format: 'flat' },
+  item_maxdamage_percent_bytime: { label: 'Enhanced Maximum Damage', format: 'percent' },
+  item_strength_bytime: { label: 'Strength', format: 'flat' },
+  item_dexterity_bytime: { label: 'Dexterity', format: 'flat' },
+  item_energy_bytime: { label: 'Energy', format: 'flat' },
+  item_vitality_bytime: { label: 'Vitality', format: 'flat' },
+  item_tohit_bytime: { label: 'Attack Rating', format: 'flat' },
+  item_tohitpercent_bytime: { label: 'Bonus to Attack Rating', format: 'percent' },
+  item_cold_damagemax_bytime: { label: 'Maximum Cold Damage', format: 'flat' },
+  item_fire_damagemax_bytime: { label: 'Maximum Fire Damage', format: 'flat' },
+  item_ltng_damagemax_bytime: { label: 'Maximum Lightning Damage', format: 'flat' },
+  item_pois_damagemax_bytime: { label: 'Maximum Poison Damage', format: 'flat' },
+  item_resist_cold_bytime: { label: 'Cold Resist', format: 'percent' },
+  item_resist_fire_bytime: { label: 'Fire Resist', format: 'percent' },
+  item_resist_ltng_bytime: { label: 'Lightning Resist', format: 'percent' },
+  item_resist_pois_bytime: { label: 'Poison Resist', format: 'percent' },
+  item_absorb_cold_bytime: { label: 'Cold Absorb', format: 'flat' },
+  item_absorb_fire_bytime: { label: 'Fire Absorb', format: 'flat' },
+  item_absorb_ltng_bytime: { label: 'Lightning Absorb', format: 'flat' },
+  item_absorb_pois_bytime: { label: 'Poison Absorb', format: 'flat' },
+  item_find_gold_bytime: { label: 'Gold Find', format: 'percent' },
+  item_find_magic_bytime: { label: 'Magic Find', format: 'percent' },
+  item_find_gems_bytime: { label: 'Chance of Finding Gems', format: 'percent' },
+  item_regenstamina_bytime: { label: 'Stamina Recovery', format: 'percent' },
+  item_stamina_bytime: { label: 'Stamina', format: 'flat' },
+  item_damage_demon_bytime: { label: 'Damage to Demons', format: 'percent' },
+  item_damage_undead_bytime: { label: 'Damage to Undead', format: 'percent' },
+  item_tohit_demon_bytime: { label: 'Attack Rating against Demons', format: 'flat' },
+  item_tohit_undead_bytime: { label: 'Attack Rating against Undead', format: 'flat' },
+  item_crushingblow_bytime: { label: 'Crushing Blow', format: 'percent' },
+  item_openwounds_bytime: { label: 'Open Wounds', format: 'percent' },
+  item_kick_damage_bytime: { label: 'Kick Damage', format: 'flat' },
+  item_deadlystrike_bytime: { label: 'Deadly Strike', format: 'percent' }
+};
+
 function formatSignedNumber(value) {
   return value >= 0 ? `+${value}` : `${value}`;
 }
@@ -331,6 +373,32 @@ function formatPerlevelProperty(statKey, value) {
     default:
       return null;
   }
+}
+
+function formatBytimeValue(value, format) {
+  const numericValue = Number.isFinite(value) ? value : 0;
+  if (format === 'percent') {
+    return `${formatSignedNumber(numericValue)}%`;
+  }
+
+  return formatSignedNumber(numericValue);
+}
+
+function formatBytimeProperty(property) {
+  const statKey = property.statKey ?? '';
+  const rule = BYTIME_STAT_RULES[statKey];
+  if (!rule) {
+    return null;
+  }
+
+  const packedValue = property.values?.[0];
+  const numericPackedValue = Number.isFinite(packedValue) ? packedValue : 0;
+  const peakPeriodIndex = (numericPackedValue >> 20) & 3;
+  const minValue = (numericPackedValue >> 10) & 1023;
+  const maxValue = numericPackedValue & 1023;
+  const peakPeriod = BYTIME_PEAK_PERIODS[peakPeriodIndex] ?? `Period ${peakPeriodIndex}`;
+
+  return `${rule.label} (Varies by Time of Day, peaks near ${peakPeriod}): min ${formatBytimeValue(minValue, rule.format)}, max ${formatBytimeValue(maxValue, rule.format)}`;
 }
 
 function humanizeStatKey(statKey) {
@@ -717,6 +785,11 @@ function formatSingleProperty(property, pd2Tables) {
   const perlevelLine = formatPerlevelProperty(statKey, firstValue);
   if (perlevelLine !== null) {
     return perlevelLine;
+  }
+
+  const bytimeLine = formatBytimeProperty(property);
+  if (bytimeLine !== null) {
+    return bytimeLine;
   }
 
   switch (statKey) {

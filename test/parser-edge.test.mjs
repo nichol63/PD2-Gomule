@@ -8,11 +8,29 @@ import { getFixtureLibraryDir } from '../src/lib/workspace-paths.mjs';
 
 const FIXTURE_DIR = getFixtureLibraryDir();
 const tables = loadPd2Tables();
+const summaryCache = new Map();
 
-const charSummary = parseCharacterFile(path.join(FIXTURE_DIR, 'Legacy.d2s'), { pd2Tables: tables });
-const stashSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
-const legacyStashSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
-const sharedSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+function getCharacterSummary(fileName) {
+  const cacheKey = `character:${fileName}`;
+  if (!summaryCache.has(cacheKey)) {
+    summaryCache.set(
+      cacheKey,
+      parseCharacterFile(path.join(FIXTURE_DIR, fileName), { pd2Tables: tables })
+    );
+  }
+  return summaryCache.get(cacheKey);
+}
+
+function getStashSummary(fileName) {
+  const cacheKey = `stash:${fileName}`;
+  if (!summaryCache.has(cacheKey)) {
+    summaryCache.set(
+      cacheKey,
+      parsePlugyStashFile(path.join(FIXTURE_DIR, fileName), { pd2Tables: tables })
+    );
+  }
+  return summaryCache.get(cacheKey);
+}
 
 function requirePage(summary, pageName) {
   const page = summary.pages.find((entry) => entry.name === pageName);
@@ -52,7 +70,108 @@ function requireProperty(item, statId, rawValues) {
   return property;
 }
 
+function assertOffsetRange(range, label, options = {}) {
+  const { allowZeroLength = false } = options;
+
+  assert.ok(range && typeof range === 'object', `${label} should be an object`);
+  assert.equal(typeof range.startOffset, 'number', `${label}.startOffset should be a number`);
+  assert.equal(typeof range.endOffset, 'number', `${label}.endOffset should be a number`);
+  assert.equal(typeof range.length, 'number', `${label}.length should be a number`);
+  assert.ok(Number.isInteger(range.startOffset), `${label}.startOffset should be an integer`);
+  assert.ok(Number.isInteger(range.endOffset), `${label}.endOffset should be an integer`);
+  assert.ok(Number.isInteger(range.length), `${label}.length should be an integer`);
+  assert.ok(range.startOffset >= 0, `${label}.startOffset should be >= 0`);
+  assert.ok(range.endOffset >= range.startOffset, `${label}.endOffset should be >= startOffset`);
+  assert.equal(range.length, range.endOffset - range.startOffset, `${label}.length should match end-start`);
+
+  if (allowZeroLength) {
+    assert.ok(range.length >= 0, `${label}.length should be >= 0`);
+  } else {
+    assert.ok(range.length > 0, `${label}.length should be > 0`);
+  }
+}
+
+function assertItemsBoundedByRegion(items, region, label) {
+  for (const item of items) {
+    const itemLabel = `${label} item "${item.displayName ?? item.code ?? item.byteOffset}"`;
+    assertOffsetRange(item.sourceSpan, `${itemLabel} sourceSpan`);
+    assert.ok(
+      item.sourceSpan.startOffset >= region.startOffset,
+      `${itemLabel} should start within containing region`
+    );
+    assert.ok(
+      item.sourceSpan.endOffset <= region.endOffset,
+      `${itemLabel} should end within containing region`
+    );
+    assert.equal(typeof item.nextOffset, 'number', `${itemLabel} nextOffset should be a number`);
+    assert.ok(Number.isInteger(item.nextOffset), `${itemLabel} nextOffset should be an integer`);
+    assert.ok(
+      item.nextOffset >= item.sourceSpan.endOffset,
+      `${itemLabel} nextOffset should not precede sourceSpan.endOffset`
+    );
+    assert.ok(
+      item.nextOffset <= region.endOffset,
+      `${itemLabel} nextOffset should stay within containing region`
+    );
+  }
+}
+
+function assertItemStartsWithinRegion(items, region, label) {
+  for (const item of items) {
+    const itemLabel = `${label} item "${item.displayName ?? item.code ?? item.byteOffset}"`;
+    assertOffsetRange(item.sourceSpan, `${itemLabel} sourceSpan`);
+    assert.ok(
+      item.sourceSpan.startOffset >= region.startOffset,
+      `${itemLabel} should start within containing region`
+    );
+    assert.ok(
+      item.sourceSpan.startOffset < region.endOffset,
+      `${itemLabel} should start before the containing region end`
+    );
+    assert.equal(typeof item.nextOffset, 'number', `${itemLabel} nextOffset should be a number`);
+    assert.ok(Number.isInteger(item.nextOffset), `${itemLabel} nextOffset should be an integer`);
+    assert.ok(
+      item.nextOffset >= item.sourceSpan.endOffset,
+      `${itemLabel} nextOffset should not precede sourceSpan.endOffset`
+    );
+  }
+}
+
+function assertOrderedItemSpans(items, stopOffset, label) {
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    const itemLabel = `${label} item ${index} ("${item.displayName ?? item.code ?? item.byteOffset}")`;
+    const nextItem = items[index + 1] ?? null;
+
+    assertOffsetRange(item.sourceSpan, `${itemLabel} sourceSpan`);
+    if (nextItem) {
+      assertOffsetRange(nextItem.sourceSpan, `${label} item ${index + 1} sourceSpan`);
+      assert.ok(
+        item.sourceSpan.startOffset < nextItem.sourceSpan.startOffset,
+        `${itemLabel} should start before the next item`
+      );
+      assert.ok(
+        item.sourceSpan.endOffset <= nextItem.sourceSpan.startOffset,
+        `${itemLabel} should not overlap the next item`
+      );
+      assert.equal(
+        item.nextOffset,
+        nextItem.sourceSpan.startOffset,
+        `${itemLabel} nextOffset should point to the next detected item start`
+      );
+    } else {
+      assert.equal(
+        item.nextOffset,
+        stopOffset,
+        `${itemLabel} nextOffset should fall back to the containing stop offset`
+      );
+    }
+  }
+}
+
 test('every topLevelItem in character has a non-empty code', () => {
+  const charSummary = getCharacterSummary('Legacy.d2s');
+
   for (const item of charSummary.topLevelItems) {
     assert.ok(
       typeof item.code === 'string' && item.code.trim().length > 0,
@@ -62,6 +181,8 @@ test('every topLevelItem in character has a non-empty code', () => {
 });
 
 test('every page in Bases.d2x has index >= 0 and itemCount >= 0', () => {
+  const stashSummary = getStashSummary('Bases.d2x');
+
   for (const page of stashSummary.pages) {
     assert.ok(page.index >= 0, `page "${page.name}" should have index >= 0`);
     assert.ok(page.itemCount >= 0, `page "${page.name}" should have itemCount >= 0`);
@@ -69,6 +190,8 @@ test('every page in Bases.d2x has index >= 0 and itemCount >= 0', () => {
 });
 
 test('shared stash has expected SSS signature', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
+
   assert.ok(
     typeof sharedSummary.signature === 'string' || sharedSummary.signature instanceof Uint8Array || sharedSummary.signature != null,
     'shared stash should have a signature field'
@@ -76,6 +199,7 @@ test('shared stash has expected SSS signature', () => {
 });
 
 test('socket children are attached under parents that have socketsFilled > 0', () => {
+  const stashSummary = getStashSummary('Bases.d2x');
   const allItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
   const socketed = allItems.filter((item) => item.socketsFilled > 0);
 
@@ -92,6 +216,8 @@ test('socket children are attached under parents that have socketsFilled > 0', (
 });
 
 test('all parsed items expose the isEthereal boolean field', () => {
+  const charSummary = getCharacterSummary('Legacy.d2s');
+  const stashSummary = getStashSummary('Bases.d2x');
   const charItems = charSummary.topLevelItems;
   const stashItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
   const allItems = [...charItems, ...stashItems];
@@ -109,6 +235,8 @@ test('all parsed items expose the isEthereal boolean field', () => {
 });
 
 test('at least some items are identified across fixtures', () => {
+  const charSummary = getCharacterSummary('Legacy.d2s');
+  const stashSummary = getStashSummary('Bases.d2x');
   const charItems = charSummary.topLevelItems;
   const stashItems = stashSummary.pages.flatMap((p) => p.topLevelItems);
   const allItems = [...charItems, ...stashItems];
@@ -118,6 +246,7 @@ test('at least some items are identified across fixtures', () => {
 });
 
 test('parsed item count matches topLevelItems plus socket children count', () => {
+  const charSummary = getCharacterSummary('Legacy.d2s');
   const topLevel = charSummary.topLevelItems.length;
   const childCount = charSummary.topLevelItems.reduce((sum, item) => sum + (item.children?.length ?? 0), 0);
   const flatCount = charSummary.parsedItemCount ?? charSummary.items?.length;
@@ -127,7 +256,148 @@ test('parsed item count matches topLevelItems plus socket children count', () =>
   }
 });
 
+test('character items expose ordered non-overlapping source spans within itemRegion', () => {
+  const charSummary = getCharacterSummary('Legacy.d2s');
+
+  assertOffsetRange(charSummary.itemRegion, 'character itemRegion');
+  assert.equal(
+    charSummary.itemRegion.startOffset,
+    charSummary.itemListOffset + 4,
+    'character itemRegion should start at the first item payload byte'
+  );
+  assert.equal(
+    charSummary.itemRegion.endOffset,
+    charSummary.actualSize,
+    'character itemRegion should end at the character file size'
+  );
+
+  assertItemsBoundedByRegion(charSummary.items, charSummary.itemRegion, 'Legacy.d2s');
+  assertOrderedItemSpans(charSummary.items, charSummary.itemRegion.endOffset, 'Legacy.d2s');
+});
+
+test('stash pages expose ordered page and item regions tied to next page offsets', () => {
+  const stashSummary = getStashSummary('Bases.d2x');
+
+  for (let index = 0; index < stashSummary.pages.length; index += 1) {
+    const page = stashSummary.pages[index];
+    const nextPage = stashSummary.pages[index + 1] ?? null;
+    const pageLabel = `Bases.d2x page "${page.name}"`;
+
+    assertOffsetRange(page.pageRegion, `${pageLabel} pageRegion`);
+    assertOffsetRange(page.itemRegion, `${pageLabel} itemRegion`, { allowZeroLength: page.itemCount === 0 });
+    assert.equal(page.pageRegion.startOffset, page.offset, `${pageLabel} pageRegion should start at page.offset`);
+    assert.equal(
+      page.itemRegion.startOffset,
+      page.itemListOffset + 4,
+      `${pageLabel} itemRegion should start after the JM header`
+    );
+    assert.ok(
+      page.itemRegion.startOffset >= page.pageRegion.startOffset,
+      `${pageLabel} itemRegion should start within pageRegion`
+    );
+    assert.ok(
+      page.itemRegion.endOffset <= page.pageRegion.endOffset,
+      `${pageLabel} itemRegion should end within pageRegion`
+    );
+
+    if (nextPage) {
+      assert.ok(page.pageRegion.endOffset <= nextPage.pageRegion.startOffset, `${pageLabel} should not overlap the next page`);
+      assert.equal(
+        page.pageRegion.endOffset,
+        nextPage.offset,
+        `${pageLabel} pageRegion should end at the next page offset`
+      );
+      assert.equal(
+        page.itemRegion.endOffset,
+        nextPage.offset,
+        `${pageLabel} itemRegion should use the next page offset as its stop bound`
+      );
+    }
+  }
+});
+
+test('per-page clamp accounting reconciles raw and bounded item counts', () => {
+  const summaries = [
+    getStashSummary('Bases.d2x'),
+    getStashSummary('Legacy.d2x'),
+    getStashSummary('_LOD_SharedStashSave.sss')
+  ];
+
+  for (const summary of summaries) {
+    for (const page of summary.pages) {
+      assert.equal(typeof page.clampedItemCount, 'number', `page "${page.name}" should expose clampedItemCount`);
+      assert.ok(page.clampedItemCount >= 0, `page "${page.name}" clampedItemCount should be non-negative`);
+      assert.equal(
+        page.itemCount,
+        page.parsedItemCount + page.clampedItemCount,
+        `page "${page.name}" should reconcile raw and bounded item counts`
+      );
+    }
+  }
+});
+
+test('Legacy.d2x socketed-page items start within page itemRegion and keep ordered spans', () => {
+  const legacyStashSummary = getStashSummary('Legacy.d2x');
+  const page = requirePage(legacyStashSummary, 'Season 5 Armor');
+
+  assertOffsetRange(page.pageRegion, 'Legacy.d2x Season 5 Armor pageRegion');
+  assertOffsetRange(page.itemRegion, 'Legacy.d2x Season 5 Armor itemRegion');
+  assert.ok(
+    page.items.length > page.topLevelItems.length,
+      'Season 5 Armor should include attached socket children in the flat parse path'
+    );
+
+  assertItemStartsWithinRegion(page.items, page.itemRegion, 'Legacy.d2x Season 5 Armor');
+  assertOrderedItemSpans(page.items, page.items.at(-1).nextOffset, 'Legacy.d2x Season 5 Armor');
+});
+
+test('shared stash pages expose clamp metadata while preserving parser-derived item spans', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
+  const pagesWithItems = sharedSummary.pages.filter((page) => page.items.length > 0);
+  assert.ok(pagesWithItems.length > 0, 'shared stash should have pages with parsed items');
+
+  const clampedPages = pagesWithItems.filter((page) => page.clampedItemCount > 0);
+  assert.deepEqual(
+    clampedPages.map((page) => ({ name: page.name, clampedItemCount: page.clampedItemCount })),
+    [{ name: 'Miscellaneous', clampedItemCount: 1 }],
+    'shared stash should only clamp the known Miscellaneous page by one item'
+  );
+
+  for (const page of pagesWithItems) {
+    const pageLabel = `_LOD_SharedStashSave.sss page "${page.name}"`;
+
+    assertOffsetRange(page.pageRegion, `${pageLabel} pageRegion`);
+    assertOffsetRange(page.itemRegion, `${pageLabel} itemRegion`);
+    assert.equal(typeof page.clampedItemCount, 'number', `${pageLabel} clampedItemCount should be a number`);
+    assert.ok(
+      page.itemRegion.startOffset >= page.pageRegion.startOffset,
+      `${pageLabel} itemRegion should start within the page region`
+    );
+    assert.ok(
+      page.itemRegion.endOffset <= page.pageRegion.endOffset,
+      `${pageLabel} itemRegion should end within the page region`
+    );
+
+    assertItemStartsWithinRegion(page.items, page.itemRegion, pageLabel);
+    assertOrderedItemSpans(page.items, page.items.at(-1).nextOffset, pageLabel);
+  }
+
+  const clampedPage = clampedPages[0];
+  assert.ok(clampedPage, 'expected the known shared-stash clamped page to exist');
+  const lastItem = clampedPage.items.at(-1);
+  assert.ok(lastItem, 'expected the clamped shared-stash page to retain a final visible item');
+  assert.ok(
+    lastItem.sourceSpan.endOffset > clampedPage.itemRegion.endOffset,
+    'the clamped shared-stash page should preserve a parser-derived span beyond the discovered page boundary'
+  );
+  assert.ok(
+    lastItem.nextOffset > clampedPage.itemRegion.endOffset,
+    'the clamped shared-stash page should preserve a parser-derived nextOffset beyond the discovered page boundary'
+  );
+});
+
 test('stash pages topLevelItems are consistently shaped', () => {
+  const stashSummary = getStashSummary('Bases.d2x');
   const REQUIRED_FIELDS = ['code', 'displayName', 'qualityLabel', 'isIdentified', 'isSocketed'];
   for (const page of stashSummary.pages) {
     for (const item of page.topLevelItems) {
@@ -139,6 +409,7 @@ test('stash pages topLevelItems are consistently shaped', () => {
 });
 
 test('parser stops at first zero-saveBits property instead of emitting parser noise', () => {
+  const legacyStashSummary = getStashSummary('Legacy.d2x');
   const page = requirePage(legacyStashSummary, 'Season 5 Weapons');
   const warPike = requireTopLevelItem(page, 'War Pike');
 
@@ -151,6 +422,7 @@ test('parser stops at first zero-saveBits property instead of emitting parser no
 });
 
 test('parser infers socket metadata from filled sockets and attached children', () => {
+  const legacyStashSummary = getStashSummary('Legacy.d2x');
   const page = requirePage(legacyStashSummary, 'Season 5 Armor');
   const monarch = requireTopLevelItem(page, 'Monarch');
 
@@ -161,6 +433,7 @@ test('parser infers socket metadata from filled sockets and attached children', 
 });
 
 test('parser preserves monster metadata on real fixture items', () => {
+  const legacyStashSummary = getStashSummary('Legacy.d2x');
   const monarch = findTopLevelItem(legacyStashSummary, 'Monarch');
   const monsterProperty = monarch.properties.find(
     (property) => property.statKey === 'damage_vs_montype'
@@ -172,6 +445,7 @@ test('parser preserves monster metadata on real fixture items', () => {
 });
 
 test('parser decodes packed item_skilloncast metadata on real fixture items', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
   const wirtLegPage = requirePage(sharedSummary, 'Quest Items + Misc');
   const wirtLeg = requireTopLevelItem(wirtLegPage, "Wirt's Leg");
   const wirtSkillOnCast = requireProperty(wirtLeg, 200, [2064, 29]);
@@ -219,6 +493,7 @@ test('parser decodes packed item_skilloncast metadata on real fixture items', ()
 });
 
 test('parser filters state out of parsed properties for real fixture items', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
   const flawlessSkull = findTopLevelItem(sharedSummary, 'Flawless Skull');
 
   assert.equal(

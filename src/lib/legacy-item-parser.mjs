@@ -15,6 +15,14 @@ const THROWABLE_WEAPON_CODES = new Set(['ajav', 'jave', 'taxe', 'tkni']);
 const MAX_PROPERTY_COUNT = 256;
 const MAX_PROPERTY_BITS = 8192;
 
+function createSourceSpan(startOffset, endOffset) {
+  return {
+    startOffset,
+    endOffset,
+    length: Math.max(0, endOffset - startOffset)
+  };
+}
+
 function flipByte(value) {
   let flipped = 0;
 
@@ -597,6 +605,10 @@ function attachSocketChildren(items) {
   return topLevelItems;
 }
 
+export function buildLegacyTopLevelItems(items) {
+  return attachSocketChildren(items);
+}
+
 export function parseLegacyItemSummary(buffer, offset, pd2Tables, options = {}) {
   if (!hasLegacyHeader(buffer, offset)) {
     return null;
@@ -738,40 +750,49 @@ export function parseLegacyItemTree(buffer, offset, stopOffset, pd2Tables) {
 
   normalizeSocketMetadata(summary);
   summary.nextOffset = nextCandidate?.byteOffset ?? stopOffset;
+  summary.sourceSpan = createSourceSpan(offset, summary.nextOffset);
   return summary;
 }
 
 export function parseLegacyItemList(buffer, startOffset, itemCount, stopOffset, pd2Tables) {
   const items = [];
+  let itemOffset = startOffset;
   let nextOffset = startOffset;
 
   for (let index = 0; index < itemCount; index += 1) {
-    const item = parseLegacyItemSummary(buffer, nextOffset, pd2Tables, {
+    const item = parseLegacyItemSummary(buffer, itemOffset, pd2Tables, {
       requireKnownCode: false
     });
     if (!isPlausibleLegacyItemSummary(item)) {
-      throw new Error(`Could not parse legacy item at byte offset ${nextOffset}`);
+      throw new Error(`Could not parse legacy item at byte offset ${itemOffset}`);
     }
 
-    items.push(item);
     if (index < itemCount - 1) {
       const nextItem = findNextLegacyItemStart(
         buffer,
-        nextOffset + 2,
+        itemOffset + 2,
         stopOffset,
         pd2Tables
       );
       if (!nextItem) {
-        throw new Error(`Could not find next legacy item after byte offset ${nextOffset}`);
+        throw new Error(`Could not find next legacy item after byte offset ${itemOffset}`);
       }
       nextOffset = nextItem.byteOffset;
+    } else {
+      nextOffset = stopOffset;
     }
+
+    item.nextOffset = nextOffset;
+    item.sourceSpan = createSourceSpan(itemOffset, item.nextOffset);
+    items.push(item);
+    itemOffset = nextOffset;
   }
 
   return {
     items,
     topLevelItems: attachSocketChildren(items),
     nextOffset,
+    sourceSpan: createSourceSpan(startOffset, nextOffset),
     flatItems: items
   };
 }

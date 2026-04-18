@@ -135,6 +135,10 @@ function formatSingleWithMeta(statKey, values, meta = {}, tables = null) {
   return displayList.displayLines.map((line) => line.text);
 }
 
+function packBytimeValue(peakPeriod, minValue, maxValue) {
+  return ((peakPeriod & 0x3) << 20) | ((minValue & 0x3ff) << 10) | (maxValue & 0x3ff);
+}
+
 test('formats corrected label/set stats into readable lines', () => {
   assert.deepEqual(formatSingle('item_magicbonus', [25]), ['Magic Find +25%']);
   assert.deepEqual(formatSingle('toblock', [5]), ['Chance to Block +5%']);
@@ -714,6 +718,97 @@ test('formats item_skilloncast from raw packed values without parser metadata', 
     formatSingle('item_skilloncast', [60645, 88]),
     ['88% Chance to Cast Level 37 Skill 947 on Casting']
   );
+});
+
+test('formats packed item_*_bytime values from the 22-bit presentation contract', () => {
+  assert.deepEqual(
+    formatSingleWithMeta('item_strength_bytime', [packBytimeValue(0, 240, 240)], { descFunc: 17, descVal: 1 }),
+    ['Strength (Varies by Time of Day, peaks near Day): min +240, max +240']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('item_armorpercent_bytime', [packBytimeValue(2, 565, 710)], { descFunc: 18, descVal: 1 }),
+    ['Enhanced Defense (Varies by Time of Day, peaks near Night): min +565%, max +710%']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('item_resist_pois_bytime', [packBytimeValue(0, 1016, 170)], { descFunc: 18, descVal: 2 }),
+    ['Poison Resist (Varies by Time of Day, peaks near Day): min +1016%, max +170%']
+  );
+  assert.deepEqual(
+    formatSingleWithMeta('item_find_magic_bytime', [packBytimeValue(3, 6, 719)], { descFunc: 18, descVal: 1 }),
+    ['Magic Find (Varies by Time of Day, peaks near Dawn): min +6%, max +719%']
+  );
+  assert.deepEqual(
+    formatSingle('item_find_gems_bytime', [packBytimeValue(3, 12, 34)]),
+    ['Chance of Finding Gems (Varies by Time of Day, peaks near Dawn): min +12%, max +34%']
+  );
+  assert.deepEqual(
+    formatSingle('item_absorb_pois_bytime', [packBytimeValue(1, 69, 129)]),
+    ['Poison Absorb (Varies by Time of Day, peaks near Dusk): min +69, max +129']
+  );
+});
+
+test('formats packed item_*_bytime stats from real fixtures, including metadata-incomplete poison absorb', () => {
+  const tables = loadPd2Tables();
+  const sharedStash = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const bases = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
+
+  const bytimeCases = [
+    {
+      source: sharedStash,
+      itemName: 'Unearthed Wand',
+      statKey: 'item_strength_bytime',
+      value: 246000,
+      expected: 'Strength (Varies by Time of Day, peaks near Day): min +240, max +240'
+    },
+    {
+      source: sharedStash,
+      itemName: 'Elder Staff',
+      statKey: 'item_armorpercent_bytime',
+      value: 2676422,
+      expected: 'Enhanced Defense (Varies by Time of Day, peaks near Night): min +565%, max +710%'
+    },
+    {
+      source: sharedStash,
+      itemName: 'Seraph Rod',
+      statKey: 'item_resist_pois_bytime',
+      value: 1040554,
+      expected: 'Poison Resist (Varies by Time of Day, peaks near Day): min +1016%, max +170%'
+    },
+    {
+      source: sharedStash,
+      itemName: 'Caduceus',
+      statKey: 'item_find_magic_bytime',
+      value: 3152591,
+      expected: 'Magic Find (Varies by Time of Day, peaks near Dawn): min +6%, max +719%'
+    },
+    {
+      source: bases,
+      itemName: 'Monarch',
+      statKey: 'item_absorb_pois_bytime',
+      value: 1119361,
+      expected: 'Poison Absorb (Varies by Time of Day, peaks near Dusk): min +69, max +129'
+    }
+  ];
+
+  for (const { source, itemName, statKey, value, expected } of bytimeCases) {
+    const item = source.pages
+      .flatMap((page) => page.topLevelItems ?? [])
+      .find((entry) => entry.displayName === itemName && entry.properties?.some((property) => property.statKey === statKey));
+
+    assert.ok(item, `expected ${itemName} to expose ${statKey} in fixture data`);
+
+    const property = item.properties.find((entry) => entry.statKey === statKey);
+    assert.deepEqual(property.values, [value], `${itemName} should preserve the packed 22-bit bytime value`);
+
+    const lines = formatPropertyListForDisplay({
+      kind: 'base',
+      complete: true,
+      error: null,
+      properties: [property]
+    }, tables).displayLines.map((line) => line.text);
+
+    assert.deepEqual(lines, [expected]);
+  }
 });
 
 test('formats per-level flat stats as +N Label (Based on Character Level)', () => {
