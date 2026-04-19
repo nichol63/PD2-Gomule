@@ -5,6 +5,7 @@ The parser remains read-only. Provenance work is about proving byte coverage, no
 ## Shipped Provenance Shape
 
 - Parsed items expose `byteOffset`, `nextOffset`, and `sourceSpan`.
+- Parsed items now also expose `qualityData`: base `qualityId` / `qualityLabel`, magic `magicPrefixId` / `magicSuffixId`, set `setId`, unique `uniqueId`, rare/crafted `rareNameId1` / `rareNameId2` with `rarePrefixIds` / `rareSuffixIds`, superior `superiorTypeId`, and low-quality `lowQualityTypeId` when present.
 - Character summaries expose `itemRegion`.
 - Stash pages expose `pageRegion`, `itemRegion`, and `clampedItemCount`.
 - Helpers:
@@ -21,9 +22,8 @@ The next milestone is serializer proof only: generate bytes from the parsed mode
 
 ## Current Blocker
 
-At the time the autopilot queue was created, these parser/provenance files were already dirty:
+Dirty-file adoption is no longer the blocker. The remaining parser/provenance milestone is serializer proof: generate bytes from the parsed model and assert byte-for-byte equality against the source regions without enabling user-facing write/edit/transfer flows.
 
-- `src/lib/save-parsers.mjs`
-- `test/parser-edge.test.mjs`
+Known caveat to resolve or deliberately carry into that work:
 
-Treat them as owned by another in-progress batch unless the user says otherwise.
+- `_LOD_SharedStashSave.sss` still reports `5040` raw items versus `5039` bounded parsed items because page `Miscellaneous` loses one item when clamped by the next discovered page boundary.

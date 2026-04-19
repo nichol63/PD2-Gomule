@@ -23,7 +23,7 @@ Create the compact bootstrap, canonical queue, focused reference docs, session s
 
 Teach future hands-off sessions to continue when the ready queue is empty by selecting the highest `needs-research` item, gathering proof, and either promoting it into a same-session implementation batch or documenting the exact blocker before moving on.
 
-Run depth defaults to until blocked. Proof remains strict: display/formatter implementation requires fixture evidence plus exact local string/reference proof. Subagents may be used only with strict file ownership and shared literal-string specs. Parser work remains skipped while `src/lib/save-parsers.mjs` and `test/parser-edge.test.mjs` are dirty.
+Run depth defaults to until blocked. Proof remains strict: display/formatter implementation requires fixture evidence plus exact local string/reference proof. Subagents may be used only with strict file ownership and shared literal-string specs. Parser/provenance work is allowed when it has an explicit queue item and stays inside its ownership lane.
 
 ### [done] STAT-001 - Research-only map_mon_splash encoding audit
 
@@ -114,9 +114,9 @@ Candidate expected strings once fixture evidence exists:
 - `of Sunlight` / `item_armor_bytime` with `center=0`, `min=-10`, `max=60` should render a Day-peaking defense line with `min -10, max +60`.
 - `of Dawn` / `item_armor_bytime` with `center=3`, `min=10`, `max=40` should render a Dawn-peaking defense line with `min +10, max +40`.
 
-Outcome: follow-up proof sweep still did not produce an implementation-safe example. Exact `item_armor_bytime` packed targets for `of Sunlight` (`1038396`) and `of Dawn` (`3156008`) are absent from the Library, and no complete gear-coded `item_armor_bytime` fixture came close enough to stand in as proof. Clean real-gear bytime samples do exist for other stats, including `_LOD_SharedStashSave.sss / RW Helms 2 / Diadem` and `Sacred Armor` with `item_tohitpercent_bytime` packed `4181061` (`center=3, min=-13, max=69`) plus `_LOD_SharedStashSave.sss / Bases 10 / Seraph Rod` with `item_resist_pois_bytime` packed `1040554` (`center=0, min=-8, max=170`), which supports the signed-slot hypothesis in general.
+Outcome: follow-up proof sweeps still did not produce an implementation-safe example. Exact `item_armor_bytime` packed targets for `of Sunlight` (`1038396`) and `of Dawn` (`3156008`) are absent from the Library, and no complete gear-coded `item_armor_bytime` fixture came close enough to stand in as proof. After parser provenance landed, a qualityData-enabled sweep across all 134 Library fixtures still found `0` hits for `magicSuffixId` 456 / 457, `15` magic items with any `_bytime` property (`35` properties total), suffix ids limited to `0`, `120`, `169`, `298`, and `331`, and `0` magic `item_armor_bytime` examples. Clean real-gear bytime samples do exist for other stats, including `_LOD_SharedStashSave.sss / RW Helms 2 / Diadem` and `Sacred Armor` with `item_tohitpercent_bytime` packed `4181061` (`center=3, min=-13, max=69`) plus `_LOD_SharedStashSave.sss / Bases 10 / Seraph Rod` with `item_resist_pois_bytime` packed `1040554` (`center=0, min=-8, max=170`), which supports the signed-slot hypothesis in general. Visible magic bytime examples such as `_LOD_SharedStashSave.sss / Magic +6 Bows / Matriarchal Bow` (`magicPrefixId` 435, `magicSuffixId` 169, `item_armorpercent_bytime=55733`) resolve to non-`/time` affixes, so they do not unlock formatter work.
 
-Blocked because the current parser does not preserve magic affix ids and magic display names do not retain suffix text, so parsed fixtures cannot tie a packed bytime value back to `MagicSuffix.txt` rows `of Dawn` / `of Sunlight`. Do not implement from synthetic values alone. Unblock only with a clean fixture item tied to a known bytime source row, equivalent raw-byte/affix proof, or authoritative tooltip/UI capture.
+Blocked because no real Library fixture has yet been proven to carry `MagicSuffix.txt` row 456 or 457 on `item_armor_bytime`; `qualityData` now exposes magic affix ids, so the remaining blocker is fixture proof, not parser provenance. Do not implement from synthetic values alone. Unblock only with a clean fixture item tied to a known bytime source row, equivalent raw-byte/affix proof, or authoritative tooltip/UI capture.
 
 ### [done] STAT-003 - Remaining single-value candidate triage
 
@@ -186,12 +186,7 @@ Blocked because `bloodwarplifereduction` is absent from local `patchstring.tbl`,
 
 Goal: serialize parsed save regions back to bytes and prove byte-for-byte equality without enabling write support.
 
-Blocked because the current worktree contains pre-existing parser/provenance changes in:
-
-- `src/lib/save-parsers.mjs`
-- `test/parser-edge.test.mjs`
-
-Unblock when those changes are committed, intentionally adopted, or cleared by their owner. Do not overwrite them.
+Blocked because the remaining work is a true serializer-proof batch rather than parser adoption. Parser/provenance prerequisites are now shipped: parsed items carry `qualityData`, `sourceSpan`, `itemRegion` / `pageRegion`, and the read-only partition helpers `sliceBufferBySourceSpan()` and `validateItemSourcePartition()`, with fixture tests proving byte-for-byte bounded region reconstruction. The remaining known caveat is the `_LOD_SharedStashSave.sss` `5040 raw / 5039 bounded parsed` page-boundary discrepancy on `Miscellaneous`. Unblock with a focused parser/test/docs batch that serializes parsed save regions back to bytes and compares them against the source without enabling any product write flow.
 
 ### [done] STAT-004 - PD2 scaling stat formatter design
 
