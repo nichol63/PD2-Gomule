@@ -139,7 +139,7 @@ Exit criteria:
 
 Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 288-row one-value source set is mostly covered by existing explicit labels, map, bytime, per-level, hidden, internal, or scaling/design buckets. The uncovered candidates with the best evidence are `deep_wounds` and `eaglehorn_raven`, both with clean `_LOD_SharedStashSave.sss` fixture examples and data-table support, but exact string-table wording is still unresolved. Clout stats, `blood_warp_life_reduction`, and `immune_stat` remain blocked on cleaner fixture identity or display policy. No ready implementation item was added because no remaining candidate has both clean fixture evidence and exact wording.
 
-### [needs-research] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
+### [blocked] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
 
 Goal: prove exact user-facing wording for `deep_wounds` and `eaglehorn_raven` before replacing the generic fallback lines.
 
@@ -148,7 +148,7 @@ Evidence already found:
 - `deep_wounds`: `Gems.txt` Um Rune, prefix/suffix rows, Malice, and multiple unique item rows use the stat. Clean `_LOD_SharedStashSave.sss` fixture examples include amulets with `[300]`, class helms with `[350]` and `[360]`, Hellforged Plate with `[32]`, and Loricated Mail with `[70]`.
 - `eaglehorn_raven`: Eaglehorn carries `eaglehorn-raven 500 500`, Raven skill formulas consume `stat('eaglehorn_raven'.accr)`, and clean `_LOD_SharedStashSave.sss` fixture examples exist on Diamond Bow and Crusader Bow samples with `[500]`.
 
-Do not implement until the exact text behind `OpenWoundsItem` and `EaglehornRaven` is proven from string tables, an authoritative reference, or an equivalent fixture/UI source.
+Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`. A local `.tbl` sweep of `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl` found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. Do not implement until those exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
 
 ### [needs-research] STAT-008 - Clout, blood-warp, and immune stat display policy
 
