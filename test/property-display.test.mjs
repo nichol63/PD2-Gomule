@@ -1165,6 +1165,18 @@ test('formats map_mon_* stats via data-driven descFunc formatter', () => {
   );
 });
 
+test('formats only canonical map_mon_splash and suppresses noncanonical values', () => {
+  const meta = { descFunc: 9, descVal: 0, descStringKey: 'MapMon', descString2Key: 'MapMonSplash' };
+
+  assert.deepEqual(
+    formatSingleWithMeta('map_mon_splash', [22913, 100], meta),
+    ['Monsters Melee Splash']
+  );
+  assert.deepEqual(formatSingleWithMeta('map_mon_splash', [32896, 82], meta), []);
+  assert.deepEqual(formatSingleWithMeta('map_mon_splash', [33189, 0], meta), []);
+  assert.deepEqual(formatSingleWithMeta('map_mon_splash', [45166, 6], meta), []);
+});
+
 test('formats map_play_* stats via data-driven descFunc formatter', () => {
   // descFunc=7 with negative value
   assert.deepEqual(
@@ -1254,6 +1266,46 @@ test('formats map stats from real fixture items', () => {
       );
     }
   }
+});
+
+test('formats canonical map_mon_splash from maps and hides non-map fixture leaks', () => {
+  const tables = loadPd2Tables();
+  const sharedSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const canonicalMap = sharedSummary.pages
+    .flatMap((page) => page.topLevelItems ?? [])
+    .find((item) =>
+      item.displayName === 'Westmarch Map' &&
+      item.properties.some((property) => property.statKey === 'map_mon_splash')
+    );
+  assert.ok(canonicalMap, 'expected Westmarch Map to expose canonical map_mon_splash');
+
+  const renderStat = (item, statKey) => {
+    const property = item.properties.find((candidate) => candidate.statKey === statKey);
+    assert.ok(property, `expected ${item.displayName} to expose ${statKey}`);
+    return formatPropertyListForDisplay({
+      kind: 'base',
+      complete: true,
+      error: null,
+      properties: [property]
+    }, tables).displayLines.map((line) => line.text);
+  };
+
+  assert.deepEqual(renderStat(canonicalMap, 'map_mon_splash'), ['Monsters Melee Splash']);
+
+  const showcaseSummary = parseCharacterFile(
+    path.join(FIXTURE_DIR, 'Showcase Characters', 'amazon', 'summoner.d2s'),
+    { pd2Tables: tables }
+  );
+  const nonMapPotion = showcaseSummary.topLevelItems.find((item) =>
+    item.displayName === 'Greater Mana Potion' &&
+    item.properties.some((property) =>
+      property.statKey === 'map_mon_splash' &&
+      property.values?.[0] === 32896 &&
+      property.values?.[1] === 82
+    )
+  );
+  assert.ok(nonMapPotion, 'expected summoner.d2s Greater Mana Potion to expose noncanonical map_mon_splash');
+  assert.deepEqual(renderStat(nonMapPotion, 'map_mon_splash'), []);
 });
 
 test('formats item_elemskill_* from real fixture items', () => {

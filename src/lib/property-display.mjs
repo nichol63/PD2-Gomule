@@ -704,9 +704,22 @@ const MAP_STAT_STRINGS = {
 
 // Hidden map stats that are supporting values for grouped damage pairs
 const MAP_HIDDEN_STATS = new Set(['map_mon_coldlength', 'map_mon_poisonlength']);
+const MAP_MON_SPLASH_PACKED_VALUE = (358 << 6) | 1;
+const MAP_MON_SPLASH_CHANCE = 100;
 
 function resolveMapString(key) {
   return MAP_STAT_STRINGS[key] ?? key;
+}
+
+function formatMapMonsterSplash(property) {
+  if (
+    property.values?.[0] !== MAP_MON_SPLASH_PACKED_VALUE ||
+    property.values?.[1] !== MAP_MON_SPLASH_CHANCE
+  ) {
+    return null;
+  }
+
+  return `${resolveMapString(property.descStringKey)} ${resolveMapString(property.descString2Key)}`;
 }
 
 function formatMapStat(property, pd2Tables) {
@@ -715,6 +728,10 @@ function formatMapStat(property, pd2Tables) {
   // Hidden supporting stats produce no display line
   if (MAP_HIDDEN_STATS.has(statKey)) {
     return null;
+  }
+
+  if (statKey === 'map_mon_splash') {
+    return formatMapMonsterSplash(property);
   }
 
   const descFunc = property.descFunc;

@@ -41,7 +41,7 @@ Exit criteria:
 
 Outcome: audit documented in `docs/autopilot/display-decisions.md`. True map items use canonical `[22913,100]` (`proc_SplashDamage`, level 1, chance 100) and should remain value-suppressed as `Monsters Melee Splash`. Noncanonical fixture hits appear only on non-map items and should be hidden by a separate implementation batch.
 
-### [ready] STAT-005 - Hide noncanonical map_mon_splash display leaks
+### [done] STAT-005 - Hide noncanonical map_mon_splash display leaks
 
 Goal: keep canonical map splash wording while suppressing noncanonical parser/display leaks on non-map items.
 
@@ -69,6 +69,8 @@ Exit criteria:
 - Unit tests cover canonical rendering and noncanonical suppression.
 - Fixture sanity check confirms canonical maps still render and non-map false positives no longer display `Monsters Melee Splash`.
 - Run `npm test`.
+
+Outcome: shipped in presentation. Canonical `[22913,100]` still renders exactly `Monsters Melee Splash`; noncanonical examples such as `[32896,82]`, `[33189,0]`, and `[45166,6]` produce no display line. Fixture sanity checked 134 save files: 45 canonical displays, 111 noncanonical hidden, 0 noncanonical display leaks.
 
 ### [ready] STAT-002 - Research-only bytime signedness/scaling audit
 
