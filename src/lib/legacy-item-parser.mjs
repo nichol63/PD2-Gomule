@@ -125,6 +125,7 @@ function parseLegacyEar(reader, baseSummary) {
     code: 'ear',
     displayName: ownerName ? `${ownerName}'s Ear` : 'Ear',
     qualityLabel: 'ear',
+    qualityData: null,
     ownerClassId: classId,
     ownerLevel: level,
     socketsFilled: 0,
@@ -138,38 +139,95 @@ function parseLegacyEar(reader, baseSummary) {
   };
 }
 
-function skipQualityData(reader, summary) {
+function readQualityData(reader, summary) {
   switch (summary.quality) {
     case 1:
+      return {
+        lowQualityTypeId: reader.read(3)
+      };
     case 3:
-      reader.read(3);
-      break;
+      return {
+        superiorTypeId: reader.read(3)
+      };
     case 2:
-      break;
+      return null;
     case 4:
-      reader.read(11);
-      reader.read(11);
-      break;
+      return {
+        magicPrefixId: reader.read(11),
+        magicSuffixId: reader.read(11)
+      };
     case 5:
+      return {
+        setId: reader.read(12)
+      };
     case 7:
-      reader.read(12);
-      break;
+      return {
+        uniqueId: reader.read(12)
+      };
     case 6:
     case 8:
-      reader.read(8);
-      reader.read(8);
-      for (let index = 0; index < 3; index += 1) {
-        if (reader.read(1) === 1) {
-          reader.read(11);
+      {
+        const rarePrefixIds = [];
+        const rareSuffixIds = [];
+        const rareNameId1 = reader.read(8);
+        const rareNameId2 = reader.read(8);
+
+        for (let index = 0; index < 3; index += 1) {
+          if (reader.read(1) === 1) {
+            rarePrefixIds.push(reader.read(11));
+          }
+          if (reader.read(1) === 1) {
+            rareSuffixIds.push(reader.read(11));
+          }
         }
-        if (reader.read(1) === 1) {
-          reader.read(11);
-        }
+
+        return {
+          rareNameId1,
+          rareNameId2,
+          rarePrefixIds,
+          rareSuffixIds
+        };
       }
-      break;
     default:
-      break;
+      return null;
   }
+}
+
+function cloneQualityData(qualityData) {
+  if (!qualityData) {
+    return null;
+  }
+
+  const cloned = { ...qualityData };
+  if (Array.isArray(qualityData.rarePrefixIds)) {
+    cloned.rarePrefixIds = [...qualityData.rarePrefixIds];
+  }
+  if (Array.isArray(qualityData.rareSuffixIds)) {
+    cloned.rareSuffixIds = [...qualityData.rareSuffixIds];
+  }
+  return cloned;
+}
+
+function createBaseQualityData(summary) {
+  return {
+    qualityId: summary.quality,
+    qualityLabel: summary.qualityLabel
+  };
+}
+
+function assignQualityData(summary, qualityData) {
+  summary.qualityData = qualityData
+    ? { ...createBaseQualityData(summary), ...cloneQualityData(qualityData) }
+    : createBaseQualityData(summary);
+}
+
+function readQualityPayload(reader, summary) {
+  const qualityData = readQualityData(reader, summary);
+  assignQualityData(summary, qualityData);
+}
+
+function skipQualityData(reader, summary) {
+  readQualityPayload(reader, summary);
 }
 
 function readNormalTypeData(reader, summary) {
@@ -656,6 +714,7 @@ export function parseLegacyItemSummary(buffer, offset, pd2Tables, options = {}) 
   summary.invHeight = summary.itemInfo?.invHeight ?? 0;
   summary.quality = null;
   summary.qualityLabel = summary.isSimple ? 'simple' : 'unknown';
+  summary.qualityData = null;
   summary.socketsFilled = 0;
   summary.totalSockets = 0;
   summary.children = [];

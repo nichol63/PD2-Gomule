@@ -28,6 +28,138 @@ function createSourceSpan(startOffset, endOffset) {
   };
 }
 
+function assertIntegerOffset(value, label) {
+  if (!Number.isInteger(value)) {
+    throw new TypeError(`${label} must be an integer`);
+  }
+
+  if (value < 0) {
+    throw new RangeError(`${label} must be >= 0`);
+  }
+}
+
+function normalizeSourceSpan(sourceSpan, label) {
+  if (!sourceSpan || typeof sourceSpan !== 'object') {
+    throw new TypeError(`${label} must be an object`);
+  }
+
+  const { startOffset, endOffset } = sourceSpan;
+  assertIntegerOffset(startOffset, `${label}.startOffset`);
+  assertIntegerOffset(endOffset, `${label}.endOffset`);
+
+  if (endOffset < startOffset) {
+    throw new RangeError(`${label}.endOffset must be >= ${label}.startOffset`);
+  }
+
+  return createSourceSpan(startOffset, endOffset);
+}
+
+function getItemPartitionSpan(item, index) {
+  if (!item || typeof item !== 'object') {
+    throw new TypeError(`items[${index}] must be an object`);
+  }
+
+  const sourceSpan = normalizeSourceSpan(item.sourceSpan, `items[${index}].sourceSpan`);
+  const nextOffset = item.nextOffset ?? sourceSpan.endOffset;
+  assertIntegerOffset(nextOffset, `items[${index}].nextOffset`);
+
+  if (nextOffset < sourceSpan.endOffset) {
+    throw new RangeError(`items[${index}].nextOffset must be >= items[${index}].sourceSpan.endOffset`);
+  }
+
+  return createSourceSpan(sourceSpan.startOffset, nextOffset);
+}
+
+export function sliceBufferBySourceSpan(buffer, sourceSpan) {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new TypeError('buffer must be a Buffer');
+  }
+
+  const normalizedSpan = normalizeSourceSpan(sourceSpan, 'sourceSpan');
+  if (normalizedSpan.endOffset > buffer.length) {
+    throw new RangeError(
+      `sourceSpan.endOffset ${normalizedSpan.endOffset} exceeds buffer length ${buffer.length}`
+    );
+  }
+
+  return buffer.subarray(normalizedSpan.startOffset, normalizedSpan.endOffset);
+}
+
+export function validateItemSourcePartition(buffer, region, items = []) {
+  if (!Array.isArray(items)) {
+    throw new TypeError('items must be an array');
+  }
+
+  const normalizedRegion = normalizeSourceSpan(region, 'region');
+  const regionBytes = sliceBufferBySourceSpan(buffer, normalizedRegion);
+  const spans = items.map((item, index) => getItemPartitionSpan(item, index));
+  const boundedSlices = [];
+
+  let boundedLength = 0;
+  let totalSpanLength = 0;
+  let uncoveredBytes = 0;
+  let overlapBytes = 0;
+  let overflowBytes = 0;
+  let cursor = normalizedRegion.startOffset;
+
+  for (const span of spans) {
+    totalSpanLength += span.length;
+
+    if (span.startOffset > cursor) {
+      uncoveredBytes += span.startOffset - cursor;
+    } else if (span.startOffset < cursor) {
+      overlapBytes += cursor - span.startOffset;
+    }
+
+    const boundedStart = Math.min(
+      normalizedRegion.endOffset,
+      Math.max(normalizedRegion.startOffset, span.startOffset)
+    );
+    const boundedEnd = Math.min(
+      normalizedRegion.endOffset,
+      Math.max(normalizedRegion.startOffset, span.endOffset)
+    );
+
+    if (boundedEnd > boundedStart) {
+      boundedSlices.push(buffer.subarray(boundedStart, boundedEnd));
+      boundedLength += boundedEnd - boundedStart;
+    }
+
+    if (span.endOffset > normalizedRegion.endOffset) {
+      overflowBytes += span.endOffset - Math.max(normalizedRegion.endOffset, span.startOffset);
+    }
+
+    cursor = Math.max(cursor, Math.min(span.endOffset, normalizedRegion.endOffset));
+  }
+
+  if (cursor < normalizedRegion.endOffset) {
+    uncoveredBytes += normalizedRegion.endOffset - cursor;
+  }
+
+  const boundedBytes = Buffer.concat(boundedSlices, boundedLength);
+  const startsAtRegionStart = spans.length === 0
+    ? normalizedRegion.length === 0
+    : spans[0].startOffset === normalizedRegion.startOffset;
+  const endsAtRegionEnd = spans.length === 0
+    ? normalizedRegion.length === 0
+    : spans.at(-1).endOffset === normalizedRegion.endOffset;
+
+  return {
+    region: normalizedRegion,
+    itemCount: spans.length,
+    totalSpanLength,
+    boundedLength,
+    uncoveredBytes,
+    overlapBytes,
+    overflowBytes,
+    startsAtRegionStart,
+    endsAtRegionEnd,
+    contiguous: startsAtRegionStart && uncoveredBytes === 0 && overlapBytes === 0,
+    boundedBytesMatch: boundedBytes.equals(regionBytes),
+    boundedBytes
+  };
+}
+
 function readFileBuffer(filePath) {
   return fs.readFileSync(filePath);
 }

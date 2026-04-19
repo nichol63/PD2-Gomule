@@ -1,14 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadPd2Tables } from '../src/lib/pd2-data.mjs';
-import { parseCharacterFile, parsePlugyStashFile } from '../src/lib/save-parsers.mjs';
+import {
+  parseCharacterFile,
+  parsePlugyStashFile,
+  sliceBufferBySourceSpan,
+  validateItemSourcePartition
+} from '../src/lib/save-parsers.mjs';
 import { getFixtureLibraryDir } from '../src/lib/workspace-paths.mjs';
 
 const FIXTURE_DIR = getFixtureLibraryDir();
 const tables = loadPd2Tables();
 const summaryCache = new Map();
+const bufferCache = new Map();
 
 function getCharacterSummary(fileName) {
   const cacheKey = `character:${fileName}`;
@@ -30,6 +37,13 @@ function getStashSummary(fileName) {
     );
   }
   return summaryCache.get(cacheKey);
+}
+
+function getFixtureBuffer(fileName) {
+  if (!bufferCache.has(fileName)) {
+    bufferCache.set(fileName, fs.readFileSync(path.join(FIXTURE_DIR, fileName)));
+  }
+  return bufferCache.get(fileName);
 }
 
 function requirePage(summary, pageName) {
@@ -196,6 +210,106 @@ test('shared stash has expected SSS signature', () => {
     typeof sharedSummary.signature === 'string' || sharedSummary.signature instanceof Uint8Array || sharedSummary.signature != null,
     'shared stash should have a signature field'
   );
+});
+
+test('parsed items preserve quality provenance payloads for real fixtures', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
+  const demonCrossbow = getCharacterSummary(path.join('Showcase Characters', 'amazon', 'demon-crossbow.d2s'));
+
+  const magicJewel = requirePage(sharedSummary, 'Jewels 1').topLevelItems.find(
+    (item) => item.qualityLabel === 'magic' && item.code === 'jew'
+  );
+  assert.ok(magicJewel, 'expected a magic Jewel fixture');
+  assert.deepEqual(magicJewel.qualityData, {
+    qualityId: 4,
+    qualityLabel: 'magic',
+    magicPrefixId: 198,
+    magicSuffixId: 222
+  });
+
+  const rareJewel = requirePage(sharedSummary, 'Jewels 1').topLevelItems.find(
+    (item) => item.qualityLabel === 'rare' && item.code === 'jew'
+  );
+  assert.ok(rareJewel, 'expected a rare Jewel fixture');
+  assert.deepEqual(rareJewel.qualityData, {
+    qualityId: 6,
+    qualityLabel: 'rare',
+    rareNameId1: 161,
+    rareNameId2: 131,
+    rarePrefixIds: [198, 600, 250],
+    rareSuffixIds: [222]
+  });
+
+  const setSword = requirePage(sharedSummary, 'Upgrade Recipe Ref').topLevelItems.find(
+    (item) => item.qualityLabel === 'set' && item.code === 'wsd'
+  );
+  assert.ok(setSword, 'expected a set Mythical Sword fixture');
+  assert.deepEqual(setSword.qualityData, {
+    qualityId: 5,
+    qualityLabel: 'set',
+    setId: 49
+  });
+
+  const uniqueFlail = requirePage(sharedSummary, 'Quest Items + Misc').topLevelItems.find(
+    (item) => item.qualityLabel === 'unique' && item.code === 'qf2'
+  );
+  assert.ok(uniqueFlail, 'expected a unique SuperKhalimFlail fixture');
+  assert.deepEqual(uniqueFlail.qualityData, {
+    qualityId: 7,
+    qualityLabel: 'unique',
+    uniqueId: 128
+  });
+
+  const superiorAmulet = requirePage(sharedSummary, 'Blood Recipe Ref').topLevelItems.find(
+    (item) => item.qualityLabel === 'superior' && item.code === 'amu'
+  );
+  assert.ok(superiorAmulet, 'expected a superior amulet fixture');
+  assert.deepEqual(superiorAmulet.qualityData, {
+    qualityId: 3,
+    qualityLabel: 'superior',
+    superiorTypeId: 1
+  });
+
+  const craftedAmulet = demonCrossbow.topLevelItems.find(
+    (item) => item.qualityLabel === 'crafted' && item.code === 'amu'
+  );
+  assert.ok(craftedAmulet, 'expected a crafted amulet fixture');
+  assert.deepEqual(craftedAmulet.qualityData, {
+    qualityId: 8,
+    qualityLabel: 'crafted',
+    rareNameId1: 156,
+    rareNameId2: 138,
+    rarePrefixIds: [437, 329],
+    rareSuffixIds: [245, 174]
+  });
+});
+
+test('magic bytime fixtures preserve affix provenance for follow-up proof sweeps', () => {
+  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
+  const page = requirePage(sharedSummary, 'Magic +6 Bows');
+  const matriarchalBow = page.topLevelItems.find(
+    (item) =>
+      item.qualityLabel === 'magic' &&
+      item.code === 'am1' &&
+      item.propertyLists?.some((list) =>
+        list.properties?.some((property) => property.statKey === 'item_armorpercent_bytime')
+      )
+  );
+
+  assert.ok(matriarchalBow, 'expected a magic Matriarchal Bow with a bytime property');
+  assert.deepEqual(matriarchalBow.qualityData, {
+    qualityId: 4,
+    qualityLabel: 'magic',
+    magicPrefixId: 435,
+    magicSuffixId: 169
+  });
+
+  const bytimeProperty = matriarchalBow.propertyLists
+    .flatMap((list) => list.properties ?? [])
+    .find((property) => property.statKey === 'item_armorpercent_bytime');
+
+  assert.ok(bytimeProperty, 'expected item_armorpercent_bytime on the magic Matriarchal Bow');
+  assert.deepEqual(bytimeProperty.values, [55733]);
 });
 
 test('socket children are attached under parents that have socketsFilled > 0', () => {
@@ -394,6 +508,81 @@ test('shared stash pages expose clamp metadata while preserving parser-derived i
     lastItem.nextOffset > clampedPage.itemRegion.endOffset,
     'the clamped shared-stash page should preserve a parser-derived nextOffset beyond the discovered page boundary'
   );
+});
+
+test('character itemRegion bytes can be reconstructed from parser source spans', () => {
+  const fileName = 'Legacy.d2s';
+  const buffer = getFixtureBuffer(fileName);
+  const charSummary = getCharacterSummary(fileName);
+  const partition = validateItemSourcePartition(buffer, charSummary.itemRegion, charSummary.items);
+
+  assert.equal(partition.itemCount, charSummary.items.length, 'character partition should cover every parsed item');
+  assert.equal(partition.contiguous, true, 'character item spans should form a contiguous partition');
+  assert.equal(partition.overflowBytes, 0, 'character item spans should stay within the itemRegion bounds');
+  assert.equal(partition.boundedBytesMatch, true, 'character bounded bytes should match the fixture itemRegion bytes');
+  assert.deepEqual(
+    partition.boundedBytes,
+    sliceBufferBySourceSpan(buffer, charSummary.itemRegion),
+    'character reconstructed bytes should equal the original fixture itemRegion bytes'
+  );
+});
+
+test('stash page itemRegion bytes can be reconstructed from parser source spans', () => {
+  const fileNames = ['Bases.d2x', 'Legacy.d2x', '_LOD_SharedStashSave.sss'];
+
+  for (const fileName of fileNames) {
+    const buffer = getFixtureBuffer(fileName);
+    const stashSummary = getStashSummary(fileName);
+    const pagesWithItems = stashSummary.pages.filter((page) => page.items.length > 0);
+    assert.ok(pagesWithItems.length > 0, `${fileName} should expose at least one page with parsed items`);
+
+    for (const page of pagesWithItems) {
+      const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
+      const pageLabel = `${fileName} page "${page.name}"`;
+
+      assert.equal(partition.itemCount, page.items.length, `${pageLabel} partition should cover every visible parsed item`);
+      assert.equal(partition.contiguous, true, `${pageLabel} item spans should form a contiguous bounded partition`);
+      assert.equal(partition.overlapBytes, 0, `${pageLabel} should not overlap item spans inside the bounded region`);
+      assert.equal(partition.uncoveredBytes, 0, `${pageLabel} should not leave uncovered bytes inside the bounded region`);
+      assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded bytes should match the fixture itemRegion bytes`);
+      assert.deepEqual(
+        partition.boundedBytes,
+        sliceBufferBySourceSpan(buffer, page.itemRegion),
+        `${pageLabel} reconstructed bytes should equal the original fixture itemRegion bytes`
+      );
+    }
+  }
+});
+
+test('stash pageRegion bytes can be reconstructed from header bytes plus bounded itemRegion bytes', () => {
+  const fileNames = ['Bases.d2x', 'Legacy.d2x', '_LOD_SharedStashSave.sss'];
+
+  for (const fileName of fileNames) {
+    const buffer = getFixtureBuffer(fileName);
+    const stashSummary = getStashSummary(fileName);
+    const pagesWithItems = stashSummary.pages.filter((page) => page.items.length > 0);
+
+    for (const page of pagesWithItems) {
+      const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
+      const headerSpan = {
+        startOffset: page.pageRegion.startOffset,
+        endOffset: page.itemRegion.startOffset
+      };
+      const headerBytes = sliceBufferBySourceSpan(buffer, headerSpan);
+      const reconstructedPageBytes = Buffer.concat(
+        [headerBytes, partition.boundedBytes],
+        headerBytes.length + partition.boundedBytes.length
+      );
+      const pageLabel = `${fileName} page "${page.name}"`;
+
+      assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded item bytes should match the fixture itemRegion bytes`);
+      assert.deepEqual(
+        reconstructedPageBytes,
+        sliceBufferBySourceSpan(buffer, page.pageRegion),
+        `${pageLabel} pageRegion should equal header bytes plus bounded itemRegion bytes`
+      );
+    }
+  }
 });
 
 test('stash pages topLevelItems are consistently shaped', () => {
