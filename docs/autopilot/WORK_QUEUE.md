@@ -72,7 +72,7 @@ Exit criteria:
 
 Outcome: shipped in presentation. Canonical `[22913,100]` still renders exactly `Monsters Melee Splash`; noncanonical examples such as `[32896,82]`, `[33189,0]`, and `[45166,6]` produce no display line. Fixture sanity checked 134 save files: 45 canonical displays, 111 noncanonical hidden, 0 noncanonical display leaks.
 
-### [ready] STAT-002 - Research-only bytime signedness/scaling audit
+### [done] STAT-002 - Research-only bytime signedness/scaling audit
 
 Goal: tighten provenance for `item_*_bytime` min/max values without changing formatter behavior.
 
@@ -93,6 +93,19 @@ Exit criteria:
 
 - Document whether observed ranges support unsigned 10-bit slots, signed slots, hidden scaling, or fixture outliers.
 - If formatter changes are justified, add a separate ready implementation item with exact expected output strings.
+
+Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 22-bit packed layout is proven as `center period` plus two 10-bit value slots. Data-table evidence supports signed min/max subslots (`MagicSuffix.txt` has `of Sunlight` with `ac/time`, center 0, min -10, max 60), and no hidden scaling beyond linear interpolation was found. Current fixtures are too noisy for a behavior change: 134 save files produced 9,433 displayed bytime properties, including many suspicious potion/non-gear hits, and no exact Dawn/Sunlight fixture sample. Formatter behavior remains unchanged.
+
+### [needs-research] STAT-006 - Bytime signed-slot formatter proof
+
+Goal: find or create fixture-backed proof before changing `item_*_bytime` min/max display to signed 10-bit subslots.
+
+Candidate expected strings once fixture evidence exists:
+
+- `of Sunlight` / `item_armor_bytime` with `center=0`, `min=-10`, `max=60` should render a Day-peaking defense line with `min -10, max +60`.
+- `of Dawn` / `item_armor_bytime` with `center=3`, `min=10`, `max=40` should render a Dawn-peaking defense line with `min +10, max +40`.
+
+Do not implement from synthetic values alone. A clean fixture item, parser-boundary proof, or equivalent saved-byte proof is required first.
 
 ### [ready] STAT-003 - Remaining single-value candidate triage
 
