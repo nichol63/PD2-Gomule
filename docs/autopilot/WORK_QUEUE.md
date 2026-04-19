@@ -105,7 +105,7 @@ Exit criteria:
 
 Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 22-bit packed layout is proven as `center period` plus two 10-bit value slots. Data-table evidence supports signed min/max subslots (`MagicSuffix.txt` has `of Sunlight` with `ac/time`, center 0, min -10, max 60), and no hidden scaling beyond linear interpolation was found. Current fixtures are too noisy for a behavior change: 134 save files produced 9,433 displayed bytime properties, including many suspicious potion/non-gear hits, and no exact Dawn/Sunlight fixture sample. Formatter behavior remains unchanged.
 
-### [needs-research] STAT-006 - Bytime signed-slot formatter proof
+### [blocked] STAT-006 - Bytime signed-slot formatter proof
 
 Goal: find or create fixture-backed proof before changing `item_*_bytime` min/max display to signed 10-bit subslots.
 
@@ -114,7 +114,9 @@ Candidate expected strings once fixture evidence exists:
 - `of Sunlight` / `item_armor_bytime` with `center=0`, `min=-10`, `max=60` should render a Day-peaking defense line with `min -10, max +60`.
 - `of Dawn` / `item_armor_bytime` with `center=3`, `min=10`, `max=40` should render a Dawn-peaking defense line with `min +10, max +40`.
 
-Do not implement from synthetic values alone. A clean fixture item, parser-boundary proof, or equivalent saved-byte proof is required first.
+Outcome: follow-up proof sweep still did not produce an implementation-safe example. Exact `item_armor_bytime` packed targets for `of Sunlight` (`1038396`) and `of Dawn` (`3156008`) are absent from the Library, and no complete gear-coded `item_armor_bytime` fixture came close enough to stand in as proof. Clean real-gear bytime samples do exist for other stats, including `_LOD_SharedStashSave.sss / RW Helms 2 / Diadem` and `Sacred Armor` with `item_tohitpercent_bytime` packed `4181061` (`center=3, min=-13, max=69`) plus `_LOD_SharedStashSave.sss / Bases 10 / Seraph Rod` with `item_resist_pois_bytime` packed `1040554` (`center=0, min=-8, max=170`), which supports the signed-slot hypothesis in general.
+
+Blocked because the current parser does not preserve magic affix ids and magic display names do not retain suffix text, so parsed fixtures cannot tie a packed bytime value back to `MagicSuffix.txt` rows `of Dawn` / `of Sunlight`. Do not implement from synthetic values alone. Unblock only with a clean fixture item tied to a known bytime source row, equivalent raw-byte/affix proof, or authoritative tooltip/UI capture.
 
 ### [done] STAT-003 - Remaining single-value candidate triage
 
