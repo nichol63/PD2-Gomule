@@ -150,7 +150,7 @@ Evidence already found:
 - `deep_wounds`: `Gems.txt` Um Rune, prefix/suffix rows, Malice, and multiple unique item rows use the stat. Clean `_LOD_SharedStashSave.sss` fixture examples include amulets with `[300]`, class helms with `[350]` and `[360]`, Hellforged Plate with `[32]`, and Loricated Mail with `[70]`.
 - `eaglehorn_raven`: Eaglehorn carries `eaglehorn-raven 500 500`, Raven skill formulas consume `stat('eaglehorn_raven'.accr)`, and clean `_LOD_SharedStashSave.sss` fixture examples exist on Diamond Bow and Crusader Bow samples with `[500]`.
 
-Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`. A local `.tbl` sweep of `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl` found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. Do not implement until those exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
+Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`; those desc keys are mirrored across local PD2 data roots, so the blocker is not table provenance. The actual missing piece is the payload string: local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, and nearby PD2 DLLs still found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. A vanilla clue exists for open wounds (`%d%% Chance of Open Wounds` in GoMule translations / string stores), but it is not authoritative proof for PD2 `OpenWoundsItem`. Do not implement until the exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
 
 ### [done] STAT-008 - Clout, blood-warp, and immune stat display policy
 
@@ -180,7 +180,7 @@ Evidence already found:
 - `Skills.txt` / `SkillDesc.txt` Blood Warp formulas consume `stat('blood_warp_life_reduction'.accr)`.
 - Clean unique `9wn` fixture hits exist in `_LOD_SharedStashSave.sss / Wands 1,2,3` and `war_cryb.d2s`.
 
-Blocked because `bloodwarplifereduction` is absent from local `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl`. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
+Blocked because the desc key provenance is clean but the payload string is still missing. `bloodwarplifereduction` exists in local `ItemStatCost.txt` mirrors, yet local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, and nearby PD2 DLLs still found no `bloodwarplifereduction` string payload. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
 
 ### [done] PARSER-001 - Round-trip serializer proof milestone
 
@@ -223,9 +223,10 @@ Candidate stats:
 
 Known blockers:
 
-- `item_mindamage_energy`: `descstr2=increaseswithenergy` is absent from local PD2 `.tbl` files.
-- `item_dmgpercent_pereth`: `ModStrEnhancedDamage` / `increaseswithequippedeth` are absent locally.
-- `item_dmgpercent_permissinghppercent`: `ModStrEnhancedDamage` / `increaseswithmissinghp` are absent locally.
-- `inc_splash_radius_permissinghp`: `ModStrIncSplashRadius` / `incsplashwithmissinghp` are absent locally.
-- `lifedrain_percentcap`: `ModStrLifeStealCap` / `ofmaximumhp` are absent locally.
-- `uber_difficulty`: real uber maps exist in fixtures and `CubeMain.txt` mutates the stat, but `MapTier` is absent from local PD2 `.tbl` files, so exact display wording is still not proven.
+- Table provenance is now proven: the relevant desc keys are present in local `ItemStatCost.txt` mirrors, and save-editor `Properties.txt` carries raw wording clues for several scaling rows (`mindmg/energy`, `dmg%/eth`, `dmg%/missinghp%`, `lifesteal-cap`, `splash%/missinghp%`). Those clues are not final tooltip proof.
+- `item_mindamage_energy`: `descstr2=increaseswithenergy` payload is absent from local string stores.
+- `item_dmgpercent_pereth`: `ModStrEnhancedDamage` / `increaseswithequippedeth` payloads are absent from local string stores.
+- `item_dmgpercent_permissinghppercent`: `ModStrEnhancedDamage` / `increaseswithmissinghp` payloads are absent from local string stores.
+- `inc_splash_radius_permissinghp`: `ModStrIncSplashRadius` / `incsplashwithmissinghp` payloads are absent from local string stores.
+- `lifedrain_percentcap`: `ModStrLifeStealCap` / `ofmaximumhp` payloads are absent from local string stores.
+- `uber_difficulty`: real uber maps exist in fixtures and `CubeMain.txt` mutates the stat. `MapTier` is present as a desc key in local `ItemStatCost.txt` mirrors, and local clues exist in `TreasureClassEx.txt`, `Misc.txt`, and the modpack tutorial filter (`Map Tier N`, `T1/T2`), but the exact tooltip payload still does not exist in local string stores.
