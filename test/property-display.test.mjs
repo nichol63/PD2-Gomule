@@ -1342,3 +1342,67 @@ test('hides transform_dye from display output', () => {
   assert.equal(displayList.displayLines.length, 1);
   assert.equal(displayList.displayLines[0].statKey, 'strength');
 });
+
+test('hides extra_holybolts, corruptor, and transform_dye from presentation output', () => {
+  const displayList = formatPropertyListForDisplay({
+    kind: 'base',
+    complete: true,
+    error: null,
+    properties: [
+      { statKey: 'extra_holybolts', values: [3] },
+      { statKey: 'corruptor', values: [1650] },
+      { statKey: 'transform_dye', values: [12651795] },
+      { statKey: 'strength', values: [10] }
+    ]
+  }, null);
+
+  assert.deepEqual(displayList.displayLines.map((line) => line.text), ['+10 to Strength']);
+});
+
+test('hides extra_holybolts from real shared-stash fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const item = summary.pages
+    .find((page) => page.name === 'Miscellaneous')
+    ?.items?.find(
+      (candidate) =>
+        candidate.displayName === 'El Rune' &&
+        candidate.properties.some((property) => property.statKey === 'extra_holybolts' && property.values?.[0] === 3)
+    );
+
+  assert.ok(item, 'expected El Rune in Miscellaneous to expose extra_holybolts in the shared stash fixture');
+
+  const displayList = formatPropertyListForDisplay(
+    {
+      ...item.propertyLists[0],
+      properties: item.propertyLists[0].properties.filter((property) => property.statKey === 'extra_holybolts')
+    },
+    tables
+  );
+
+  assert.deepEqual(displayList.displayLines, []);
+});
+
+test('hides corruptor from real shared-stash fixture items', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const item = summary.pages
+    .find((page) => page.name === 'Rejuvenation')
+    ?.items?.find(
+      (candidate) =>
+        candidate.displayName === 'Full Rejuv Potion' &&
+        candidate.properties.some((property) => property.statKey === 'corruptor' && property.values?.[0] === 1650)
+    );
+
+  assert.ok(item, 'expected Full Rejuv Potion in Rejuvenation to expose corruptor in the shared stash fixture');
+
+  const displayList = formatPropertyListForDisplay(
+    {
+      ...item.propertyLists[0],
+      properties: item.propertyLists[0].properties.filter((property) => property.statKey === 'corruptor')
+    },
+    tables
+  );
+
+  assert.deepEqual(displayList.displayLines, []);
+});

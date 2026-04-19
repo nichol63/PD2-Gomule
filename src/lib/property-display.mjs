@@ -347,6 +347,12 @@ const BYTIME_STAT_RULES = {
   item_deadlystrike_bytime: { label: 'Deadly Strike', format: 'percent' }
 };
 
+const HIDDEN_DISPLAY_STATS = new Set([
+  'transform_dye',
+  'extra_holybolts',
+  'corruptor'
+]);
+
 function formatSignedNumber(value) {
   return value >= 0 ? `+${value}` : `${value}`;
 }
@@ -775,6 +781,10 @@ function formatSingleProperty(property, pd2Tables) {
   const firstValue = property.values?.[0];
   const secondValue = property.values?.[1];
 
+  if (HIDDEN_DISPLAY_STATS.has(statKey)) {
+    return null;
+  }
+
   // Map stats use a data-driven formatter based on descFunc/descVal/descstr2.
   // Hidden supporting stats (e.g. map_mon_coldlength) return null and are
   // suppressed from display entirely via the filter in formatPropertiesForDisplay.
@@ -948,8 +958,6 @@ function formatSingleProperty(property, pd2Tables) {
       const values = property.values ?? [];
       return `Level ${values[1] ?? 0} ${getSkillName(values[0], pd2Tables)} When Equipped`;
     }
-    case 'transform_dye':
-      return null; // internal cosmetic dye color — hide from display
     default:
       break;
   }
