@@ -107,7 +107,7 @@ Candidate expected strings once fixture evidence exists:
 
 Do not implement from synthetic values alone. A clean fixture item, parser-boundary proof, or equivalent saved-byte proof is required first.
 
-### [ready] STAT-003 - Remaining single-value candidate triage
+### [done] STAT-003 - Remaining single-value candidate triage
 
 Goal: refresh the list of PD2 single-value stats not currently covered by fixture-backed display rules.
 
@@ -127,6 +127,40 @@ Exit criteria:
 
 - Update the display decision doc with which candidates are absent from current fixtures, internal/hidden, ready to implement, or blocked on design.
 - Add ready implementation items only for stats with fixture evidence and clear wording.
+
+Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 288-row one-value source set is mostly covered by existing explicit labels, map, bytime, per-level, hidden, internal, or scaling/design buckets. The uncovered candidates with the best evidence are `deep_wounds` and `eaglehorn_raven`, both with clean `_LOD_SharedStashSave.sss` fixture examples and data-table support, but exact string-table wording is still unresolved. Clout stats, `blood_warp_life_reduction`, and `immune_stat` remain blocked on cleaner fixture identity or display policy. No ready implementation item was added because no remaining candidate has both clean fixture evidence and exact wording.
+
+### [needs-research] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
+
+Goal: prove exact user-facing wording for `deep_wounds` and `eaglehorn_raven` before replacing the generic fallback lines.
+
+Evidence already found:
+
+- `deep_wounds`: `Gems.txt` Um Rune, prefix/suffix rows, Malice, and multiple unique item rows use the stat. Clean `_LOD_SharedStashSave.sss` fixture examples include amulets with `[300]`, class helms with `[350]` and `[360]`, Hellforged Plate with `[32]`, and Loricated Mail with `[70]`.
+- `eaglehorn_raven`: Eaglehorn carries `eaglehorn-raven 500 500`, Raven skill formulas consume `stat('eaglehorn_raven'.accr)`, and clean `_LOD_SharedStashSave.sss` fixture examples exist on Diamond Bow and Crusader Bow samples with `[500]`.
+
+Do not implement until the exact text behind `OpenWoundsItem` and `EaglehornRaven` is proven from string tables, an authoritative reference, or an equivalent fixture/UI source.
+
+### [needs-research] STAT-008 - Clout, blood-warp, and immune stat display policy
+
+Goal: decide whether these remaining uncovered single-value stats should be hidden, formatted, or left as generic fallback.
+
+Candidate stats:
+
+- `dclone_clout`
+- `maxlevel_clout`
+- `dev_clout`
+- `rathma_clout`
+- `blood_warp_life_reduction`
+- `immune_stat`
+
+Known state:
+
+- Clout stats have data-table evidence on trophy/charm rows, but no clean trophy fixture sample was found in the current Library scan.
+- `blood_warp_life_reduction` has table and skill-formula evidence through Suicide Branch/Blood Warp, but current exact-value fixture hits did not clearly identify Suicide Branch.
+- `immune_stat` appears to support skill/map aura calculations rather than item display, and current fixture hits look like parser-noise fallback lines on gear and potions.
+
+Do not implement until clean fixture identity, exact wording, or an explicit hide-policy decision exists.
 
 ### [blocked] PARSER-001 - Round-trip serializer proof milestone
 
