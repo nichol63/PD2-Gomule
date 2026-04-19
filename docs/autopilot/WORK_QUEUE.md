@@ -16,7 +16,7 @@ Use this queue for hands-off, context-light sessions. Each item is intended to b
 
 Create the compact bootstrap, canonical queue, focused reference docs, session snapshot script, and local `pd2-mule-autopilot` skill. Validate the snapshot script and skill metadata.
 
-### [ready] STAT-001 - Research-only map_mon_splash encoding audit
+### [done] STAT-001 - Research-only map_mon_splash encoding audit
 
 Goal: decide whether `map_mon_splash` can safely show a value or should remain value-suppressed.
 
@@ -38,6 +38,37 @@ Exit criteria:
 
 - Document bit widths, D2Prop behavior, fixture spread, and a recommendation.
 - Do not implement formatter changes unless the evidence is unambiguous; if it is unambiguous, add a new ready implementation item instead.
+
+Outcome: audit documented in `docs/autopilot/display-decisions.md`. True map items use canonical `[22913,100]` (`proc_SplashDamage`, level 1, chance 100) and should remain value-suppressed as `Monsters Melee Splash`. Noncanonical fixture hits appear only on non-map items and should be hidden by a separate implementation batch.
+
+### [ready] STAT-005 - Hide noncanonical map_mon_splash display leaks
+
+Goal: keep canonical map splash wording while suppressing noncanonical parser/display leaks on non-map items.
+
+Allowed writes:
+
+- `src/lib/property-display.mjs`
+- `test/property-display.test.mjs`
+- `docs/autopilot/display-decisions.md`
+- `docs/autopilot/WORK_QUEUE.md`
+
+Shared literal-string spec:
+
+- Canonical `map_mon_splash` with `values=[22913,100]`, `descFunc=9`, `descVal=0`, `descStringKey=MapMon`, `descString2Key=MapMonSplash` renders exactly `Monsters Melee Splash`.
+- Noncanonical examples such as `values=[32896,82]`, `values=[33189,0]`, and `values=[45166,6]` render no display line.
+- Do not show `100%`, skill id, or level for canonical map splash.
+
+Read as needed:
+
+- `docs/autopilot/display-decisions.md`
+- `src/lib/property-display.mjs`
+- `_LOD_SharedStashSave.sss` map pages and non-map false-positive samples from Showcase fixtures
+
+Exit criteria:
+
+- Unit tests cover canonical rendering and noncanonical suppression.
+- Fixture sanity check confirms canonical maps still render and non-map false positives no longer display `Monsters Melee Splash`.
+- Run `npm test`.
 
 ### [ready] STAT-002 - Research-only bytime signedness/scaling audit
 
