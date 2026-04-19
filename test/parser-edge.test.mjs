@@ -7,6 +7,9 @@ import { loadPd2Tables } from '../src/lib/pd2-data.mjs';
 import {
   parseCharacterFile,
   parsePlugyStashFile,
+  reconstructBoundedItemRegion,
+  reconstructParsedSaveBuffer,
+  reconstructStashPageRegion,
   sliceBufferBySourceSpan,
   validateItemSourcePartition
 } from '../src/lib/save-parsers.mjs';
@@ -515,13 +518,18 @@ test('character itemRegion bytes can be reconstructed from parser source spans',
   const buffer = getFixtureBuffer(fileName);
   const charSummary = getCharacterSummary(fileName);
   const partition = validateItemSourcePartition(buffer, charSummary.itemRegion, charSummary.items);
+  const reconstructedBytes = reconstructBoundedItemRegion(
+    buffer,
+    charSummary.itemRegion,
+    charSummary.items
+  );
 
   assert.equal(partition.itemCount, charSummary.items.length, 'character partition should cover every parsed item');
   assert.equal(partition.contiguous, true, 'character item spans should form a contiguous partition');
   assert.equal(partition.overflowBytes, 0, 'character item spans should stay within the itemRegion bounds');
   assert.equal(partition.boundedBytesMatch, true, 'character bounded bytes should match the fixture itemRegion bytes');
   assert.deepEqual(
-    partition.boundedBytes,
+    reconstructedBytes,
     sliceBufferBySourceSpan(buffer, charSummary.itemRegion),
     'character reconstructed bytes should equal the original fixture itemRegion bytes'
   );
@@ -538,6 +546,7 @@ test('stash page itemRegion bytes can be reconstructed from parser source spans'
 
     for (const page of pagesWithItems) {
       const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
+      const reconstructedBytes = reconstructBoundedItemRegion(buffer, page.itemRegion, page.items);
       const pageLabel = `${fileName} page "${page.name}"`;
 
       assert.equal(partition.itemCount, page.items.length, `${pageLabel} partition should cover every visible parsed item`);
@@ -546,7 +555,7 @@ test('stash page itemRegion bytes can be reconstructed from parser source spans'
       assert.equal(partition.uncoveredBytes, 0, `${pageLabel} should not leave uncovered bytes inside the bounded region`);
       assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded bytes should match the fixture itemRegion bytes`);
       assert.deepEqual(
-        partition.boundedBytes,
+        reconstructedBytes,
         sliceBufferBySourceSpan(buffer, page.itemRegion),
         `${pageLabel} reconstructed bytes should equal the original fixture itemRegion bytes`
       );
@@ -564,25 +573,88 @@ test('stash pageRegion bytes can be reconstructed from header bytes plus bounded
 
     for (const page of pagesWithItems) {
       const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
-      const headerSpan = {
-        startOffset: page.pageRegion.startOffset,
-        endOffset: page.itemRegion.startOffset
-      };
-      const headerBytes = sliceBufferBySourceSpan(buffer, headerSpan);
-      const reconstructedPageBytes = Buffer.concat(
-        [headerBytes, partition.boundedBytes],
-        headerBytes.length + partition.boundedBytes.length
-      );
+      const reconstructedBytes = reconstructStashPageRegion(buffer, page);
       const pageLabel = `${fileName} page "${page.name}"`;
 
       assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded item bytes should match the fixture itemRegion bytes`);
       assert.deepEqual(
-        reconstructedPageBytes,
+        reconstructedBytes,
         sliceBufferBySourceSpan(buffer, page.pageRegion),
         `${pageLabel} pageRegion should equal header bytes plus bounded itemRegion bytes`
       );
     }
   }
+});
+
+test('Legacy.d2s full buffer can be reconstructed from bounded parser spans', () => {
+  const fileName = 'Legacy.d2s';
+  const buffer = getFixtureBuffer(fileName);
+  const charSummary = getCharacterSummary(fileName);
+  const partition = validateItemSourcePartition(buffer, charSummary.itemRegion, charSummary.items);
+  const reconstructedBytes = reconstructParsedSaveBuffer(buffer, charSummary);
+
+  assert.equal(partition.contiguous, true, 'Legacy.d2s item spans should stay contiguous inside itemRegion');
+  assert.equal(partition.boundedBytesMatch, true, 'Legacy.d2s bounded item bytes should match the fixture itemRegion bytes');
+  assert.deepEqual(
+    reconstructedBytes,
+    buffer,
+    'Legacy.d2s should round-trip to the original full buffer from bounded parser spans'
+  );
+});
+
+test('stash fixtures full buffers can be reconstructed from bounded page proofs', () => {
+  const fileNames = ['Bases.d2x', 'Legacy.d2x', '_LOD_SharedStashSave.sss'];
+
+  for (const fileName of fileNames) {
+    const buffer = getFixtureBuffer(fileName);
+    const stashSummary = getStashSummary(fileName);
+    const reconstructedBytes = reconstructParsedSaveBuffer(buffer, stashSummary);
+
+    for (const page of stashSummary.pages) {
+      const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
+      const reconstructedPageBytes = reconstructStashPageRegion(buffer, page);
+      const pageLabel = `${fileName} page "${page.name}"`;
+
+      assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded bytes should match the page itemRegion bytes`);
+      assert.deepEqual(
+        reconstructedPageBytes,
+        sliceBufferBySourceSpan(buffer, page.pageRegion),
+        `${pageLabel} should round-trip to the original pageRegion bytes`
+      );
+    }
+
+    assert.deepEqual(
+      reconstructedBytes,
+      buffer,
+      `${fileName} should round-trip to the original full buffer from bounded page proofs`
+    );
+  }
+});
+
+test('shared stash Miscellaneous keeps byte equality while clampedItemCount stays at the known anomaly', () => {
+  const fileName = '_LOD_SharedStashSave.sss';
+  const buffer = getFixtureBuffer(fileName);
+  const sharedSummary = getStashSummary(fileName);
+  const miscellaneousPage = requirePage(sharedSummary, 'Miscellaneous');
+  const partition = validateItemSourcePartition(buffer, miscellaneousPage.itemRegion, miscellaneousPage.items);
+  const reconstructedBytes = reconstructStashPageRegion(buffer, miscellaneousPage);
+
+  assert.equal(miscellaneousPage.clampedItemCount, 1, 'Miscellaneous should keep the known raw-count clamp of one item');
+  assert.equal(
+    miscellaneousPage.itemCount,
+    miscellaneousPage.parsedItemCount + miscellaneousPage.clampedItemCount,
+    'Miscellaneous should continue to reconcile raw and visible item counts'
+  );
+  assert.equal(
+    partition.boundedBytesMatch,
+    true,
+    'Miscellaneous bounded item bytes should still match the original itemRegion bytes'
+  );
+  assert.deepEqual(
+    reconstructedBytes,
+    sliceBufferBySourceSpan(buffer, miscellaneousPage.pageRegion),
+    'Miscellaneous pageRegion should still round-trip byte-for-byte despite the clamp'
+  );
 });
 
 test('stash pages topLevelItems are consistently shaped', () => {

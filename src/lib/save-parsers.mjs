@@ -160,6 +160,186 @@ export function validateItemSourcePartition(buffer, region, items = []) {
   };
 }
 
+export function reconstructBoundedItemRegion(buffer, region, items = []) {
+  return validateItemSourcePartition(buffer, region, items).boundedBytes;
+}
+
+function normalizeStashPageRegions(page, label = 'page') {
+  if (!page || typeof page !== 'object') {
+    throw new TypeError(`${label} must be an object`);
+  }
+
+  const pageRegion = normalizeSourceSpan(page.pageRegion, `${label}.pageRegion`);
+  const itemRegion = normalizeSourceSpan(page.itemRegion, `${label}.itemRegion`);
+
+  if (itemRegion.startOffset < pageRegion.startOffset) {
+    throw new RangeError(`${label}.itemRegion must start within ${label}.pageRegion`);
+  }
+
+  if (itemRegion.endOffset > pageRegion.endOffset) {
+    throw new RangeError(`${label}.itemRegion must end within ${label}.pageRegion`);
+  }
+
+  return {
+    pageRegion,
+    itemRegion,
+    headerSpan: createSourceSpan(pageRegion.startOffset, itemRegion.startOffset)
+  };
+}
+
+export function reconstructStashPageRegion(buffer, page) {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new TypeError('buffer must be a Buffer');
+  }
+
+  const { pageRegion, itemRegion, headerSpan } = normalizeStashPageRegions(page);
+  const headerBytes = sliceBufferBySourceSpan(buffer, headerSpan);
+  const itemRegionBytes = reconstructBoundedItemRegion(buffer, itemRegion, page.items ?? []);
+
+  if (itemRegionBytes.length !== itemRegion.length) {
+    throw new RangeError(
+      `reconstructed itemRegion length ${itemRegionBytes.length} must equal page.itemRegion length ${itemRegion.length}`
+    );
+  }
+
+  const pageBytes = Buffer.concat(
+    [headerBytes, itemRegionBytes],
+    headerBytes.length + itemRegionBytes.length
+  );
+
+  if (pageBytes.length !== pageRegion.length) {
+    throw new RangeError(
+      `reconstructed pageRegion length ${pageBytes.length} must equal page.pageRegion length ${pageRegion.length}`
+    );
+  }
+
+  return pageBytes;
+}
+
+function normalizeReconstructedRegion(reconstructedRegion, index, bufferLength) {
+  if (!reconstructedRegion || typeof reconstructedRegion !== 'object') {
+    throw new TypeError(`reconstructedRegions[${index}] must be an object`);
+  }
+
+  if (!Buffer.isBuffer(reconstructedRegion.bytes)) {
+    throw new TypeError(`reconstructedRegions[${index}].bytes must be a Buffer`);
+  }
+
+  const sourceSpan = normalizeSourceSpan(
+    reconstructedRegion.sourceSpan,
+    `reconstructedRegions[${index}].sourceSpan`
+  );
+
+  if (sourceSpan.endOffset > bufferLength) {
+    throw new RangeError(
+      `reconstructedRegions[${index}].sourceSpan.endOffset ${sourceSpan.endOffset} exceeds buffer length ${bufferLength}`
+    );
+  }
+
+  if (reconstructedRegion.bytes.length !== sourceSpan.length) {
+    throw new RangeError(
+      `reconstructedRegions[${index}].bytes length ${reconstructedRegion.bytes.length} must equal source span length ${sourceSpan.length}`
+    );
+  }
+
+  return {
+    sourceSpan,
+    bytes: reconstructedRegion.bytes
+  };
+}
+
+function stitchReconstructedRegions(buffer, reconstructedRegions = []) {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new TypeError('buffer must be a Buffer');
+  }
+
+  if (!Array.isArray(reconstructedRegions)) {
+    throw new TypeError('reconstructedRegions must be an array');
+  }
+
+  if (reconstructedRegions.length === 0) {
+    return Buffer.from(buffer);
+  }
+
+  const normalizedRegions = reconstructedRegions
+    .map((reconstructedRegion, index) =>
+      normalizeReconstructedRegion(reconstructedRegion, index, buffer.length)
+    )
+    .sort((left, right) => left.sourceSpan.startOffset - right.sourceSpan.startOffset);
+
+  const parts = [];
+  let cursor = 0;
+  let totalLength = 0;
+
+  for (let index = 0; index < normalizedRegions.length; index += 1) {
+    const reconstructedRegion = normalizedRegions[index];
+    const { sourceSpan, bytes } = reconstructedRegion;
+
+    if (sourceSpan.startOffset < cursor) {
+      throw new RangeError(`reconstructedRegions[${index}] overlaps a prior source span`);
+    }
+
+    const untouchedPrefix = buffer.subarray(cursor, sourceSpan.startOffset);
+    if (untouchedPrefix.length > 0) {
+      parts.push(untouchedPrefix);
+      totalLength += untouchedPrefix.length;
+    }
+
+    parts.push(bytes);
+    totalLength += bytes.length;
+    cursor = sourceSpan.endOffset;
+  }
+
+  const untouchedSuffix = buffer.subarray(cursor);
+  if (untouchedSuffix.length > 0) {
+    parts.push(untouchedSuffix);
+    totalLength += untouchedSuffix.length;
+  }
+
+  return Buffer.concat(parts, totalLength);
+}
+
+function isPlugyStashKind(kind) {
+  return kind === 'plugy-personal-stash' || kind === 'plugy-shared-stash';
+}
+
+export function reconstructParsedSaveBuffer(buffer, parsedSave) {
+  if (!Buffer.isBuffer(buffer)) {
+    throw new TypeError('buffer must be a Buffer');
+  }
+
+  if (!parsedSave || typeof parsedSave !== 'object') {
+    throw new TypeError('parsedSave must be an object');
+  }
+
+  if (parsedSave.kind === 'character') {
+    const reconstructedRegions = parsedSave.itemRegion
+      ? [{
+          sourceSpan: parsedSave.itemRegion,
+          bytes: reconstructBoundedItemRegion(buffer, parsedSave.itemRegion, parsedSave.items ?? [])
+        }]
+      : [];
+
+    return stitchReconstructedRegions(buffer, reconstructedRegions);
+  }
+
+  if (isPlugyStashKind(parsedSave.kind)) {
+    const pages = parsedSave.pages ?? [];
+    if (!Array.isArray(pages)) {
+      throw new TypeError('parsedSave.pages must be an array');
+    }
+
+    const reconstructedRegions = pages.map((page, index) => ({
+      sourceSpan: normalizeSourceSpan(page.pageRegion, `parsedSave.pages[${index}].pageRegion`),
+      bytes: reconstructStashPageRegion(buffer, page)
+    }));
+
+    return stitchReconstructedRegions(buffer, reconstructedRegions);
+  }
+
+  throw new Error(`Unsupported parsed save kind for reconstruction: ${parsedSave.kind}`);
+}
+
 function readFileBuffer(filePath) {
   return fs.readFileSync(filePath);
 }

@@ -182,11 +182,13 @@ Evidence already found:
 
 Blocked because `bloodwarplifereduction` is absent from local `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl`. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
 
-### [blocked] PARSER-001 - Round-trip serializer proof milestone
+### [done] PARSER-001 - Round-trip serializer proof milestone
 
 Goal: serialize parsed save regions back to bytes and prove byte-for-byte equality without enabling write support.
 
-Blocked because the remaining work is a true serializer-proof batch rather than parser adoption. Parser/provenance prerequisites are now shipped: parsed items carry `qualityData`, `sourceSpan`, `itemRegion` / `pageRegion`, and the read-only partition helpers `sliceBufferBySourceSpan()` and `validateItemSourcePartition()`, with fixture tests proving byte-for-byte bounded region reconstruction. The remaining known caveat is the `_LOD_SharedStashSave.sss` `5040 raw / 5039 bounded parsed` page-boundary discrepancy on `Miscellaneous`. Unblock with a focused parser/test/docs batch that serializes parsed save regions back to bytes and compares them against the source without enabling any product write flow.
+Outcome: shipped as a bounded source-backed proof layer, not a field-backed writer. `save-parsers.mjs` now exports `reconstructBoundedItemRegion()`, `reconstructStashPageRegion()`, and `reconstructParsedSaveBuffer()`, all of which rebuild bytes from original source regions plus parser-derived spans while preserving untouched header bytes and product read-only behavior. `parser-edge.test.mjs` now proves full-buffer byte equality for `Legacy.d2s`, `Bases.d2x`, `Legacy.d2x`, and `_LOD_SharedStashSave.sss`, and keeps the shared-stash `Miscellaneous` anomaly explicit: raw header count `147`, bounded visible items `146`, `clampedItemCount = 1`, page bytes still exact.
+
+Follow-up note: this closes the bounded round-trip proof milestone only. A true field-backed serializer remains future work because the current parsed model still drops raw bits such as runeword skipped fields, short-guid distinctions, normal-type extras, personalization payload details, and some presence-bit structure. Do not treat this as permission to add product write/edit/transfer behavior.
 
 ### [done] STAT-004 - PD2 scaling stat formatter design
 

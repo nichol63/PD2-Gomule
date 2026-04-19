@@ -11,6 +11,9 @@ The parser remains read-only. Provenance work is about proving byte coverage, no
 - Helpers:
   - `sliceBufferBySourceSpan(buffer, sourceSpan)`
   - `validateItemSourcePartition(buffer, region, items)`
+  - `reconstructBoundedItemRegion(buffer, region, items)`
+  - `reconstructStashPageRegion(buffer, page)`
+  - `reconstructParsedSaveBuffer(buffer, parsedSave)`
 
 ## Known Boundary Caveat
 
@@ -18,12 +21,18 @@ The parser remains read-only. Provenance work is about proving byte coverage, no
 
 ## Round-Trip Rule
 
-The next milestone is serializer proof only: generate bytes from the parsed model and assert byte-for-byte equality against source regions. This must not add user-facing write/edit/transfer flows.
+The bounded round-trip proof milestone is now shipped: generate bytes from source-backed parsed regions and assert byte-for-byte equality against the original file without adding any user-facing write/edit/transfer flows.
+
+Current proof coverage:
+
+- `Legacy.d2s` full buffer round-trips exactly from bounded parser spans.
+- `Bases.d2x`, `Legacy.d2x`, and `_LOD_SharedStashSave.sss` full buffers round-trip exactly from page-region reconstruction.
+- `_LOD_SharedStashSave.sss / Miscellaneous` keeps the known raw-count anomaly (`147` raw vs `146` bounded visible items, `clampedItemCount = 1`) while still matching the original page bytes exactly.
 
 ## Current Blocker
 
-Dirty-file adoption is no longer the blocker. The remaining parser/provenance milestone is serializer proof: generate bytes from the parsed model and assert byte-for-byte equality against the source regions without enabling user-facing write/edit/transfer flows.
+There is no remaining blocker for the bounded read-only proof layer. The next unsolved parser/provenance problem is a different scope: a field-backed serializer that can re-encode parsed items from model fields alone. That future work is still blocked because the current parsed model intentionally drops some raw binary distinctions.
 
-Known caveat to resolve or deliberately carry into that work:
+Known caveat still carried by the current proof layer:
 
-- `_LOD_SharedStashSave.sss` still reports `5040` raw items versus `5039` bounded parsed items because page `Miscellaneous` loses one item when clamped by the next discovered page boundary.
+- `_LOD_SharedStashSave.sss` still reports `5040` raw items versus `5039` bounded parsed items because page `Miscellaneous` loses one item when clamped by the next discovered page boundary. The shipped proof preserves the original header bytes and proves bounded page/file byte equality anyway.
