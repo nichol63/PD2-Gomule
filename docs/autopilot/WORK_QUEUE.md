@@ -5,6 +5,9 @@ Use this queue for hands-off, context-light sessions. Each item is intended to b
 ## Queue Rules
 
 - Prefer `ready` items in order.
+- If no `ready` items exist, pick the highest `needs-research` item and try to prove it.
+- A proven `needs-research` item may be promoted into an implementation batch in the same session when fixture evidence and exact wording/encoding are both available.
+- If proof fails, update the item with the exact blocker and continue to the next `needs-research` item.
 - Read only the reference docs named by the selected item.
 - If an item discovers ambiguity, update it to `blocked` or `needs-research` with the specific reason.
 - Keep parser, presentation, UI, and tests in separate file-ownership lanes.
@@ -15,6 +18,12 @@ Use this queue for hands-off, context-light sessions. Each item is intended to b
 ### [done] AUTO-001 - Build context-light autopilot scaffolding
 
 Create the compact bootstrap, canonical queue, focused reference docs, session snapshot script, and local `pd2-mule-autopilot` skill. Validate the snapshot script and skill metadata.
+
+### [done] AUTO-002 - Extend autopilot past empty ready queue
+
+Teach future hands-off sessions to continue when the ready queue is empty by selecting the highest `needs-research` item, gathering proof, and either promoting it into a same-session implementation batch or documenting the exact blocker before moving on.
+
+Run depth defaults to until blocked. Proof remains strict: display/formatter implementation requires fixture evidence plus exact local string/reference proof. Subagents may be used only with strict file ownership and shared literal-string specs. Parser work remains skipped while `src/lib/save-parsers.mjs` and `test/parser-edge.test.mjs` are dirty.
 
 ### [done] STAT-001 - Research-only map_mon_splash encoding audit
 
