@@ -191,7 +191,7 @@ Blocked because the current worktree contains pre-existing parser/provenance cha
 
 Unblock when those changes are committed, intentionally adopted, or cleared by their owner. Do not overwrite them.
 
-### [needs-research] STAT-004 - PD2 scaling stat formatter design
+### [done] STAT-004 - PD2 scaling stat formatter design
 
 Candidate stats:
 
@@ -205,4 +205,28 @@ Candidate stats:
 - `mon_cooldown3`
 - `uber_difficulty`
 
-Do not implement until fixture examples and wording/scaling evidence are available.
+Outcome: the candidate set split cleanly. `mon_cooldown1/2/3` are now hidden in presentation as internal monster-cooldown leaks. Proof: they appear only in `ItemStatCost.txt`, reuse the unrelated `ModitemdamFiresk` desc key, have no clean item-facing provenance, and leaked obvious fallback junk on potions/unrelated gear. Library sweep after implementation found raw/displayed counts of `11/0`, `28/0`, and `389/0`, and real fixture tests cover each hidden stat.
+
+The remaining scaling stats stay blocked. Real fixture evidence exists for several of them, but local PD2 `.tbl` files do not contain the PD2-specific desc helper keys needed to prove exact wording or scaling presentation.
+
+### [blocked] STAT-010 - Remaining scaling stat wording proof
+
+Goal: prove exact user-facing wording and scaling semantics for the remaining scaling stats before replacing their generic fallback lines.
+
+Candidate stats:
+
+- `item_mindamage_energy`
+- `item_dmgpercent_pereth`
+- `item_dmgpercent_permissinghppercent`
+- `inc_splash_radius_permissinghp`
+- `lifedrain_percentcap`
+- `uber_difficulty`
+
+Known blockers:
+
+- `item_mindamage_energy`: `descstr2=increaseswithenergy` is absent from local PD2 `.tbl` files.
+- `item_dmgpercent_pereth`: `ModStrEnhancedDamage` / `increaseswithequippedeth` are absent locally.
+- `item_dmgpercent_permissinghppercent`: `ModStrEnhancedDamage` / `increaseswithmissinghp` are absent locally.
+- `inc_splash_radius_permissinghp`: `ModStrIncSplashRadius` / `incsplashwithmissinghp` are absent locally.
+- `lifedrain_percentcap`: `ModStrLifeStealCap` / `ofmaximumhp` are absent locally.
+- `uber_difficulty`: real uber maps exist in fixtures and `CubeMain.txt` mutates the stat, but `MapTier` is absent from local PD2 `.tbl` files, so exact display wording is still not proven.

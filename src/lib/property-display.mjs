@@ -355,7 +355,10 @@ const HIDDEN_DISPLAY_STATS = new Set([
   'maxlevel_clout',
   'dev_clout',
   'rathma_clout',
-  'immune_stat'
+  'immune_stat',
+  'mon_cooldown1',
+  'mon_cooldown2',
+  'mon_cooldown3'
 ]);
 
 function formatSignedNumber(value) {

@@ -1423,7 +1423,7 @@ test('hides transform_dye from display output', () => {
   assert.equal(displayList.displayLines[0].statKey, 'strength');
 });
 
-test('hides extra_holybolts, corruptor, and transform_dye from presentation output', () => {
+test('hides internal stat leaks from presentation output', () => {
   const displayList = formatPropertyListForDisplay({
     kind: 'base',
     complete: true,
@@ -1437,6 +1437,9 @@ test('hides extra_holybolts, corruptor, and transform_dye from presentation outp
       { statKey: 'dev_clout', values: [4] },
       { statKey: 'rathma_clout', values: [1] },
       { statKey: 'immune_stat', values: [411] },
+      { statKey: 'mon_cooldown1', values: [42] },
+      { statKey: 'mon_cooldown2', values: [321] },
+      { statKey: 'mon_cooldown3', values: [85] },
       { statKey: 'strength', values: [10] }
     ]
   }, null);
@@ -1444,14 +1447,17 @@ test('hides extra_holybolts, corruptor, and transform_dye from presentation outp
   assert.deepEqual(displayList.displayLines.map((line) => line.text), ['+10 to Strength']);
 });
 
-test('hides clout and immune internal stat leaks from real character fixtures', () => {
+test('hides clout, immune, and monster cooldown leaks from real character fixtures', () => {
   const tables = loadPd2Tables();
   const cases = [
     ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'dclone_clout', 5],
     ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'maxlevel_clout', 0],
     ['fire-bloodraven.d2s', 'Full Rejuv Potion', 'rvl', 'dev_clout', 4],
     ['rathma-spear.d2s', 'Full Rejuv Potion', 'rvl', 'rathma_clout', 1],
-    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'immune_stat', 411]
+    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'immune_stat', 411],
+    ['summoner3.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown1', 42],
+    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown2', 321],
+    ['fire-bloodraven.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown3', 85]
   ];
 
   for (const [fileName, displayName, code, statKey, value] of cases) {
