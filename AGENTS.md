@@ -4,15 +4,17 @@ This file does not create new built-in agent types. It defines how assistants an
 
 Available subagent types in this environment:
 
-- `explore`
-- `general`
+- `explorer`
+- `worker`
 
 Use the role names below as working assignments layered on top of those built-in types.
 
 ## Project Scope
 
 - Primary codebase: `C:\Codex\GoMuleR4.3.2_1.13\pd2-mule`
-- Active handoff: `C:\Codex\GoMuleR4.3.2_1.13\HANDOFF_PD2_MULE.md`
+- Bootstrap: `C:\Codex\GoMuleR4.3.2_1.13\PD2_MULE_BOOTSTRAP.md`
+- Work queue: `C:\Codex\GoMuleR4.3.2_1.13\pd2-mule\docs\autopilot\WORK_QUEUE.md`
+- Full handoff reference: `C:\Codex\GoMuleR4.3.2_1.13\HANDOFF_PD2_MULE.md`
 - Fixture pack: `C:\Codex\GoMuleR4.3.2_1.13\PD2-Singleplayer\Diablo II\Save\Library`
 - Reference-only codebases:
   - `C:\Codex\GoMuleR4.3.2_1.13\gomule-d2r`
@@ -20,7 +22,8 @@ Use the role names below as working assignments layered on top of those built-in
 
 ## Hard Rules
 
-- Read the handoff in full before substantial work.
+- Read the bootstrap and work queue before substantial work. Use the full handoff only as a targeted reference.
+- Run `node .\scripts\session-snapshot.mjs` for a compact current-state summary.
 - Run `git status --short` and `git log --oneline -15` before dispatching file-owning agents.
 - Keep the tool read-only. Do not add write, edit, move, import, export, or transfer flows.
 - Preserve parser/presentation separation.
@@ -32,13 +35,13 @@ Use the role names below as working assignments layered on top of those built-in
 
 ### Scout
 
-- Built-in type: `explore`
+- Built-in type: `explorer`
 - Purpose: find files, trace code paths, identify fixture evidence, and clarify ownership.
 - Edits: none
 
 ### Parser Engineer
 
-- Built-in type: `general`
+- Built-in type: `worker`
 - Purpose: parser and parsed-shape changes.
 - Typical files:
   - `src/lib/legacy-item-parser.mjs`
@@ -46,7 +49,7 @@ Use the role names below as working assignments layered on top of those built-in
 
 ### Presentation Engineer
 
-- Built-in type: `general`
+- Built-in type: `worker`
 - Purpose: property formatting, browse/index logic, inspector model/server, and UI work.
 - Typical files:
   - `src/lib/property-display.mjs`
@@ -57,20 +60,20 @@ Use the role names below as working assignments layered on top of those built-in
 
 ### Test Engineer
 
-- Built-in type: `general`
+- Built-in type: `worker`
 - Purpose: tests only.
 - Typical files:
   - `test/*.test.mjs`
 
 ### Fixture Verifier
 
-- Built-in type: `general`
+- Built-in type: `worker`
 - Purpose: prove behavior against real save files and actual item/page samples.
 - Edits: none by default
 
 ### Reviewer
 
-- Built-in type: `general`
+- Built-in type: `worker`
 - Purpose: final regression review.
 - Focus:
   - behavior regressions
@@ -80,11 +83,12 @@ Use the role names below as working assignments layered on top of those built-in
 
 ## Standard Dispatch Pattern
 
-1. Run Scout first if the scope is not obvious.
-2. Dispatch implementation and test agents in parallel with non-overlapping file ownership.
-3. Run Fixture Verifier against real saves.
-4. Run `npm test` in the main thread.
-5. Run Reviewer for non-trivial batches before commit.
+1. Read the bootstrap and work queue; run the session snapshot script.
+2. Run Scout first if the scope is not obvious.
+3. Dispatch implementation and test agents in parallel with non-overlapping file ownership when the user has explicitly authorized agent delegation.
+4. Run Fixture Verifier against real saves.
+5. Run `npm test` in the main thread.
+6. Run Reviewer for non-trivial batches before commit.
 
 ## Shared Spec Contract
 
@@ -122,7 +126,7 @@ Unit tests are necessary, but they do not prove the encoding is correct by thems
 ### Scout
 
 ```text
-Read the PD2 Mule handoff in full, then inspect the codebase for this target slice: <slice>.
+Read the PD2 Mule bootstrap and work queue, then inspect the codebase for this target slice: <slice>.
 
 Return only:
 1. Files that should change
