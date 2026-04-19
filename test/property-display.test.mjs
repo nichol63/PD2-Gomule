@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadPd2Tables } from '../src/lib/pd2-data.mjs';
@@ -8,6 +9,33 @@ import { parseCharacterFile, parsePlugyStashFile } from '../src/lib/save-parsers
 import { getFixtureLibraryDir } from '../src/lib/workspace-paths.mjs';
 
 const FIXTURE_DIR = getFixtureLibraryDir();
+const FIXTURE_FILE_CACHE = new Map();
+
+function findFixtureFile(fileName) {
+  const cached = FIXTURE_FILE_CACHE.get(fileName);
+  if (cached) {
+    return cached;
+  }
+
+  const stack = [FIXTURE_DIR];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const candidatePath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(candidatePath);
+        continue;
+      }
+
+      if (entry.name === fileName) {
+        FIXTURE_FILE_CACHE.set(fileName, candidatePath);
+        return candidatePath;
+      }
+    }
+  }
+
+  throw new Error(`Could not find fixture file ${fileName} under ${FIXTURE_DIR}`);
+}
 
 test('loads PD2 skill metadata for property display helpers', () => {
   const tables = loadPd2Tables();
@@ -1404,11 +1432,53 @@ test('hides extra_holybolts, corruptor, and transform_dye from presentation outp
       { statKey: 'extra_holybolts', values: [3] },
       { statKey: 'corruptor', values: [1650] },
       { statKey: 'transform_dye', values: [12651795] },
+      { statKey: 'dclone_clout', values: [5] },
+      { statKey: 'maxlevel_clout', values: [0] },
+      { statKey: 'dev_clout', values: [4] },
+      { statKey: 'rathma_clout', values: [1] },
+      { statKey: 'immune_stat', values: [411] },
       { statKey: 'strength', values: [10] }
     ]
   }, null);
 
   assert.deepEqual(displayList.displayLines.map((line) => line.text), ['+10 to Strength']);
+});
+
+test('hides clout and immune internal stat leaks from real character fixtures', () => {
+  const tables = loadPd2Tables();
+  const cases = [
+    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'dclone_clout', 5],
+    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'maxlevel_clout', 0],
+    ['fire-bloodraven.d2s', 'Full Rejuv Potion', 'rvl', 'dev_clout', 4],
+    ['rathma-spear.d2s', 'Full Rejuv Potion', 'rvl', 'rathma_clout', 1],
+    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'immune_stat', 411]
+  ];
+
+  for (const [fileName, displayName, code, statKey, value] of cases) {
+    const summary = parseCharacterFile(findFixtureFile(fileName), { pd2Tables: tables });
+    const item = summary.topLevelItems.find((candidate) =>
+      candidate.displayName === displayName &&
+      candidate.code === code &&
+      candidate.properties.some((property) =>
+        property.statKey === statKey &&
+        property.values?.[0] === value
+      )
+    );
+
+    assert.ok(item, `expected ${fileName} to expose ${statKey} on ${displayName}`);
+    const property = item.properties.find((candidate) =>
+      candidate.statKey === statKey &&
+      candidate.values?.[0] === value
+    );
+    const displayList = formatPropertyListForDisplay({
+      kind: 'base',
+      complete: true,
+      error: null,
+      properties: [property]
+    }, tables);
+
+    assert.deepEqual(displayList.displayLines, [], `${statKey} should not render`);
+  }
 });
 
 test('hides extra_holybolts from real shared-stash fixture items', () => {

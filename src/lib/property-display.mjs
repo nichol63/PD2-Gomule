@@ -350,7 +350,12 @@ const BYTIME_STAT_RULES = {
 const HIDDEN_DISPLAY_STATS = new Set([
   'transform_dye',
   'extra_holybolts',
-  'corruptor'
+  'corruptor',
+  'dclone_clout',
+  'maxlevel_clout',
+  'dev_clout',
+  'rathma_clout',
+  'immune_stat'
 ]);
 
 function formatSignedNumber(value) {

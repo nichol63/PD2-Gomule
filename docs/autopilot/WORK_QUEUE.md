@@ -150,7 +150,7 @@ Evidence already found:
 
 Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`. A local `.tbl` sweep of `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl` found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. Do not implement until those exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
 
-### [needs-research] STAT-008 - Clout, blood-warp, and immune stat display policy
+### [done] STAT-008 - Clout, blood-warp, and immune stat display policy
 
 Goal: decide whether these remaining uncovered single-value stats should be hidden, formatted, or left as generic fallback.
 
@@ -163,13 +163,22 @@ Candidate stats:
 - `blood_warp_life_reduction`
 - `immune_stat`
 
-Known state:
+Outcome: the item split cleanly. Clout stats (`dclone_clout`, `maxlevel_clout`, `dev_clout`, `rathma_clout`) and `immune_stat` are now hidden in presentation as internal/noise leaks. Proof: clout rows point to disabled trophy/charm entries with missing local `.tbl` strings, `immune_stat` is driven by `Immune Aura` / `Immune Passive`, and a Library sweep after implementation found raw/displayed counts of `172/0`, `649/0`, `71/0`, `266/0`, and `110/0` respectively. Real fixture tests cover each hidden stat on character items, and inspector-model sanity on `demon-crossbow.d2s` shows the fallback lines no longer surface on a `Full Rejuv Potion`.
 
-- Clout stats have data-table evidence on trophy/charm rows, but no clean trophy fixture sample was found in the current Library scan.
-- `blood_warp_life_reduction` has table and skill-formula evidence through Suicide Branch/Blood Warp, but current exact-value fixture hits did not clearly identify Suicide Branch.
-- `immune_stat` appears to support skill/map aura calculations rather than item display, and current fixture hits look like parser-noise fallback lines on gear and potions.
+`blood_warp_life_reduction` stays blocked. Clean unique `9wn` fixture hits now confirm real Suicide Branch samples in `_LOD_SharedStashSave.sss` and `war_cryb.d2s`, but the `bloodwarplifereduction` desc key is absent from local PD2 `.tbl` files, so exact wording remains unproven.
 
-Do not implement until clean fixture identity, exact wording, or an explicit hide-policy decision exists.
+### [blocked] STAT-009 - Blood Warp exact display string
+
+Goal: prove exact user-facing wording for `blood_warp_life_reduction` before replacing the generic fallback line on Suicide Branch.
+
+Evidence already found:
+
+- `ItemStatCost.txt` row 468 uses `descfunc=3`, `descval=0`, `descstrpos=bloodwarplifereduction`.
+- `UniqueItems.txt` row `Suicide Branch` uses `blood-warp-life-reduction 2 2`.
+- `Skills.txt` / `SkillDesc.txt` Blood Warp formulas consume `stat('blood_warp_life_reduction'.accr)`.
+- Clean unique `9wn` fixture hits exist in `_LOD_SharedStashSave.sss / Wands 1,2,3` and `war_cryb.d2s`.
+
+Blocked because `bloodwarplifereduction` is absent from local `patchstring.tbl`, `expansionstring.tbl`, and `string.tbl`. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
 
 ### [blocked] PARSER-001 - Round-trip serializer proof milestone
 
