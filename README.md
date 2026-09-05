@@ -24,10 +24,12 @@ Current scope:
 
 Near-term roadmap:
 
-1. Extend item decoding beyond the core header into full item properties.
-2. Build a clean stash/inventory browser that matches PD2 expectations.
-3. Add search, filters, grouping, and safe export/import workflows.
-4. Keep write support disabled until round-trip parsing is stable.
+1. Prove the remaining PD2 stat wording and encoding against authoritative sources and real save fixtures.
+2. Extend property decoding and presentation only where that evidence supports it.
+3. Maintain the existing stash/inventory browser, search, filters, and read-only inspection.
+4. Keep write/edit/transfer/import/export support disabled. The shipped reconstruction checks preserve original source bytes; they do not establish a field-backed writer.
+
+For the current stopping point and blockers, read `docs/autopilot/WORK_QUEUE.md` and run `node ./scripts/session-snapshot.mjs`. The older GoMule projects are references only.
 
 ## Usage
 

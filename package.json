@@ -6,6 +6,6 @@
   "scripts": {
     "inspect": "node ./src/cli.mjs",
     "ui": "node ./src/cli.mjs ui",
-    "test": "node --test"
+    "test": "node --test \"test/*.test.mjs\""
   }
 }
