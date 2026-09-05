@@ -1,5 +1,9 @@
 # Display Decisions
 
+## Current recovery result (2026-09-05)
+
+The historical missing-string conclusions below are superseded by [installed archive evidence](mpq-string-proof.json). [STAT-007 proof](stat-007-proof.md) documents the shipped Deep Wounds label and historical Eaglehorn [500] sentence, the archive/reference metadata mismatch, and the retained fallbacks. Blood Warp and scaling payloads are now available for a separate row/version and fixture validation batch; no corresponding formatter changes have shipped. Historical uncommitted fixture counts were preserved and not re-swept during recovery.
+
 This file records current presentation decisions that future sessions should not re-derive.
 
 ## Hidden Display Stats

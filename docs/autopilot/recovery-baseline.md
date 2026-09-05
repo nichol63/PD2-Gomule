@@ -26,4 +26,6 @@ Use the canonical fixture library and actual formatter output for new evidence. 
 
 ## Continuation
 
-The next targeted proof is STAT-007: `OpenWoundsItem` and `EaglehornRaven`. Existing clean item provenance is sufficient to investigate wording; generic fallback text is not authoritative tooltip evidence. Check installed PD2 archives and authoritative source identity before repeating loose-table or whole-Library searches.
+STAT-007 is now complete for Deep Wounds and the proven Eaglehorn `[500]` case; see [proof and limits](stat-007-proof.md). Four added tests bring the final suite to 151 passing, 0 failing. After restarting the inspector, both new lines were confirmed in the browser on the same real stash items.
+
+Installed archive extraction recovered the previously missing strings. The next bounded batch is STAT-009 (Blood Warp), followed by STAT-010 scaling rows: compare archive and active metadata, then validate wording against clean source-backed fixtures. STAT-006 remains blocked on bytime fixture evidence. Preserve generic fallback for unsupported Eaglehorn values.

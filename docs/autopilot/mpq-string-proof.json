@@ -1,0 +1,559 @@
+{
+    "versionNote":  "Archive content identified by SHA256; release version not asserted",
+    "method":  "Installed x86 StormLib; read-only archive handles; TBL hash records; SHA256 before/after",
+    "keys":  [
+                 "OpenWoundsItem",
+                 "EaglehornRaven",
+                 "ColdDamage",
+                 "bloodwarplifereduction",
+                 "increaseswithenergy",
+                 "ModStrEnhancedDamage",
+                 "increaseswithequippedeth",
+                 "increaseswithmissinghp",
+                 "ModStrIncSplashRadius",
+                 "incsplashwithmissinghp",
+                 "ModStrLifeStealCap",
+                 "ofmaximumhp",
+                 "MapTier"
+             ],
+    "archives":  [
+                     {
+                         "itemStatCostRows":  [
+                                                  {
+                                                      "Stat":  "eaglehorn_raven",
+                                                      "ID":  "490",
+                                                      "Send Other":  "",
+                                                      "Signed":  "",
+                                                      "Send Bits":  "11",
+                                                      "Send Param Bits":  "",
+                                                      "UpdateAnimRate":  "",
+                                                      "Saved":  "",
+                                                      "CSvSigned":  "",
+                                                      "CSvBits":  "",
+                                                      "CSvParam":  "",
+                                                      "fCallback":  "",
+                                                      "fMin":  "",
+                                                      "MinAccr":  "",
+                                                      "Encode":  "",
+                                                      "Add":  "",
+                                                      "Multiply":  "",
+                                                      "Divide":  "1024",
+                                                      "ValShift":  "",
+                                                      "1.09-Save Bits":  "6",
+                                                      "1.09-Save Add":  "",
+                                                      "Save Bits":  "11",
+                                                      "Save Add":  "",
+                                                      "Save Param Bits":  "",
+                                                      "keepzero":  "",
+                                                      "op":  "",
+                                                      "op param":  "",
+                                                      "op base":  "",
+                                                      "op stat1":  "",
+                                                      "op stat2":  "",
+                                                      "op stat3":  "",
+                                                      "direct":  "",
+                                                      "maxstat":  "",
+                                                      "itemspecific":  "",
+                                                      "damagerelated":  "",
+                                                      "itemevent1":  "",
+                                                      "itemeventfunc1":  "",
+                                                      "itemevent2":  "",
+                                                      "itemeventfunc2":  "",
+                                                      "descpriority":  "160",
+                                                      "descfunc":  "6",
+                                                      "descval":  "2",
+                                                      "descstrpos":  "EaglehornRaven",
+                                                      "descstrneg":  "EaglehornRaven",
+                                                      "descstr2":  "ColdDamage",
+                                                      "dgrp":  "",
+                                                      "dgrpfunc":  "",
+                                                      "dgrpval":  "",
+                                                      "dgrpstrpos":  "",
+                                                      "dgrpstrneg":  "",
+                                                      "dgrpstr2":  "",
+                                                      "stuff":  "",
+                                                      "*eol":  "0"
+                                                  },
+                                                  {
+                                                      "Stat":  "deep_wounds",
+                                                      "ID":  "501",
+                                                      "Send Other":  "",
+                                                      "Signed":  "1",
+                                                      "Send Bits":  "16",
+                                                      "Send Param Bits":  "8",
+                                                      "UpdateAnimRate":  "",
+                                                      "Saved":  "",
+                                                      "CSvSigned":  "",
+                                                      "CSvBits":  "",
+                                                      "CSvParam":  "",
+                                                      "fCallback":  "",
+                                                      "fMin":  "",
+                                                      "MinAccr":  "",
+                                                      "Encode":  "",
+                                                      "Add":  "",
+                                                      "Multiply":  "",
+                                                      "Divide":  "1024",
+                                                      "ValShift":  "",
+                                                      "1.09-Save Bits":  "16",
+                                                      "1.09-Save Add":  "0",
+                                                      "Save Bits":  "16",
+                                                      "Save Add":  "0",
+                                                      "Save Param Bits":  "",
+                                                      "keepzero":  "",
+                                                      "op":  "",
+                                                      "op param":  "",
+                                                      "op base":  "",
+                                                      "op stat1":  "",
+                                                      "op stat2":  "",
+                                                      "op stat3":  "",
+                                                      "direct":  "",
+                                                      "maxstat":  "",
+                                                      "itemspecific":  "",
+                                                      "damagerelated":  "",
+                                                      "itemevent1":  "",
+                                                      "itemeventfunc1":  "",
+                                                      "itemevent2":  "",
+                                                      "itemeventfunc2":  "",
+                                                      "descpriority":  "82",
+                                                      "descfunc":  "1",
+                                                      "descval":  "1",
+                                                      "descstrpos":  "OpenWoundsItem",
+                                                      "descstrneg":  "OpenWoundsItem",
+                                                      "descstr2":  "",
+                                                      "dgrp":  "",
+                                                      "dgrpfunc":  "",
+                                                      "dgrpval":  "",
+                                                      "dgrpstrpos":  "",
+                                                      "dgrpstrneg":  "",
+                                                      "dgrpstr2":  "",
+                                                      "stuff":  "",
+                                                      "*eol":  "0"
+                                                  }
+                                              ],
+                         "archive":  "C:\\Codex\\GoMuleR4.3.2_1.13\\Diablo II\\ProjectD2\\pd2data.mpq",
+                         "sha256":  "D96CBBA912D67181DAA8906B95EC63FA2BDF017B48E85326CF33DDDFDF2B208B",
+                         "lastWriteTimeUtc":  "2026-02-25T02:54:05.3657358Z",
+                         "unchanged":  true,
+                         "tables":  [
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\string.tbl"
+                                        },
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\expansionstring.tbl"
+                                        },
+                                        {
+                                            "matches":  [
+                                                            {
+                                                                "key":  "increaseswithenergy",
+                                                                "keyOffset":  114230,
+                                                                "valueOffset":  114250,
+                                                                "value":  "(Based on Energy)",
+                                                                "valueLength":  18
+                                                            },
+                                                            {
+                                                                "key":  "ModStrIncSplashRadius",
+                                                                "keyOffset":  111776,
+                                                                "valueOffset":  111798,
+                                                                "value":  "Increased Splash Radius",
+                                                                "valueLength":  24
+                                                            },
+                                                            {
+                                                                "key":  "increaseswithequippedeth",
+                                                                "keyOffset":  113681,
+                                                                "valueOffset":  113706,
+                                                                "value":  "(based on Equipped Ethereals)\nGains +60% Enhanced Damage per equipped ethereal item",
+                                                                "valueLength":  84
+                                                            },
+                                                            {
+                                                                "key":  "ModStrEnhancedDamage",
+                                                                "keyOffset":  113644,
+                                                                "valueOffset":  113665,
+                                                                "value":  "Enhanced Damage",
+                                                                "valueLength":  16
+                                                            },
+                                                            {
+                                                                "key":  "bloodwarplifereduction",
+                                                                "keyOffset":  113251,
+                                                                "valueOffset":  113274,
+                                                                "value":  "Bloodwarp Costs 2% Less Health",
+                                                                "valueLength":  31
+                                                            },
+                                                            {
+                                                                "key":  "BloodRavenZombie",
+                                                                "keyOffset":  109629,
+                                                                "valueOffset":  109646,
+                                                                "value":  "Revived Dead",
+                                                                "valueLength":  13
+                                                            },
+                                                            {
+                                                                "key":  "increaseswithmissinghp",
+                                                                "keyOffset":  113790,
+                                                                "valueOffset":  113813,
+                                                                "value":  "(based on missing life)\nGains +2% Enhanced Damage per missing life percentage",
+                                                                "valueLength":  78
+                                                            },
+                                                            {
+                                                                "key":  "MapTier",
+                                                                "keyOffset":  103170,
+                                                                "valueOffset":  103178,
+                                                                "value":  "Tier:",
+                                                                "valueLength":  6
+                                                            },
+                                                            {
+                                                                "key":  "ColdDamage",
+                                                                "keyOffset":  153614,
+                                                                "valueOffset":  153625,
+                                                                "value":  "Cold Damage",
+                                                                "valueLength":  12
+                                                            },
+                                                            {
+                                                                "key":  "EaglehornRaven",
+                                                                "keyOffset":  95050,
+                                                                "valueOffset":  95065,
+                                                                "value":  "Your Ravens Deal",
+                                                                "valueLength":  17
+                                                            },
+                                                            {
+                                                                "key":  "incsplashwithmissinghp",
+                                                                "keyOffset":  111822,
+                                                                "valueOffset":  111845,
+                                                                "value":  "(based on missing life)",
+                                                                "valueLength":  24
+                                                            },
+                                                            {
+                                                                "key":  "ModStrLifeStealCap",
+                                                                "keyOffset":  113891,
+                                                                "valueOffset":  113910,
+                                                                "value":  "You cannot life steal when above",
+                                                                "valueLength":  33
+                                                            },
+                                                            {
+                                                                "key":  "ofmaximumhp",
+                                                                "keyOffset":  113943,
+                                                                "valueOffset":  113955,
+                                                                "value":  "maximum life",
+                                                                "valueLength":  13
+                                                            },
+                                                            {
+                                                                "key":  "OpenWoundsItem",
+                                                                "keyOffset":  126734,
+                                                                "valueOffset":  126749,
+                                                                "value":  "Open Wounds Damage Per Second",
+                                                                "valueLength":  30
+                                                            },
+                                                            {
+                                                                "key":  "StrExtraRaven",
+                                                                "keyOffset":  122098,
+                                                                "valueOffset":  122112,
+                                                                "value":  "Summon an Additional Raven per Cast every 10 Base Levels",
+                                                                "valueLength":  57
+                                                            }
+                                                        ],
+                                            "length":  170395,
+                                            "entry":  "data\\local\\lng\\eng\\patchstring.tbl",
+                                            "sha256":  "5163E7158CEE79E0939B3CCAAA7EC0D8ABA7591E888E6E56444EB838DBDD962B",
+                                            "present":  true
+                                        }
+                                    ]
+                     },
+                     {
+                         "itemStatCostRows":  [
+
+                                              ],
+                         "archive":  "C:\\Codex\\GoMuleR4.3.2_1.13\\Diablo II\\ProjectD2\\patch_d2.mpq",
+                         "sha256":  "B976E7847DDA696F54198A9477819F96579C4894F54381C72AFB4937E919E0A9",
+                         "lastWriteTimeUtc":  "2026-02-25T02:54:07.1259327Z",
+                         "unchanged":  true,
+                         "tables":  [
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\string.tbl"
+                                        },
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\expansionstring.tbl"
+                                        },
+                                        {
+                                            "matches":  [
+
+                                                        ],
+                                            "length":  52523,
+                                            "entry":  "data\\local\\lng\\eng\\patchstring.tbl",
+                                            "sha256":  "79E729672AF12834093C3598C8EE439B08F44EDF9DF6AF777E85EF08B062B839",
+                                            "present":  true
+                                        }
+                                    ]
+                     },
+                     {
+                         "itemStatCostRows":  [
+                                                  {
+                                                      "Stat":  "eaglehorn_raven",
+                                                      "ID":  "490",
+                                                      "Send Other":  "",
+                                                      "Signed":  "",
+                                                      "Send Bits":  "11",
+                                                      "Send Param Bits":  "",
+                                                      "UpdateAnimRate":  "",
+                                                      "Saved":  "",
+                                                      "CSvSigned":  "",
+                                                      "CSvBits":  "",
+                                                      "CSvParam":  "",
+                                                      "fCallback":  "",
+                                                      "fMin":  "",
+                                                      "MinAccr":  "",
+                                                      "Encode":  "",
+                                                      "Add":  "",
+                                                      "Multiply":  "",
+                                                      "Divide":  "1024",
+                                                      "ValShift":  "",
+                                                      "1.09-Save Bits":  "6",
+                                                      "1.09-Save Add":  "",
+                                                      "Save Bits":  "11",
+                                                      "Save Add":  "",
+                                                      "Save Param Bits":  "",
+                                                      "keepzero":  "",
+                                                      "op":  "",
+                                                      "op param":  "",
+                                                      "op base":  "",
+                                                      "op stat1":  "",
+                                                      "op stat2":  "",
+                                                      "op stat3":  "",
+                                                      "direct":  "",
+                                                      "maxstat":  "",
+                                                      "itemspecific":  "",
+                                                      "damagerelated":  "",
+                                                      "itemevent1":  "",
+                                                      "itemeventfunc1":  "",
+                                                      "itemevent2":  "",
+                                                      "itemeventfunc2":  "",
+                                                      "descpriority":  "160",
+                                                      "descfunc":  "6",
+                                                      "descval":  "2",
+                                                      "descstrpos":  "EaglehornRaven",
+                                                      "descstrneg":  "EaglehornRaven",
+                                                      "descstr2":  "ColdDamage",
+                                                      "dgrp":  "",
+                                                      "dgrpfunc":  "",
+                                                      "dgrpval":  "",
+                                                      "dgrpstrpos":  "",
+                                                      "dgrpstrneg":  "",
+                                                      "dgrpstr2":  "",
+                                                      "stuff":  "",
+                                                      "*eol":  "0"
+                                                  },
+                                                  {
+                                                      "Stat":  "deep_wounds",
+                                                      "ID":  "501",
+                                                      "Send Other":  "",
+                                                      "Signed":  "1",
+                                                      "Send Bits":  "16",
+                                                      "Send Param Bits":  "8",
+                                                      "UpdateAnimRate":  "",
+                                                      "Saved":  "",
+                                                      "CSvSigned":  "",
+                                                      "CSvBits":  "",
+                                                      "CSvParam":  "",
+                                                      "fCallback":  "",
+                                                      "fMin":  "",
+                                                      "MinAccr":  "",
+                                                      "Encode":  "",
+                                                      "Add":  "",
+                                                      "Multiply":  "",
+                                                      "Divide":  "1024",
+                                                      "ValShift":  "",
+                                                      "1.09-Save Bits":  "16",
+                                                      "1.09-Save Add":  "0",
+                                                      "Save Bits":  "16",
+                                                      "Save Add":  "0",
+                                                      "Save Param Bits":  "",
+                                                      "keepzero":  "",
+                                                      "op":  "",
+                                                      "op param":  "",
+                                                      "op base":  "",
+                                                      "op stat1":  "",
+                                                      "op stat2":  "",
+                                                      "op stat3":  "",
+                                                      "direct":  "",
+                                                      "maxstat":  "",
+                                                      "itemspecific":  "",
+                                                      "damagerelated":  "",
+                                                      "itemevent1":  "",
+                                                      "itemeventfunc1":  "",
+                                                      "itemevent2":  "",
+                                                      "itemeventfunc2":  "",
+                                                      "descpriority":  "82",
+                                                      "descfunc":  "1",
+                                                      "descval":  "1",
+                                                      "descstrpos":  "OpenWoundsItem",
+                                                      "descstrneg":  "OpenWoundsItem",
+                                                      "descstr2":  "",
+                                                      "dgrp":  "",
+                                                      "dgrpfunc":  "",
+                                                      "dgrpval":  "",
+                                                      "dgrpstrpos":  "",
+                                                      "dgrpstrneg":  "",
+                                                      "dgrpstr2":  "",
+                                                      "stuff":  "",
+                                                      "*eol":  "0"
+                                                  }
+                                              ],
+                         "archive":  "C:\\Codex\\GoMuleR4.3.2_1.13\\Diablo II\\ProjectD2\\Live\\pd2data.mpq",
+                         "sha256":  "D96CBBA912D67181DAA8906B95EC63FA2BDF017B48E85326CF33DDDFDF2B208B",
+                         "lastWriteTimeUtc":  "2026-02-25T02:54:05.3657358Z",
+                         "unchanged":  true,
+                         "tables":  [
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\string.tbl"
+                                        },
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\expansionstring.tbl"
+                                        },
+                                        {
+                                            "matches":  [
+                                                            {
+                                                                "key":  "increaseswithenergy",
+                                                                "keyOffset":  114230,
+                                                                "valueOffset":  114250,
+                                                                "value":  "(Based on Energy)",
+                                                                "valueLength":  18
+                                                            },
+                                                            {
+                                                                "key":  "ModStrIncSplashRadius",
+                                                                "keyOffset":  111776,
+                                                                "valueOffset":  111798,
+                                                                "value":  "Increased Splash Radius",
+                                                                "valueLength":  24
+                                                            },
+                                                            {
+                                                                "key":  "increaseswithequippedeth",
+                                                                "keyOffset":  113681,
+                                                                "valueOffset":  113706,
+                                                                "value":  "(based on Equipped Ethereals)\nGains +60% Enhanced Damage per equipped ethereal item",
+                                                                "valueLength":  84
+                                                            },
+                                                            {
+                                                                "key":  "ModStrEnhancedDamage",
+                                                                "keyOffset":  113644,
+                                                                "valueOffset":  113665,
+                                                                "value":  "Enhanced Damage",
+                                                                "valueLength":  16
+                                                            },
+                                                            {
+                                                                "key":  "bloodwarplifereduction",
+                                                                "keyOffset":  113251,
+                                                                "valueOffset":  113274,
+                                                                "value":  "Bloodwarp Costs 2% Less Health",
+                                                                "valueLength":  31
+                                                            },
+                                                            {
+                                                                "key":  "BloodRavenZombie",
+                                                                "keyOffset":  109629,
+                                                                "valueOffset":  109646,
+                                                                "value":  "Revived Dead",
+                                                                "valueLength":  13
+                                                            },
+                                                            {
+                                                                "key":  "increaseswithmissinghp",
+                                                                "keyOffset":  113790,
+                                                                "valueOffset":  113813,
+                                                                "value":  "(based on missing life)\nGains +2% Enhanced Damage per missing life percentage",
+                                                                "valueLength":  78
+                                                            },
+                                                            {
+                                                                "key":  "MapTier",
+                                                                "keyOffset":  103170,
+                                                                "valueOffset":  103178,
+                                                                "value":  "Tier:",
+                                                                "valueLength":  6
+                                                            },
+                                                            {
+                                                                "key":  "ColdDamage",
+                                                                "keyOffset":  153614,
+                                                                "valueOffset":  153625,
+                                                                "value":  "Cold Damage",
+                                                                "valueLength":  12
+                                                            },
+                                                            {
+                                                                "key":  "EaglehornRaven",
+                                                                "keyOffset":  95050,
+                                                                "valueOffset":  95065,
+                                                                "value":  "Your Ravens Deal",
+                                                                "valueLength":  17
+                                                            },
+                                                            {
+                                                                "key":  "incsplashwithmissinghp",
+                                                                "keyOffset":  111822,
+                                                                "valueOffset":  111845,
+                                                                "value":  "(based on missing life)",
+                                                                "valueLength":  24
+                                                            },
+                                                            {
+                                                                "key":  "ModStrLifeStealCap",
+                                                                "keyOffset":  113891,
+                                                                "valueOffset":  113910,
+                                                                "value":  "You cannot life steal when above",
+                                                                "valueLength":  33
+                                                            },
+                                                            {
+                                                                "key":  "ofmaximumhp",
+                                                                "keyOffset":  113943,
+                                                                "valueOffset":  113955,
+                                                                "value":  "maximum life",
+                                                                "valueLength":  13
+                                                            },
+                                                            {
+                                                                "key":  "OpenWoundsItem",
+                                                                "keyOffset":  126734,
+                                                                "valueOffset":  126749,
+                                                                "value":  "Open Wounds Damage Per Second",
+                                                                "valueLength":  30
+                                                            },
+                                                            {
+                                                                "key":  "StrExtraRaven",
+                                                                "keyOffset":  122098,
+                                                                "valueOffset":  122112,
+                                                                "value":  "Summon an Additional Raven per Cast every 10 Base Levels",
+                                                                "valueLength":  57
+                                                            }
+                                                        ],
+                                            "length":  170395,
+                                            "entry":  "data\\local\\lng\\eng\\patchstring.tbl",
+                                            "sha256":  "5163E7158CEE79E0939B3CCAAA7EC0D8ABA7591E888E6E56444EB838DBDD962B",
+                                            "present":  true
+                                        }
+                                    ]
+                     },
+                     {
+                         "itemStatCostRows":  [
+
+                                              ],
+                         "archive":  "C:\\Codex\\GoMuleR4.3.2_1.13\\Diablo II\\ProjectD2\\Live\\patch_d2.mpq",
+                         "sha256":  "B976E7847DDA696F54198A9477819F96579C4894F54381C72AFB4937E919E0A9",
+                         "lastWriteTimeUtc":  "2026-02-25T02:54:07.1259327Z",
+                         "unchanged":  true,
+                         "tables":  [
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\string.tbl"
+                                        },
+                                        {
+                                            "present":  false,
+                                            "entry":  "data\\local\\lng\\eng\\expansionstring.tbl"
+                                        },
+                                        {
+                                            "matches":  [
+
+                                                        ],
+                                            "length":  52523,
+                                            "entry":  "data\\local\\lng\\eng\\patchstring.tbl",
+                                            "sha256":  "79E729672AF12834093C3598C8EE439B08F44EDF9DF6AF777E85EF08B062B839",
+                                            "present":  true
+                                        }
+                                    ]
+                     }
+                 ]
+}

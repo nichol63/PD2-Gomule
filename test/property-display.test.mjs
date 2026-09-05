@@ -185,6 +185,72 @@ test('formats newly supported simple stat keys into readable lines', () => {
   assert.deepEqual(formatSingle('item_manaleech', [5]), ['Mana Stolen per Hit +5%']);
 });
 
+test('formats deep_wounds as signed damage per second, distinct from Open Wounds chance', () => {
+  assert.deepEqual(formatSingle('deep_wounds', [300]), ['+300 Open Wounds Damage Per Second']);
+  assert.deepEqual(formatSingle('deep_wounds', [50]), ['+50 Open Wounds Damage Per Second']);
+  assert.deepEqual(formatSingle('deep_wounds', [0]), ['+0 Open Wounds Damage Per Second']);
+  assert.deepEqual(formatSingle('deep_wounds', [-10]), ['-10 Open Wounds Damage Per Second']);
+  assert.deepEqual(formatSingle('item_openwounds', [30]), ['Open Wounds +30%']);
+});
+
+test('formats deep_wounds from the clean unique Blade Bow fixture', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const item = summary.pages
+    .find((page) => page.name === 'Bows 2,3')
+    ?.items.find((candidate) => candidate.code === '8hb' && candidate.row === 3 && candidate.column === 0);
+
+  assert.ok(item, 'expected the Blade Bow at row 3, column 0 on Bows 2,3');
+  assert.deepEqual(item.qualityData, { qualityId: 7, qualityLabel: 'unique', uniqueId: 189 });
+  assert.equal(item.propertiesComplete, true);
+  const properties = item.propertyLists[0].properties.filter(
+    (property) => ['item_openwounds', 'deep_wounds'].includes(property.statKey)
+  );
+  assert.deepEqual(properties.map(({ statKey, values }) => ({ statKey, values })), [
+    { statKey: 'item_openwounds', values: [30] },
+    { statKey: 'deep_wounds', values: [50] }
+  ]);
+  const damage = properties.find((property) => property.statKey === 'deep_wounds');
+  assert.equal(damage.descStringKey, 'OpenWoundsItem');
+  assert.equal(damage.descFunc, 1);
+  assert.equal(damage.descVal, 1);
+  const displayList = formatPropertyListForDisplay({ ...item.propertyLists[0], properties }, tables);
+  assert.deepEqual(displayList.displayLines.map((line) => line.text), [
+    'Open Wounds +30%',
+    '+50 Open Wounds Damage Per Second'
+  ]);
+});
+
+test('formats only the proven Eaglehorn Raven value with its historical wording', () => {
+  assert.deepEqual(formatSingle('eaglehorn_raven', [500]), ['Your Ravens deal an additional 500 Cold Damage']);
+  assert.deepEqual(formatSingle('eaglehorn_raven', [501]), ['+501 to Eaglehorn Raven']);
+  assert.deepEqual(formatSingle('eaglehorn_raven', [500, 1]), ['Eaglehorn Raven: 500, 1']);
+});
+
+test('formats the clean unique Eaglehorn fixture without changing its parsed metadata', () => {
+  const tables = loadPd2Tables();
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const item = summary.pages
+    .find((page) => page.name === 'Bows 2,3')
+    ?.items.find((candidate) => candidate.code === '6l7' && candidate.row === 3 && candidate.column === 8);
+
+  assert.ok(item, 'expected the Crusader Bow at row 3, column 8 on Bows 2,3');
+  assert.deepEqual(item.qualityData, { qualityId: 7, qualityLabel: 'unique', uniqueId: 265 });
+  assert.equal(item.propertiesComplete, true);
+  const properties = item.propertyLists[0].properties.filter((property) => property.statKey === 'eaglehorn_raven');
+  assert.equal(properties.length, 1);
+  assert.deepEqual(properties[0].values, [500]);
+  assert.equal(properties[0].descStringKey, 'EaglehornRaven');
+  assert.equal(properties[0].descFunc, 3);
+  assert.equal(properties[0].descVal, 0);
+  const originalProperty = structuredClone(properties[0]);
+  const displayList = formatPropertyListForDisplay({ ...item.propertyLists[0], properties }, tables);
+  assert.deepEqual(displayList.displayLines.map((line) => line.text), [
+    'Your Ravens deal an additional 500 Cold Damage'
+  ]);
+  assert.deepEqual(properties[0], originalProperty);
+});
+
 test('formats percent-style simple stat keys using their display labels', () => {
   assert.deepEqual(formatSingle('curse_effectiveness', [20]), ['Curse Effectiveness +20%']);
   assert.deepEqual(formatSingle('curse_effectiveness', [-43]), ['Curse Effectiveness -43%']);

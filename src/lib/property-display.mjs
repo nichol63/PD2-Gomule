@@ -828,6 +828,16 @@ function formatSingleProperty(property, pd2Tables) {
   }
 
   switch (statKey) {
+    case 'deep_wounds':
+      // OpenWoundsItem in the installed PD2 patchstring.tbl; see mpq-string-proof.json.
+      return `${formatSignedNumber(firstValue ?? 0)} Open Wounds Damage Per Second`;
+    case 'eaglehorn_raven':
+      // Historical wiki wording and clean fixtures prove this value only.
+      // Archive display metadata differs from our active tables; preserve other fallbacks.
+      if (property.values?.length === 1 && firstValue === 500) {
+        return 'Your Ravens deal an additional 500 Cold Damage';
+      }
+      break;
     case 'item_allskills':
       return `${formatSignedNumber(firstValue ?? 0)} to All Skills`;
     case 'item_singleskill':

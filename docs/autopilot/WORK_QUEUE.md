@@ -1,5 +1,12 @@
 # PD2 Mule Work Queue
 
+## Current recovery result (2026-09-05)
+
+- STAT-007 is complete for Deep Wounds and the proven single-value Eaglehorn [500] case. See [the proof and limitations](stat-007-proof.md). Other Eaglehorn values retain their fallback.
+- STAT-009 and STAT-010 now need row/version comparison and fixture validation: their formerly missing strings were recovered from installed pd2data.mpq. The historical outcomes below describe the earlier loose-table searches and are superseded on string availability by [archive evidence](mpq-string-proof.json).
+- STAT-006 remains blocked on bytime fixture/source proof.
+- Current test baseline: 151 passing, 0 failing, with four new display tests. See [baseline recovery](recovery-baseline.md) for the corrected test discovery and preserved scratch work.
+
 Use this queue for hands-off, context-light sessions. Each item is intended to be small enough for one coherent commit. A session may complete multiple ready items, committing after each batch.
 
 ## Queue Rules
@@ -141,7 +148,7 @@ Exit criteria:
 
 Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 288-row one-value source set is mostly covered by existing explicit labels, map, bytime, per-level, hidden, internal, or scaling/design buckets. The uncovered candidates with the best evidence are `deep_wounds` and `eaglehorn_raven`, both with clean `_LOD_SharedStashSave.sss` fixture examples and data-table support, but exact string-table wording is still unresolved. Clout stats, `blood_warp_life_reduction`, and `immune_stat` remain blocked on cleaner fixture identity or display policy. No ready implementation item was added because no remaining candidate has both clean fixture evidence and exact wording.
 
-### [blocked] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
+### [done] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
 
 Goal: prove exact user-facing wording for `deep_wounds` and `eaglehorn_raven` before replacing the generic fallback lines.
 
@@ -169,7 +176,7 @@ Outcome: the item split cleanly. Clout stats (`dclone_clout`, `maxlevel_clout`, 
 
 `blood_warp_life_reduction` stays blocked. Clean unique `9wn` fixture hits now confirm real Suicide Branch samples in `_LOD_SharedStashSave.sss` and `war_cryb.d2s`, but the `bloodwarplifereduction` desc key is absent from local PD2 `.tbl` files, so exact wording remains unproven.
 
-### [blocked] STAT-009 - Blood Warp exact display string
+### [needs-research] STAT-009 - Blood Warp exact display string
 
 Goal: prove exact user-facing wording for `blood_warp_life_reduction` before replacing the generic fallback line on Suicide Branch.
 
@@ -208,7 +215,7 @@ Outcome: the candidate set split cleanly. `mon_cooldown1/2/3` are now hidden in 
 
 The remaining scaling stats stay blocked. Real fixture evidence exists for several of them, but local PD2 `.tbl` files do not contain the PD2-specific desc helper keys needed to prove exact wording or scaling presentation.
 
-### [blocked] STAT-010 - Remaining scaling stat wording proof
+### [needs-research] STAT-010 - Remaining scaling stat wording proof
 
 Goal: prove exact user-facing wording and scaling semantics for the remaining scaling stats before replacing their generic fallback lines.
 
