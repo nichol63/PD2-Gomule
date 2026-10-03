@@ -25,7 +25,7 @@ Use the role names below as working assignments layered on top of those built-in
 - Read the bootstrap and work queue before substantial work. Use the full handoff only as a targeted reference.
 - Run `node .\scripts\session-snapshot.mjs` for a compact current-state summary.
 - Run `git status --short` and `git log --oneline -15` before dispatching file-owning agents.
-- Keep the tool read-only. Do not add write, edit, move, import, export, or transfer flows.
+- Follow `docs/DEVELOPMENT_WORKFLOW.md`: the user authorized bounded serialization, persistent bank, and transfer development on October 3, 2026. Keep original saves and canonical fixtures untouched; use disposable copies for write validation. The inspector remains read-only unless explicitly expanded.
 - Preserve parser/presentation separation.
 - Validate against real fixtures, not just synthetic tests.
 - Always have at least one agent responsible for tests on any non-trivial change.

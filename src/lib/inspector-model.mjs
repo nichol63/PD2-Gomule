@@ -17,7 +17,7 @@ const PANEL_DETAILS = {
   '1/0': { label: 'Equipped', columns: 10, rows: 4, order: 10 },
   '0/1': { label: 'Inventory', columns: 10, rows: 4, order: 20 },
   '0/4': { label: 'Cube', columns: 4, rows: 4, order: 30 },
-  '0/5': { label: 'Stash', columns: 10, rows: 10, order: 40 },
+  '0/5': { label: 'Stash', columns: 10, rows: 15, order: 40 },
   '2/0': { label: 'Belt', columns: 4, rows: 4, order: 50 }
 };
 const KIND_LABELS = {
@@ -305,6 +305,7 @@ function createSelectedItem(entry, pd2Tables) {
   return {
     itemKey: getItemKey(entry),
     displayName: entry.displayName,
+    baseName: entry.baseName ?? item.baseName ?? item.itemInfo?.name ?? entry.displayName,
     code: entry.code,
     qualityLabel: entry.qualityLabel,
     isRuneword,

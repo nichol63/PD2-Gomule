@@ -436,6 +436,7 @@ function renderItemDetails() {
     <header class="detail-header">
       <span class="quality-badge quality-${escapeHtml(item.qualityLabel)}">${escapeHtml(item.qualityLabel)}</span>
       <h3>${escapeHtml(item.displayName)}</h3>
+      ${item.baseName && item.baseName !== item.displayName ? `<div class="muted-copy">${escapeHtml(item.baseName)}</div>` : ''}
       ${item.isRuneword && item.runewordRecipe ? `<div class="runeword-recipe">${escapeHtml(item.runewordRecipe)}</div>` : ''}
       <p>${escapeHtml(item.code)} - ${escapeHtml(item.sourceLabel)} - ${escapeHtml(item.panelLabel)}</p>
     </header>

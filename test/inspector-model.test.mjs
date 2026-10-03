@@ -55,16 +55,16 @@ test('surfaces formatted property lines in inspector item details', () => {
   const catalog = getInspectorCatalog(workspace);
   const view = buildInspectorView(workspace, {
     sourceId: catalog.defaultSourceId,
-    query: 'mighty scepter'
+    query: 'scp scepter'
   });
 
-  assert.equal(view.selectedItem?.displayName, 'Mighty Scepter');
+  assert.equal(view.selectedItem?.displayName, 'Scepter');
   assert.ok(
     view.selectedItem?.propertyLists[0].displayLines.some((line) => line.text === '+2 to Might')
   );
 });
 
-test('builds a stash inspector view with page navigation and partial-property warnings', () => {
+test('builds a stash inspector view with complete Shadow Plate properties', () => {
   const workspace = loadInspectorWorkspace([path.join(FIXTURE_DIR, 'Bases.d2x')]);
   const catalog = getInspectorCatalog(workspace);
   const view = buildInspectorView(workspace, {
@@ -78,8 +78,8 @@ test('builds a stash inspector view with page navigation and partial-property wa
   assert.equal(view.summary.selectedPage?.name, 'Mag Chest 2');
   assert.equal(view.summary.matchedItemCount, 1);
   assert.equal(view.selectedItem?.code, 'uul');
-  assert.equal(view.selectedItem?.propertyStatus, 'partial');
-  assert.match(view.selectedItem?.propertyParseError ?? '', /stat id 508/);
+  assert.equal(view.selectedItem?.propertyStatus, 'complete');
+  assert.equal(view.selectedItem?.propertyParseError, null);
   assert.ok(view.panels.some((panel) => panel.label === 'Stash'));
 });
 

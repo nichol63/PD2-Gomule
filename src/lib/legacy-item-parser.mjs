@@ -44,12 +44,21 @@ function unflipBits(value, bits) {
 }
 
 class LegacyBitReader {
-  constructor(buffer, bitOffset = 0) {
+  constructor(buffer, bitOffset = 0, endBitOffset = buffer.length * 8) {
     this.buffer = buffer;
     this.bitOffset = bitOffset;
+    this.endBitOffset = endBitOffset;
   }
 
   read(bits) {
+    if (!Number.isInteger(bits) || bits < 0 || bits > 32) {
+      throw new RangeError(`Invalid bit read width ${bits}`);
+    }
+    if (this.bitOffset + bits > this.endBitOffset) {
+      throw new RangeError(
+        `Item read exceeds byte boundary at bit ${this.bitOffset} (${bits} bits requested, end ${this.endBitOffset})`
+      );
+    }
     const byteOffset = Math.floor(this.bitOffset / 8);
     const bitsPast = this.bitOffset % 8;
     let window = 0n;
@@ -69,6 +78,9 @@ class LegacyBitReader {
   }
 
   skipBits(bits) {
+    if (!Number.isInteger(bits) || bits < 0 || this.bitOffset + bits > this.endBitOffset) {
+      throw new RangeError(`Item skip exceeds byte boundary at bit ${this.bitOffset}`);
+    }
     this.bitOffset += bits;
   }
 
@@ -82,7 +94,9 @@ function hasLegacyHeader(buffer, offset) {
 }
 
 function hasFlag(flags, bit) {
-  return ((flags >>> (32 - bit)) & 1) === 1;
+  // LegacyBitReader.read() has already restored the bit order. GoMule's
+  // one-based flag numbers refer to bits of the raw little-endian word.
+  return ((flags >>> (bit - 1)) & 1) === 1;
 }
 
 function readLegacyItemCode(reader) {
@@ -107,7 +121,11 @@ function parseLegacyEar(reader, baseSummary) {
   for (let index = 0; index < 18; index += 1) {
     const value = reader.read(7);
     if (value === 0) {
-      reader.read(7);
+      // Some saved ears end immediately after the terminator; the legacy
+      // reader consumed seven more zero-padded bits from the following item.
+      if (reader.bitOffset + 7 <= reader.endBitOffset) {
+        reader.read(7);
+      }
       terminated = true;
       break;
     }
@@ -116,7 +134,9 @@ function parseLegacyEar(reader, baseSummary) {
   }
 
   if (!terminated) {
-    reader.read(7);
+    if (reader.bitOffset + 7 <= reader.endBitOffset) {
+      reader.read(7);
+    }
   }
 
   return {
@@ -126,6 +146,7 @@ function parseLegacyEar(reader, baseSummary) {
     displayName: ownerName ? `${ownerName}'s Ear` : 'Ear',
     qualityLabel: 'ear',
     qualityData: null,
+    coreBitLength: reader.bitOffset - (baseSummary.byteOffset * 8),
     ownerClassId: classId,
     ownerLevel: level,
     socketsFilled: 0,
@@ -379,10 +400,12 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
 function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
   const properties = [];
   let rootProp = null;
+  let readingStatId = true;
   const startBitOffset = reader.bitOffset;
 
   try {
     rootProp = reader.read(9);
+    readingStatId = false;
 
     while (rootProp !== 511) {
       if (properties.length >= MAX_PROPERTY_COUNT) {
@@ -438,7 +461,9 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
         }
       }
 
+      readingStatId = true;
       rootProp = reader.read(9);
+      readingStatId = false;
     }
 
     return {
@@ -446,6 +471,8 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
       qFlag,
       complete: true,
       error: null,
+      startBitOffset,
+      endBitOffset: reader.bitOffset,
       properties
     };
   } catch (error) {
@@ -454,7 +481,9 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
       qFlag,
       complete: false,
       error: error.message,
-      failedStatId: rootProp,
+      startBitOffset,
+      endBitOffset: reader.bitOffset,
+      failedStatId: readingStatId ? null : rootProp,
       failedBitOffset: reader.bitOffset,
       properties
     };
@@ -486,8 +515,8 @@ function parseExtendedCore(reader, summary, pd2Tables) {
   readNormalTypeData(reader, summary);
 
   if (summary.isRuneword) {
-    reader.skipBits(12);
-    reader.skipBits(4);
+    summary.runewordId = reader.read(12);
+    summary.runewordExtraBits = reader.read(4);
   }
 
   if (summary.isPersonalized) {
@@ -588,12 +617,12 @@ function isPlausibleLegacyItemSummary(summary, options = {}) {
     return false;
   }
 
-  if (summary.isEar) {
-    return true;
-  }
-
   if (summary.version !== 100 && summary.version !== 101) {
     return false;
+  }
+
+  if (summary.isEar) {
+    return true;
   }
 
   if (options.requireKnownCode && !summary.itemInfo) {
@@ -672,7 +701,11 @@ export function parseLegacyItemSummary(buffer, offset, pd2Tables, options = {}) 
     return null;
   }
 
-  const reader = new LegacyBitReader(buffer, offset * 8);
+  const endOffset = options.stopOffset ?? buffer.length;
+  if (!Number.isInteger(endOffset) || endOffset > buffer.length || endOffset <= offset) {
+    throw new RangeError(`Invalid item stop offset ${endOffset} for item at ${offset}`);
+  }
+  const reader = new LegacyBitReader(buffer, offset * 8, endOffset * 8);
   reader.skipBytes(2);
 
   const flags = reader.read(32);
@@ -724,9 +757,27 @@ export function parseLegacyItemSummary(buffer, offset, pd2Tables, options = {}) 
   summary.setPropertyMasks = [];
   summary.propertiesComplete = true;
   summary.propertyParseError = null;
+  summary.coreParseError = null;
 
   if (!summary.isSimple) {
-    parseExtendedCore(reader, summary, pd2Tables);
+    try {
+      parseExtendedCore(reader, summary, pd2Tables);
+    } catch (error) {
+      summary.coreParseError = error.message;
+      summary.propertiesComplete = false;
+      summary.propertyParseError = error.message;
+      summary.propertyLists.push({
+        kind: 'core',
+        qFlag: null,
+        complete: false,
+        error: error.message,
+        startBitOffset: offset * 8,
+        endBitOffset: reader.bitOffset,
+        failedStatId: null,
+        failedBitOffset: reader.bitOffset,
+        properties: []
+      });
+    }
   }
 
   summary.coreBitLength = reader.bitOffset - (offset * 8);
@@ -744,7 +795,8 @@ export function findNextLegacyItemStart(buffer, startOffset, stopOffset, pd2Tabl
     let candidate = null;
     try {
       candidate = parseLegacyItemSummary(buffer, offset, pd2Tables, {
-        requireKnownCode: true
+        requireKnownCode: true,
+        stopOffset: searchLimit
       });
     } catch {
       continue;
@@ -773,7 +825,8 @@ export function flattenLegacyItems(items) {
 
 export function parseLegacyItemTree(buffer, offset, stopOffset, pd2Tables) {
   const summary = parseLegacyItemSummary(buffer, offset, pd2Tables, {
-    requireKnownCode: false
+    requireKnownCode: false,
+    stopOffset
   });
   if (!isPlausibleLegacyItemSummary(summary)) {
     throw new Error(`Could not parse legacy item at byte offset ${offset}`);
@@ -814,41 +867,63 @@ export function parseLegacyItemTree(buffer, offset, stopOffset, pd2Tables) {
 }
 
 export function parseLegacyItemList(buffer, startOffset, itemCount, stopOffset, pd2Tables) {
+  if (!Number.isInteger(itemCount) || itemCount < 0) {
+    throw new RangeError(`Invalid item count ${itemCount}`);
+  }
+  if (!Number.isInteger(stopOffset) || stopOffset < startOffset || stopOffset > buffer.length) {
+    throw new RangeError(`Invalid item region ${startOffset}..${stopOffset}`);
+  }
   const items = [];
   let itemOffset = startOffset;
   let nextOffset = startOffset;
+  let parsedRootCount = 0;
+  let pendingSocketChildren = 0;
 
-  for (let index = 0; index < itemCount; index += 1) {
-    const item = parseLegacyItemSummary(buffer, itemOffset, pd2Tables, {
-      requireKnownCode: false
-    });
-    if (!isPlausibleLegacyItemSummary(item)) {
-      throw new Error(`Could not parse legacy item at byte offset ${itemOffset}`);
+  // The JM count names top-level items. Socket contents are serialized as
+  // additional physical JM records immediately after their parent item.
+  while (parsedRootCount < itemCount || pendingSocketChildren > 0) {
+    if (itemOffset >= stopOffset) {
+      break;
     }
 
-    if (index < itemCount - 1) {
-      const nextItem = findNextLegacyItemStart(
-        buffer,
-        itemOffset + 2,
-        stopOffset,
-        pd2Tables
-      );
-      if (!nextItem) {
-        throw new Error(`Could not find next legacy item after byte offset ${itemOffset}`);
-      }
-      nextOffset = nextItem.byteOffset;
-    } else {
-      nextOffset = stopOffset;
+    const nextItem = findNextLegacyItemStart(
+      buffer,
+      itemOffset + 2,
+      stopOffset,
+      pd2Tables
+    );
+    nextOffset = nextItem?.byteOffset ?? stopOffset;
+
+    let item;
+    try {
+      item = parseLegacyItemSummary(buffer, itemOffset, pd2Tables, {
+        requireKnownCode: false,
+        stopOffset: nextOffset
+      });
+    } catch (error) {
+      throw new Error(`Could not parse legacy item at byte offset ${itemOffset}: ${error.message}`);
+    }
+    if (!isPlausibleLegacyItemSummary(item)) {
+      throw new Error(`Could not parse legacy item at byte offset ${itemOffset}`);
     }
 
     item.nextOffset = nextOffset;
     item.sourceSpan = createSourceSpan(itemOffset, item.nextOffset);
     items.push(item);
+    if (pendingSocketChildren > 0) {
+      pendingSocketChildren -= 1;
+    } else {
+      parsedRootCount += 1;
+      pendingSocketChildren = item.socketsFilled ?? 0;
+    }
     itemOffset = nextOffset;
   }
 
   return {
     items,
+    parsedRootCount,
+    unparsedItemCount: itemCount - parsedRootCount,
+    missingSocketChildCount: pendingSocketChildren,
     topLevelItems: attachSocketChildren(items),
     nextOffset,
     sourceSpan: createSourceSpan(startOffset, nextOffset),

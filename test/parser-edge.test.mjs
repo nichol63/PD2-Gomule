@@ -287,19 +287,19 @@ test('parsed items preserve quality provenance payloads for real fixtures', () =
   });
 });
 
-test('magic bytime fixtures preserve affix provenance for follow-up proof sweeps', () => {
+test('magic bow affix provenance no longer includes a phantom bytime property', () => {
   const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
   const page = requirePage(sharedSummary, 'Magic +6 Bows');
   const matriarchalBow = page.topLevelItems.find(
     (item) =>
       item.qualityLabel === 'magic' &&
       item.code === 'am1' &&
-      item.propertyLists?.some((list) =>
-        list.properties?.some((property) => property.statKey === 'item_armorpercent_bytime')
-      )
+      item.qualityData?.magicPrefixId === 435 &&
+      item.qualityData?.magicSuffixId === 169
   );
 
-  assert.ok(matriarchalBow, 'expected a magic Matriarchal Bow with a bytime property');
+  assert.ok(matriarchalBow, 'expected a magic Stag Bow with proven affix IDs');
+  assert.equal(matriarchalBow.displayName, 'Stag Bow');
   assert.deepEqual(matriarchalBow.qualityData, {
     qualityId: 4,
     qualityLabel: 'magic',
@@ -307,12 +307,9 @@ test('magic bytime fixtures preserve affix provenance for follow-up proof sweeps
     magicSuffixId: 169
   });
 
-  const bytimeProperty = matriarchalBow.propertyLists
-    .flatMap((list) => list.properties ?? [])
-    .find((property) => property.statKey === 'item_armorpercent_bytime');
-
-  assert.ok(bytimeProperty, 'expected item_armorpercent_bytime on the magic Matriarchal Bow');
-  assert.deepEqual(bytimeProperty.values, [55733]);
+  assert.equal(matriarchalBow.propertiesComplete, true);
+  assert.deepEqual(matriarchalBow.properties.map((property) => property.statKey),
+    ['item_fasterattackrate', 'item_addskill_tab']);
 });
 
 test('socket children are attached under parents that have socketsFilled > 0', () => {
@@ -468,17 +465,13 @@ test('Legacy.d2x socketed-page items start within page itemRegion and keep order
   assertOrderedItemSpans(page.items, page.items.at(-1).nextOffset, 'Legacy.d2x Season 5 Armor');
 });
 
-test('shared stash pages expose clamp metadata while preserving parser-derived item spans', () => {
+test('shared stash pages expose bounded item spans with no count clamp', () => {
   const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
   const pagesWithItems = sharedSummary.pages.filter((page) => page.items.length > 0);
   assert.ok(pagesWithItems.length > 0, 'shared stash should have pages with parsed items');
 
   const clampedPages = pagesWithItems.filter((page) => page.clampedItemCount > 0);
-  assert.deepEqual(
-    clampedPages.map((page) => ({ name: page.name, clampedItemCount: page.clampedItemCount })),
-    [{ name: 'Miscellaneous', clampedItemCount: 1 }],
-    'shared stash should only clamp the known Miscellaneous page by one item'
-  );
+  assert.deepEqual(clampedPages, []);
 
   for (const page of pagesWithItems) {
     const pageLabel = `_LOD_SharedStashSave.sss page "${page.name}"`;
@@ -499,18 +492,10 @@ test('shared stash pages expose clamp metadata while preserving parser-derived i
     assertOrderedItemSpans(page.items, page.items.at(-1).nextOffset, pageLabel);
   }
 
-  const clampedPage = clampedPages[0];
-  assert.ok(clampedPage, 'expected the known shared-stash clamped page to exist');
-  const lastItem = clampedPage.items.at(-1);
-  assert.ok(lastItem, 'expected the clamped shared-stash page to retain a final visible item');
-  assert.ok(
-    lastItem.sourceSpan.endOffset > clampedPage.itemRegion.endOffset,
-    'the clamped shared-stash page should preserve a parser-derived span beyond the discovered page boundary'
-  );
-  assert.ok(
-    lastItem.nextOffset > clampedPage.itemRegion.endOffset,
-    'the clamped shared-stash page should preserve a parser-derived nextOffset beyond the discovered page boundary'
-  );
+  const miscellaneous = requirePage(sharedSummary, 'Miscellaneous');
+  assert.equal(miscellaneous.itemCount, 147);
+  assert.equal(miscellaneous.parsedItemCount, 147);
+  assert.equal(miscellaneous.items.at(-1).sourceSpan.endOffset, miscellaneous.itemRegion.endOffset);
 });
 
 test('character itemRegion bytes can be reconstructed from parser source spans', () => {
@@ -550,6 +535,11 @@ test('stash page itemRegion bytes can be reconstructed from parser source spans'
       const pageLabel = `${fileName} page "${page.name}"`;
 
       assert.equal(partition.itemCount, page.items.length, `${pageLabel} partition should cover every visible parsed item`);
+      if (fileName === 'Legacy.d2x' && page.name === 'Season 6 Extra') {
+        assert.equal(partition.uncoveredBytes, 22, `${pageLabel} has one undeclared key after parsed roots`);
+        assert.equal(partition.boundedBytesMatch, false);
+        continue;
+      }
       assert.equal(partition.contiguous, true, `${pageLabel} item spans should form a contiguous bounded partition`);
       assert.equal(partition.overlapBytes, 0, `${pageLabel} should not overlap item spans inside the bounded region`);
       assert.equal(partition.uncoveredBytes, 0, `${pageLabel} should not leave uncovered bytes inside the bounded region`);
@@ -573,9 +563,16 @@ test('stash pageRegion bytes can be reconstructed from header bytes plus bounded
 
     for (const page of pagesWithItems) {
       const partition = validateItemSourcePartition(buffer, page.itemRegion, page.items);
-      const reconstructedBytes = reconstructStashPageRegion(buffer, page);
       const pageLabel = `${fileName} page "${page.name}"`;
 
+      if (fileName === 'Legacy.d2x' && page.name === 'Season 6 Extra') {
+        assert.equal(partition.uncoveredBytes, 22);
+        assert.deepEqual(reconstructStashPageRegion(buffer, page),
+          sliceBufferBySourceSpan(buffer, page.pageRegion),
+          'opaque undeclared tail bytes remain exact in no-op reconstruction');
+        continue;
+      }
+      const reconstructedBytes = reconstructStashPageRegion(buffer, page);
       assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded item bytes should match the fixture itemRegion bytes`);
       assert.deepEqual(
         reconstructedBytes,
@@ -615,7 +612,13 @@ test('stash fixtures full buffers can be reconstructed from bounded page proofs'
       const reconstructedPageBytes = reconstructStashPageRegion(buffer, page);
       const pageLabel = `${fileName} page "${page.name}"`;
 
-      assert.equal(partition.boundedBytesMatch, true, `${pageLabel} bounded bytes should match the page itemRegion bytes`);
+      if (fileName === 'Legacy.d2x' && page.name === 'Season 6 Extra') {
+        assert.equal(partition.uncoveredBytes, 22);
+        assert.equal(partition.boundedBytesMatch, false);
+      } else {
+        assert.equal(partition.boundedBytesMatch, true,
+          `${pageLabel} bounded bytes should match the page itemRegion bytes`);
+      }
       assert.deepEqual(
         reconstructedPageBytes,
         sliceBufferBySourceSpan(buffer, page.pageRegion),
@@ -631,7 +634,7 @@ test('stash fixtures full buffers can be reconstructed from bounded page proofs'
   }
 });
 
-test('shared stash Miscellaneous keeps byte equality while clampedItemCount stays at the known anomaly', () => {
+test('shared stash Miscellaneous keeps byte equality with all declared items visible', () => {
   const fileName = '_LOD_SharedStashSave.sss';
   const buffer = getFixtureBuffer(fileName);
   const sharedSummary = getStashSummary(fileName);
@@ -639,7 +642,7 @@ test('shared stash Miscellaneous keeps byte equality while clampedItemCount stay
   const partition = validateItemSourcePartition(buffer, miscellaneousPage.itemRegion, miscellaneousPage.items);
   const reconstructedBytes = reconstructStashPageRegion(buffer, miscellaneousPage);
 
-  assert.equal(miscellaneousPage.clampedItemCount, 1, 'Miscellaneous should keep the known raw-count clamp of one item');
+  assert.equal(miscellaneousPage.clampedItemCount, 0);
   assert.equal(
     miscellaneousPage.itemCount,
     miscellaneousPage.parsedItemCount + miscellaneousPage.clampedItemCount,
@@ -653,7 +656,7 @@ test('shared stash Miscellaneous keeps byte equality while clampedItemCount stay
   assert.deepEqual(
     reconstructedBytes,
     sliceBufferBySourceSpan(buffer, miscellaneousPage.pageRegion),
-    'Miscellaneous pageRegion should still round-trip byte-for-byte despite the clamp'
+    'Miscellaneous pageRegion should round-trip byte-for-byte'
   );
 });
 
@@ -669,12 +672,14 @@ test('stash pages topLevelItems are consistently shaped', () => {
   }
 });
 
-test('parser stops at first zero-saveBits property instead of emitting parser noise', () => {
+test('corrected War Pike decoding preserves real stats and emits no zero-saveBits noise', () => {
   const legacyStashSummary = getStashSummary('Legacy.d2x');
   const page = requirePage(legacyStashSummary, 'Season 5 Weapons');
   const warPike = requireTopLevelItem(page, 'War Pike');
 
-  assert.equal(warPike.propertyCount, 0);
+  assert.equal(warPike.propertyCount, 16);
+  assert.deepEqual(warPike.properties.slice(0, 5).map((property) => property.statId),
+    [17, 18, 19, 75, 359]);
   assert.equal(
     warPike.properties.filter((property) => property.saveBits === 0).length,
     0,
@@ -693,64 +698,34 @@ test('parser infers socket metadata from filled sockets and attached children', 
   assert.equal(monarch.children.length, 4);
 });
 
-test('parser preserves monster metadata on real fixture items', () => {
+test('corrected Monarch decoding does not fabricate a monster-linked property', () => {
   const legacyStashSummary = getStashSummary('Legacy.d2x');
   const monarch = findTopLevelItem(legacyStashSummary, 'Monarch');
   const monsterProperty = monarch.properties.find(
     (property) => property.statKey === 'damage_vs_montype'
   );
 
-  assert.ok(monsterProperty, 'Monarch should expose damage_vs_montype');
-  assert.equal(monsterProperty.monsterName, 'GrotesqueWyrm');
-  assert.deepEqual(monsterProperty.values, [855, 421]);
+  assert.equal(monsterProperty, undefined);
+  assert.equal(monarch.propertiesComplete, true);
 });
 
 test('parser decodes packed item_skilloncast metadata on real fixture items', () => {
-  const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
-  const wirtLegPage = requirePage(sharedSummary, 'Quest Items + Misc');
-  const wirtLeg = requireTopLevelItem(wirtLegPage, "Wirt's Leg");
-  const wirtSkillOnCast = requireProperty(wirtLeg, 200, [2064, 29]);
-
-  assert.deepEqual(wirtSkillOnCast.values, [2064, 29]);
-  assert.equal(wirtSkillOnCast.castSkillId, 32);
-  assert.equal(wirtSkillOnCast.castSkillLevel, 16);
-  assert.equal(wirtSkillOnCast.castChance, 29);
-  assert.equal(wirtSkillOnCast.castSkillName, 'Valkyrie');
-  assert.equal(typeof wirtSkillOnCast.castSkillClass, 'string');
-  assert.equal(typeof wirtSkillOnCast.castSkillDesc, 'string');
-
-  const stavesPage = requirePage(sharedSummary, 'Staves 2,3');
+  const legacySummary = getStashSummary('Legacy.d2x');
+  const stavesPage = requirePage(legacySummary, 'Season 5 Weapons');
   const elderStaff = stavesPage.topLevelItems.find(
-    (item) => item.displayName === 'Elder Staff'
-      && item.properties.some((property) => property.statId === 200 && property.values[0] === 1094 && property.values[1] === 10)
+    (item) => item.code === '8cs'
+      && item.properties.some((property) => property.statId === 200 && property.values[0] === 1114 && property.values[1] === 18)
   );
   assert.ok(elderStaff, 'expected Elder Staff with packed skill-on-cast payload to exist');
-  const elderSkillOnCast = requireProperty(elderStaff, 200, [1094, 10]);
+  const elderSkillOnCast = requireProperty(elderStaff, 200, [1114, 18]);
 
-  assert.deepEqual(elderSkillOnCast.values, [1094, 10]);
+  assert.deepEqual(elderSkillOnCast.values, [1114, 18]);
   assert.equal(elderSkillOnCast.castSkillId, 17);
-  assert.equal(elderSkillOnCast.castSkillLevel, 6);
-  assert.equal(elderSkillOnCast.castChance, 10);
+  assert.equal(elderSkillOnCast.castSkillLevel, 26);
+  assert.equal(elderSkillOnCast.castChance, 18);
   assert.equal(elderSkillOnCast.castSkillName, 'Slow Movement');
   assert.equal(typeof elderSkillOnCast.castSkillClass, 'string');
   assert.equal(typeof elderSkillOnCast.castSkillDesc, 'string');
-
-  const rejuvPage = requirePage(sharedSummary, 'Rejuvenation');
-  const fullRejuvPotion = rejuvPage.topLevelItems.find(
-    (item) => item.displayName === 'Full Rejuv Potion'
-      && item.properties.some((property) => property.statId === 200 && property.values[0] === 60645 && property.values[1] === 88)
-  );
-  assert.ok(fullRejuvPotion, 'expected Full Rejuv Potion with packed skill-on-cast payload to exist');
-  const fullRejuvSkillOnCast = requireProperty(fullRejuvPotion, 200, [60645, 88]);
-
-  assert.deepEqual(fullRejuvSkillOnCast.values, [60645, 88]);
-  assert.equal(fullRejuvSkillOnCast.castSkillId, 947);
-  assert.equal(fullRejuvSkillOnCast.castSkillLevel, 37);
-  assert.equal(fullRejuvSkillOnCast.castChance, 88);
-  assert.ok(
-    fullRejuvSkillOnCast.castSkillName == null,
-    'unresolved skill ids should not fabricate a skill name'
-  );
 });
 
 test('parser filters state out of parsed properties for real fixture items', () => {

@@ -123,17 +123,16 @@ test('collectBrowseEntries from shared stash produces entries', () => {
   assert.ok(Array.isArray(entries), 'should return an array');
 });
 
-test('createBrowseEntry propertyCount excludes parser-noise (saveBits=0) stats', () => {
-  // Corona in Legacy.d2x Season 4 Armor now arrives from the parser with the
-  // zero-saveBits noise already dropped, so both the raw parser count and the
-  // browse-entry count stay at the 7 real stats.
+test('createBrowseEntry propertyCount matches the ten decoded Corona stats', () => {
   const legacyX = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const entries = collectBrowseEntries(legacyX, { page: 'Season 4 Armor' });
   const corona = entries.find((entry) => entry.displayName === 'Corona');
 
   assert.ok(corona, 'Corona should be present in Season 4 Armor page');
-  assert.equal(corona.item.propertyCount, 7, 'raw parser propertyCount should already exclude zero-saveBits noise');
-  assert.equal(corona.propertyCount, 7, 'browse entry propertyCount should match the cleaned parser count');
+  assert.deepEqual(corona.item.properties.map((property) => property.statId),
+    [16, 31, 36, 39, 41, 43, 45, 99, 109, 152]);
+  assert.equal(corona.item.propertyCount, 10);
+  assert.equal(corona.propertyCount, 10);
 });
 
 test('createBrowseEntry propertyCount matches raw count when item has no parser noise', () => {

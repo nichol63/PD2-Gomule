@@ -34,6 +34,19 @@ test('loads PD2 monster tables from the local workspace', () => {
   assert.equal(tables.resolveMonster(996)?.name, 'WestmarchBoss');
 });
 
+test('exact item codes keep their own base names across upgrade families', () => {
+  const tables = loadPd2Tables();
+  assert.equal(tables.resolveItemCode('xtp')?.name, 'Mage Plate');
+  assert.equal(tables.resolveItemCode('wsp')?.name, 'War Scepter');
+  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
+  const magePlate = summary.pages.find((page) => page.name === 'Reg Chest 2')
+    ?.items.find((item) => item.code === 'xtp');
+  const warScepter = summary.pages.find((page) => page.name === 'Reg Scepter')
+    ?.items.find((item) => item.code === 'wsp');
+  assert.equal(magePlate?.displayName, 'Mage Plate');
+  assert.equal(warScepter?.displayName, 'War Scepter');
+});
+
 test('parses the legacy PD2 character header', () => {
   const summary = parseCharacterFile(path.join(FIXTURE_DIR, 'Legacy.d2s'));
 
@@ -72,7 +85,7 @@ test('decodes read-only item property lists from stash fixtures', () => {
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'));
   const paladinShield = summary.pages.find((page) => page.name === 'Reg Paladin')?.items[0];
   const magicArmor = summary.pages.find((page) => page.name === 'Mag Chest 1')?.items[0];
-  const incompleteArmor = summary.pages.find((page) => page.name === 'Mag Chest 2')?.items[0];
+  const shadowPlate = summary.pages.find((page) => page.name === 'Mag Chest 2')?.items[0];
 
   assert.ok(paladinShield);
   assert.equal(paladinShield.code, 'pa1');
@@ -94,11 +107,12 @@ test('decodes read-only item property lists from stash fixtures', () => {
   assert.equal(magicArmor.properties[0].statKey, 'lightresist');
   assert.equal(magicArmor.properties[0].values[0], 29);
 
-  assert.ok(incompleteArmor);
-  assert.equal(incompleteArmor.code, 'uul');
-  assert.ok(incompleteArmor.propertyCount > 0);
-  assert.equal(incompleteArmor.propertiesComplete, false);
-  assert.match(incompleteArmor.propertyParseError, /stat id 508/);
+  assert.ok(shadowPlate);
+  assert.equal(shadowPlate.code, 'uul');
+  assert.equal(shadowPlate.propertiesComplete, true);
+  assert.equal(shadowPlate.propertyParseError, null);
+  assert.deepEqual(shadowPlate.properties.map((property) => [property.statId, property.values]),
+    [[105, [10]]]);
 });
 
 test('parses the shared PlugY stash envelope', () => {
@@ -136,7 +150,8 @@ test('smoke parses the local character fixture pack item payloads', () => {
   let socketedChildren = 0;
   for (const filePath of files) {
     const summary = parseCharacterFile(filePath);
-    assert.equal(summary.items.length, summary.itemCount, `top-level item mismatch for ${filePath}`);
+    assert.equal(summary.topLevelItems.length, summary.itemCount, `root item mismatch for ${filePath}`);
+    assert.equal(summary.items.length, summary.parsedNodeCount, `physical node mismatch for ${filePath}`);
     socketedChildren += summary.topLevelItems.reduce(
       (sum, item) => sum + item.children.length,
       0
@@ -156,27 +171,16 @@ test('smoke parses stash fixture item payloads', () => {
 
   for (const filePath of stashFiles) {
     const summary = parsePlugyStashFile(filePath);
-    const parsedTopLevelItems = summary.pages.reduce(
+    const parsedNodes = summary.pages.reduce(
       (sum, page) => sum + page.items.length,
       0
     );
-    assert.equal(parsedTopLevelItems, summary.parsedItemCount, `parsed stash count mismatch for ${filePath}`);
-    assert.ok(
-      parsedTopLevelItems <= summary.totalItems,
-      `parsed stash count should not exceed raw total for ${filePath}`
+    const parsedRoots = summary.pages.reduce(
+      (sum, page) => sum + page.topLevelItems.length, 0
     );
-
-    if (parsedTopLevelItems !== summary.totalItems) {
-      assert.equal(
-        path.basename(filePath),
-        '_LOD_SharedStashSave.sss',
-        `only the shared stash fixture should currently expose a raw-vs-parsed mismatch: ${filePath}`
-      );
-      assert.equal(
-        summary.totalItems - parsedTopLevelItems,
-        1,
-        `shared stash mismatch should stay at the known 1-item page-boundary discrepancy for ${filePath}`
-      );
-    }
+    assert.equal(parsedNodes, summary.parsedNodeCount, `parsed stash node count mismatch for ${filePath}`);
+    assert.equal(parsedRoots, summary.parsedItemCount, `parsed stash root count mismatch for ${filePath}`);
+    assert.equal(parsedRoots, summary.totalItems, `declared stash root count mismatch for ${filePath}`);
+    assert.ok(parsedNodes >= parsedRoots, `socket children add physical nodes for ${filePath}`);
   }
 });

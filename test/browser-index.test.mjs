@@ -37,7 +37,7 @@ test('builds browse entries from top-level page items', () => {
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'));
   const page = summary.pages.find((entry) => entry.name === 'Reg Paladin');
   const entries = collectBrowseEntries(summary, { page: 'Reg Paladin' });
-  const filtered = filterBrowseEntries(entries, { query: 'pa1 sacred targe' });
+  const filtered = filterBrowseEntries(entries, { query: 'pa1 targe' });
 
   assert.ok(page);
   assert.equal(entries.length, page.topLevelItems.length);
@@ -47,15 +47,16 @@ test('builds browse entries from top-level page items', () => {
   assert.equal(filtered[0].propertiesComplete, true);
 });
 
-test('surfaces incomplete property decoding without breaking browse results', () => {
+test('corrected flag decoding gives a complete Shadow Plate browse entry', () => {
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'));
   const entries = collectBrowseEntries(summary, { page: 'Mag Chest 2' });
   const filtered = filterBrowseEntries(entries, { query: 'uul shadow plate' });
 
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0].code, 'uul');
-  assert.equal(filtered[0].propertiesComplete, false);
-  assert.match(filtered[0].item.propertyParseError, /stat id 508/);
+  assert.equal(filtered[0].propertiesComplete, true);
+  assert.equal(filtered[0].item.propertyParseError, null);
+  assert.deepEqual(filtered[0].item.properties.map((property) => property.values), [[10]]);
 });
 
 test('sorts browse entries and searches across summaries', () => {

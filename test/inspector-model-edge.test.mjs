@@ -185,11 +185,7 @@ test('selected item children expose formatted propertyLists with displayLines', 
   }
 });
 
-test('selectedItem propertyLists expose noiseCount alongside filtered propertyCount', async () => {
-  // Corona in Legacy.d2x Season 4 Armor now arrives with the zero-saveBits
-  // parser noise already removed, so the presentation-layer formatter is a
-  // no-op for the real fixture item. The selected-item counts still need to
-  // stay at the 7 real stats and expose noiseCount=0 cleanly.
+test('selectedItem propertyLists retain the ten decoded Corona stats', async () => {
   const workspace = await loadInspectorWorkspace([LEGACY_STASH_PATH], { pd2Tables: tables });
   const catalog = getInspectorCatalog(workspace);
   const legacySource = catalog.sources.find((s) => s.kind !== 'workspace-library');
@@ -202,22 +198,16 @@ test('selectedItem propertyLists expose noiseCount alongside filtered propertyCo
 
   const selected = view.selectedItem;
   assert.ok(selected, 'Corona should resolve as selected item');
-  assert.equal(selected.displayName, 'Corona');
-  assert.equal(selected.propertyCount, 7, 'selectedItem.propertyCount should reflect the cleaned parser output');
+  assert.equal(selected.displayName, 'Crown of Ages');
+  assert.equal(selected.baseName, 'Corona');
+  assert.equal(selected.propertyCount, 10);
   assert.ok(Array.isArray(selected.propertyLists) && selected.propertyLists.length > 0);
 
   const baseList = selected.propertyLists[0];
-  assert.equal(baseList.propertyCount, 7, 'formatted propertyList.propertyCount should match the parser-cleaned count');
-  assert.equal(baseList.noiseCount, 0, 'formatted propertyList.noiseCount should be 0 once parser-level noise is removed');
+  assert.equal(baseList.propertyCount, 10);
+  assert.equal(baseList.noiseCount, 0);
   assert.ok(Array.isArray(baseList.displayLines));
-  // Defensive: dropped zero-saveBits noise stats must not reappear in displayLines
-  const droppedKeys = ['item_crush_damage_percent', 'item_tohit_percent_vs_monster', 'unit_dooverlay'];
-  for (const key of droppedKeys) {
-    assert.ok(
-      !baseList.displayLines.some((line) => line.statKey === key),
-      `dropped noise stat ${key} should not appear in selectedItem displayLines`
-    );
-  }
+  assert.ok(baseList.displayLines.some((line) => line.statKey === 'fireresist'));
 });
 
 test('selectedItem propertyLists expose noiseCount = 0 when item has no parser noise', async () => {
@@ -231,11 +221,11 @@ test('selectedItem propertyLists expose noiseCount = 0 when item has no parser n
   const view = buildInspectorView(workspace, {
     sourceId: stashSource.id,
     page: 'Reg Paladin',
-    query: 'sacred targe'
+    query: 'pa1'
   });
 
   const selected = view.selectedItem;
-  assert.ok(selected, 'Sacred Targe should resolve as selected item');
+  assert.ok(selected, 'pa1 Targe should resolve as selected item');
   assert.equal(selected.code, 'pa1');
   assert.equal(selected.propertyCount, 4);
   assert.ok(selected.propertyLists.length > 0);

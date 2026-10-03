@@ -13,8 +13,10 @@ const SKILLS_FILE = 'Skills.txt';
 const MONSTER_TABLE_FILE = 'MonStats.txt';
 
 const CODE_COLUMNS_BY_TABLE = {
-  'armor.txt': ['code', 'normcode', 'ubercode', 'ultracode'],
-  'weapons.txt': ['code', 'normcode', 'ubercode', 'ultracode'],
+  // Upgrade columns describe related bases, not aliases for this row. Indexing
+  // them would overwrite Cap with Shako and Mage Plate with Archon Plate.
+  'armor.txt': ['code'],
+  'weapons.txt': ['code'],
   'Misc.txt': ['code']
 };
 

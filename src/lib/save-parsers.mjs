@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { loadPd2Tables } from './pd2-data.mjs';
 import { buildLegacyTopLevelItems, parseLegacyItemList } from './legacy-item-parser.mjs';
+import { enrichParsedSave } from './item-identity.mjs';
 import {
   findAscii,
   isPrintableAscii,
@@ -164,6 +166,39 @@ export function reconstructBoundedItemRegion(buffer, region, items = []) {
   return validateItemSourcePartition(buffer, region, items).boundedBytes;
 }
 
+function reconstructSourceBackedItemRegion(buffer, region, items = []) {
+  if (!Array.isArray(items)) {
+    throw new TypeError('items must be an array');
+  }
+
+  const boundedRegion = normalizeSourceSpan(region, 'region');
+  sliceBufferBySourceSpan(buffer, boundedRegion);
+  const parts = [];
+  let cursor = boundedRegion.startOffset;
+
+  for (let index = 0; index < items.length; index += 1) {
+    const span = getItemPartitionSpan(items[index], index);
+    if (span.startOffset < cursor) {
+      throw new RangeError(`items[${index}] overlaps a prior source span`);
+    }
+    if (span.endOffset > boundedRegion.endOffset) {
+      throw new RangeError(`items[${index}] exceeds itemRegion boundary`);
+    }
+    if (span.startOffset > cursor) {
+      // These bytes are preserved as opaque source data, not claimed as parsed items.
+      parts.push(buffer.subarray(cursor, span.startOffset));
+    }
+    parts.push(buffer.subarray(span.startOffset, span.endOffset));
+    cursor = span.endOffset;
+  }
+
+  if (cursor < boundedRegion.endOffset) {
+    parts.push(buffer.subarray(cursor, boundedRegion.endOffset));
+  }
+
+  return Buffer.concat(parts, boundedRegion.length);
+}
+
 function normalizeStashPageRegions(page, label = 'page') {
   if (!page || typeof page !== 'object') {
     throw new TypeError(`${label} must be an object`);
@@ -194,7 +229,7 @@ export function reconstructStashPageRegion(buffer, page) {
 
   const { pageRegion, itemRegion, headerSpan } = normalizeStashPageRegions(page);
   const headerBytes = sliceBufferBySourceSpan(buffer, headerSpan);
-  const itemRegionBytes = reconstructBoundedItemRegion(buffer, itemRegion, page.items ?? []);
+  const itemRegionBytes = reconstructSourceBackedItemRegion(buffer, itemRegion, page.items ?? []);
 
   if (itemRegionBytes.length !== itemRegion.length) {
     throw new RangeError(
@@ -344,6 +379,10 @@ function readFileBuffer(filePath) {
   return fs.readFileSync(filePath);
 }
 
+function sourceSha256(buffer) {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
 function getFileExtension(filePath) {
   return path.extname(filePath).toLowerCase();
 }
@@ -377,6 +416,7 @@ export function parseCharacterFile(filePath, options = {}) {
     kind: 'character',
     filePath,
     fileName: path.basename(filePath),
+    sourceSha256: sourceSha256(buffer),
     version,
     declaredSize,
     actualSize: buffer.length,
@@ -389,7 +429,7 @@ export function parseCharacterFile(filePath, options = {}) {
     itemRegion: parsedItems.sourceSpan ?? null,
     items: parsedItems.items,
     topLevelItems: parsedItems.topLevelItems,
-    parsedItemCount: parsedItems.items.length,
+    parsedItemCount: parsedItems.topLevelItems?.length ?? 0,
     parsedNodeCount: parsedItems.flatItems.length
   };
 }
@@ -488,25 +528,22 @@ export function parsePlugyStashFile(filePath, options = {}) {
       buffer,
       page.itemListOffset + 4,
       page.itemCount,
-      buffer.length,
+      pageStopOffset,
       pd2Tables
     );
 
-    // Shared-stash fixtures can contain plausible-looking later page headers inside
-    // item payload bytes. Keep parsing against the full file for resilience, then
-    // clamp the page-local item view by start offset while preserving the parser's
-    // original per-item spans and next-offset metadata.
-    const items = parsedItems.items.filter((item) => item.byteOffset < pageStopOffset);
+    const items = parsedItems.items;
     const topLevelItems = buildLegacyTopLevelItems(items);
 
     return {
       ...page,
       pageRegion: createSourceSpan(page.offset, pageStopOffset),
       itemRegion: createSourceSpan(page.itemListOffset + 4, pageStopOffset),
-      clampedItemCount: parsedItems.items.length - items.length,
+      clampedItemCount: parsedItems.unparsedItemCount,
+      missingSocketChildCount: parsedItems.missingSocketChildCount,
       items,
       topLevelItems,
-      parsedItemCount: items.length,
+      parsedItemCount: topLevelItems.length,
       parsedNodeCount: items.length
     };
   });
@@ -515,6 +552,7 @@ export function parsePlugyStashFile(filePath, options = {}) {
     kind: signature === 'CSTM' ? 'plugy-personal-stash' : 'plugy-shared-stash',
     filePath,
     fileName: path.basename(filePath),
+    sourceSha256: sourceSha256(buffer),
     signature,
     version,
     firstPageOffset,
@@ -528,12 +566,13 @@ export function parsePlugyStashFile(filePath, options = {}) {
 
 export function inspectSaveFile(filePath, options = {}) {
   const extension = getFileExtension(filePath);
+  const pd2Tables = getPd2Tables(options);
   if (extension === '.d2s') {
-    return parseCharacterFile(filePath, options);
+    return enrichParsedSave(parseCharacterFile(filePath, { ...options, pd2Tables }), pd2Tables);
   }
 
   if (extension === '.d2x' || extension === '.sss') {
-    return parsePlugyStashFile(filePath, options);
+    return enrichParsedSave(parsePlugyStashFile(filePath, { ...options, pd2Tables }), pd2Tables);
   }
 
   throw new Error(`Unsupported file type: ${filePath}`);

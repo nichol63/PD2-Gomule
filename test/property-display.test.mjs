@@ -167,6 +167,57 @@ function packBytimeValue(peakPeriod, minValue, maxValue) {
   return ((peakPeriod & 0x3) << 20) | ((minValue & 0x3ff) << 10) | (maxValue & 0x3ff);
 }
 
+test('formats source-backed Blood Warp, scaling, and map tier values only at proven rolls', () => {
+  const exact = [
+    ['blood_warp_life_reduction', 2, 'Bloodwarp Costs 2% Less Health'],
+    ['item_dmgpercent_pereth', 60, 'Gains +60% Enhanced Damage per equipped ethereal item'],
+    ['item_mindamage_energy', 4, '+0.5 to Minimum Damage per Energy'],
+    ['lifedrain_percentcap', 35, 'You cannot life steal when above 35% maximum life'],
+    ['inc_splash_radius_permissinghp', 1, '+1% Increased Splash Radius per 1% missing life'],
+    ['uber_difficulty', 1, 'Tier: 1'],
+    ['uber_difficulty', 2, 'Tier: 2']
+  ];
+  for (const [statKey, value, line] of exact) {
+    assert.deepEqual(formatSingle(statKey, [value]), [line]);
+  }
+  assert.notDeepEqual(formatSingle('blood_warp_life_reduction', [3]),
+    ['Bloodwarp Costs 2% Less Health']);
+  assert.notDeepEqual(formatSingle('item_dmgpercent_pereth', [61]),
+    ['Gains +60% Enhanced Damage per equipped ethereal item']);
+  assert.notDeepEqual(formatSingle('uber_difficulty', [3]), ['Tier: 3']);
+});
+
+test('source-backed display values occur on the named real fixture items', () => {
+  const tables = loadPd2Tables();
+  const save = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
+  const cases = [
+    ['Wands 1,2,3', '9wn', 139, 'blood_warp_life_reduction', 2, 'Bloodwarp Costs 2% Less Health'],
+    ['Chest 3', 'utp', 429, 'item_dmgpercent_pereth', 60, 'Gains +60% Enhanced Damage per equipped ethereal item'],
+    ['Spears 3', '7st', 437, 'item_mindamage_energy', 4, '+0.5 to Minimum Damage per Energy'],
+    ['Druid', 'drf', 431, 'lifedrain_percentcap', 35, 'You cannot life steal when above 35% maximum life'],
+    ['Druid', 'drf', 431, 'inc_splash_radius_permissinghp', 1, '+1% Increased Splash Radius per 1% missing life'],
+    ['Workstation', 'dcma', null, 'uber_difficulty', 1, 'Tier: 1'],
+    ['Workstation', 'rtma', null, 'uber_difficulty', 2, 'Tier: 2']
+  ];
+
+  for (const [pageName, code, uniqueId, statKey, value, expected] of cases) {
+    const page = save.pages.find((entry) => entry.name === pageName);
+    assert.ok(page);
+    const item = page.topLevelItems.find((entry) =>
+      entry.code === code && (uniqueId === null || entry.qualityData?.uniqueId === uniqueId)
+        && entry.properties.some((property) =>
+          property.statKey === statKey && property.values?.[0] === value)
+    );
+    assert.ok(item, `${pageName} ${code} should carry ${statKey}=${value}`);
+    assert.equal(item.propertiesComplete, true);
+    const property = item.properties.find((entry) => entry.statKey === statKey && entry.values?.[0] === value);
+    const lines = formatPropertyListForDisplay({
+      kind: 'base', complete: true, error: null, properties: [property]
+    }, tables).displayLines.map((line) => line.text);
+    assert.deepEqual(lines, [expected]);
+  }
+});
+
 test('formats corrected label/set stats into readable lines', () => {
   assert.deepEqual(formatSingle('item_magicbonus', [25]), ['Magic Find +25%']);
   assert.deepEqual(formatSingle('toblock', [5]), ['Chance to Block +5%']);
@@ -422,7 +473,7 @@ test('formats skill-proc triplet stats with skill name resolution', () => {
   );
 });
 
-test('formats summon-cap stats from parsed fixture items', () => {
+test('formats summon-cap stats from corrected real fixture items', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
 
@@ -440,43 +491,28 @@ test('formats summon-cap stats from parsed fixture items', () => {
       );
 
   const earthSpirit = findItem('Earth Spirit', 'extra_spirits', 1);
-  const perfectDiamond = findItem('Perfect Diamond', 'extra_skele_war', 16);
-  const ithRune = findItem('Ith Rune', 'extra_skele_mage', 17);
-  const perfectSaphire = findItem('Perfect Saphire', 'extra_skele_archer', 14);
-  const ghostSpear = findItem('Ghost Spear', 'extra_hydra', 2);
-  const archonStaff = findItem('Archon Staff', 'extra_golem', 6);
+  const tombWand = findItem('Tomb Wand', 'extra_skele_war', 2);
+  const trollNest = findItem('Troll Nest', 'extra_hydra', 1);
 
   assert.ok(earthSpirit, 'expected Earth Spirit to expose extra_spirits in the shared stash fixture');
-  assert.ok(
-    perfectDiamond,
-    'expected Perfect Diamond to expose extra_skele_war in the shared stash fixture'
-  );
-  assert.ok(ithRune, 'expected Ith Rune to expose extra_skele_mage in the shared stash fixture');
-  assert.ok(
-    perfectSaphire,
-    'expected Perfect Saphire to expose extra_skele_archer in the shared stash fixture'
-  );
-  assert.ok(ghostSpear, 'expected Ghost Spear to expose extra_hydra in the shared stash fixture');
-  assert.ok(archonStaff, 'expected Archon Staff to expose extra_golem in the shared stash fixture');
+  assert.ok(tombWand, 'expected Tomb Wand to expose extra_skele_war');
+  assert.ok(trollNest, 'expected Troll Nest to expose extra_hydra');
 
   const render = (item, statKey) =>
     formatPropertyListForDisplay(
       {
         ...item.propertyLists[0],
-        properties: item.propertyLists[0].properties.filter((property) => property.statKey === statKey)
+        properties: item.properties.filter((property) => property.statKey === statKey)
       },
       tables
     ).displayLines.map((line) => line.text);
 
   assert.deepEqual(render(earthSpirit, 'extra_spirits'), ['+1 to Maximum Spirits']);
-  assert.deepEqual(render(perfectDiamond, 'extra_skele_war'), ['You may summon 16 extra Skeleton Warriors']);
-  assert.deepEqual(render(ithRune, 'extra_skele_mage'), ['You may summon 17 extra Skeletal Mages']);
-  assert.deepEqual(render(perfectSaphire, 'extra_skele_archer'), ['You may summon 14 extra Skeleton Archers']);
-  assert.deepEqual(render(ghostSpear, 'extra_hydra'), ['You may summon 2 extra Hydras']);
-  assert.deepEqual(render(archonStaff, 'extra_golem'), ['You may summon 6 extra Golems']);
+  assert.deepEqual(render(tombWand, 'extra_skele_war'), ['You may summon 2 extra Skeleton Warriors']);
+  assert.deepEqual(render(trollNest, 'extra_hydra'), ['You may summon 1 extra Hydra']);
 });
 
-test('formats safe summon-cap stats from parsed fixture items', () => {
+test('formats revive and Grim summon-cap stats from corrected fixture items', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
 
@@ -493,33 +529,24 @@ test('formats safe summon-cap stats from parsed fixture items', () => {
           )
       );
 
-  const unearthedWand = findItem('Unearthed Wand', 'extra_revives', 29);
-  const elderStaff = findItem('Elder Staff', 'extra_bonespears', 31);
-  const lichWand = findItem('Lich Wand', 'extra_bonespears', 31);
-  const giantThresher = findItem('Giant Thresher', 'grims_extra_skele_mage', 6);
+  const matriarchalBow = findItem('Matriarchal Bow', 'extra_revives', 4);
+  const grimScythe = findItem('Grim Scythe', 'grims_extra_skele_mage', 6);
 
-  assert.ok(unearthedWand, 'expected Unearthed Wand to expose extra_revives in the shared stash fixture');
-  assert.ok(elderStaff, 'expected Elder Staff to expose extra_bonespears in the shared stash fixture');
-  assert.ok(lichWand, 'expected Lich Wand to expose extra_bonespears in the shared stash fixture');
-  assert.ok(
-    giantThresher,
-    'expected Giant Thresher to expose grims_extra_skele_mage in the shared stash fixture'
-  );
+  assert.ok(matriarchalBow, 'expected Matriarchal Bow to expose extra_revives');
+  assert.ok(grimScythe, 'expected Grim Scythe to expose grims_extra_skele_mage');
 
   const render = (item, statKey) =>
     formatPropertyListForDisplay(
       {
         ...item.propertyLists[0],
-        properties: item.propertyLists[0].properties.filter((property) => property.statKey === statKey)
+        properties: item.properties.filter((property) => property.statKey === statKey)
       },
       tables
     ).displayLines.map((line) => line.text);
 
-  assert.deepEqual(render(unearthedWand, 'extra_revives'), ['+29 to Maximum Revives']);
-  assert.deepEqual(render(elderStaff, 'extra_bonespears'), ['+31 to Bone Spear Missiles']);
-  assert.deepEqual(render(lichWand, 'extra_bonespears'), ['+31 to Bone Spear Missiles']);
+  assert.deepEqual(render(matriarchalBow, 'extra_revives'), ['+4 to Maximum Revives']);
   assert.deepEqual(
-    render(giantThresher, 'grims_extra_skele_mage'),
+    render(grimScythe, 'grims_extra_skele_mage'),
     ['You may summon 6 extra Skeletal Mages']
   );
 });
@@ -567,7 +594,7 @@ test('formats class-wide skill level bonuses including unknown class fallback', 
   );
 });
 
-test('formats monster-linked display stats from parsed fixture data', () => {
+test('corrected Monarch fixture has no fabricated monster-linked display line', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const monarch = summary.pages
@@ -580,19 +607,8 @@ test('formats monster-linked display stats from parsed fixture data', () => {
     (property) => property.statKey === 'damage_vs_montype'
   );
 
-  assert.ok(monsterProperty, 'Monarch should expose damage_vs_montype');
-
-  const displayList = formatPropertyListForDisplay({
-    kind: 'base',
-    complete: true,
-    error: null,
-    properties: [monsterProperty]
-  }, tables);
-
-  assert.deepEqual(
-    displayList.displayLines.map((line) => line.text),
-    ['+421 to Damage versus GrotesqueWyrm']
-  );
+  assert.equal(monsterProperty, undefined);
+  assert.equal(monarch.propertiesComplete, true);
 });
 
 test('formats new non-percent simple stat entries into "+N to Label" lines', () => {
@@ -755,7 +771,7 @@ test('formats item_skillonlevelup triplet with skill name resolution', () => {
 test('formats item_skilloncast from parsed fixture data with parser metadata', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(
-    path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'),
+    path.join(FIXTURE_DIR, 'Legacy.d2x'),
     { pd2Tables: tables }
   );
 
@@ -773,13 +789,8 @@ test('formats item_skilloncast from parsed fixture data with parser metadata', (
           )
       );
 
-  const wirtsLeg = findProperty("Wirt's Leg", [2064, 29]);
-  const elderStaff = findProperty('Elder Staff', [1094, 10]);
-  const fullRejuvPotion = findProperty('Full Rejuv Potion', [60645, 88]);
-
-  assert.ok(wirtsLeg, "expected Wirt's Leg to exist in the shared stash fixture");
-  assert.ok(elderStaff, 'expected the [1094,10] Elder Staff to exist in the shared stash fixture');
-  assert.ok(fullRejuvPotion, 'expected Full Rejuv Potion to exist in the shared stash fixture');
+  const elderStaff = findProperty('Cedar Staff', [1114, 18]);
+  assert.ok(elderStaff, 'expected the [1114,18] Cedar Staff to exist in Legacy.d2x');
 
   const render = (item) =>
     formatPropertyListForDisplay(
@@ -792,9 +803,7 @@ test('formats item_skilloncast from parsed fixture data with parser metadata', (
       tables
     ).displayLines.map((line) => line.text);
 
-  assert.deepEqual(render(wirtsLeg), ['29% Chance to Cast Level 16 Valkyrie on Casting']);
-  assert.deepEqual(render(elderStaff), ['10% Chance to Cast Level 6 Slow Movement on Casting']);
-  assert.deepEqual(render(fullRejuvPotion), ['88% Chance to Cast Level 37 Skill 947 on Casting']);
+  assert.deepEqual(render(elderStaff), ['18% Chance to Cast Level 26 Slow Movement on Casting']);
 });
 
 test('formats item_skilloncast from raw packed values without parser metadata', () => {
@@ -841,67 +850,18 @@ test('formats packed item_*_bytime values from the 22-bit presentation contract'
   );
 });
 
-test('formats packed item_*_bytime stats from real fixtures, including metadata-incomplete poison absorb', () => {
+test('corrected stash parsing no longer fabricates bytime properties', () => {
   const tables = loadPd2Tables();
   const sharedStash = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
   const bases = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Bases.d2x'), { pd2Tables: tables });
 
-  const bytimeCases = [
-    {
-      source: sharedStash,
-      itemName: 'Unearthed Wand',
-      statKey: 'item_strength_bytime',
-      value: 246000,
-      expected: 'Strength (Varies by Time of Day, peaks near Day): min +240, max +240'
-    },
-    {
-      source: sharedStash,
-      itemName: 'Elder Staff',
-      statKey: 'item_armorpercent_bytime',
-      value: 2676422,
-      expected: 'Enhanced Defense (Varies by Time of Day, peaks near Night): min +565%, max +710%'
-    },
-    {
-      source: sharedStash,
-      itemName: 'Seraph Rod',
-      statKey: 'item_resist_pois_bytime',
-      value: 1040554,
-      expected: 'Poison Resist (Varies by Time of Day, peaks near Day): min +1016%, max +170%'
-    },
-    {
-      source: sharedStash,
-      itemName: 'Caduceus',
-      statKey: 'item_find_magic_bytime',
-      value: 3152591,
-      expected: 'Magic Find (Varies by Time of Day, peaks near Dawn): min +6%, max +719%'
-    },
-    {
-      source: bases,
-      itemName: 'Monarch',
-      statKey: 'item_absorb_pois_bytime',
-      value: 1119361,
-      expected: 'Poison Absorb (Varies by Time of Day, peaks near Dusk): min +69, max +129'
+  for (const source of [sharedStash, bases]) {
+    for (const page of source.pages) {
+      for (const item of page.topLevelItems) {
+        assert.equal(item.properties.some((property) => property.statKey.includes('_bytime')), false,
+          `${source.fileName} ${page.name} ${item.code} has a shifted bytime decode`);
+      }
     }
-  ];
-
-  for (const { source, itemName, statKey, value, expected } of bytimeCases) {
-    const item = source.pages
-      .flatMap((page) => page.topLevelItems ?? [])
-      .find((entry) => entry.displayName === itemName && entry.properties?.some((property) => property.statKey === statKey));
-
-    assert.ok(item, `expected ${itemName} to expose ${statKey} in fixture data`);
-
-    const property = item.properties.find((entry) => entry.statKey === statKey);
-    assert.deepEqual(property.values, [value], `${itemName} should preserve the packed 22-bit bytime value`);
-
-    const lines = formatPropertyListForDisplay({
-      kind: 'base',
-      complete: true,
-      error: null,
-      properties: [property]
-    }, tables).displayLines.map((line) => line.text);
-
-    assert.deepEqual(lines, [expected]);
   }
 });
 
@@ -1122,7 +1082,7 @@ test('existing test-shape properties (saveBits undefined) still format unchanged
   );
 });
 
-test('formatter is a no-op for a real fixture item whose parser-level noise is already removed (War Pike)', () => {
+test('formatter preserves the corrected War Pike base property list', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const page = summary.pages.find((p) => p.name === 'Season 5 Weapons');
@@ -1131,16 +1091,17 @@ test('formatter is a no-op for a real fixture item whose parser-level noise is a
   assert.ok(warPike, 'fixture sanity: Season 5 Weapons should contain a War Pike (7p7)');
 
   const rawList = warPike.propertyLists[0];
-  assert.equal(rawList.properties.length, 0, 'fixture sanity: parser should already drop the War Pike noise rows');
+  assert.equal(rawList.properties.length, 5);
 
   const displayList = formatPropertyListForDisplay(rawList, tables);
-  assert.equal(displayList.propertyCount, 0);
+  assert.equal(displayList.propertyCount, 5);
   assert.equal(displayList.noiseCount, 0);
-  assert.deepEqual(displayList.displayLines, []);
-  assert.deepEqual(displayList.properties, []);
+  assert.deepEqual(displayList.displayLines.map((line) => line.text),
+    ['+15% Maximum Damage', '+15% Minimum Damage', '+3 to Attack Rating',
+      'Increase Maximum Durability +15%', 'Melee Splash 100%']);
 });
 
-test('formatter is a no-op for a mixed real/noise fixture once parser-level noise is removed (Corona, Legacy.d2x)', () => {
+test('formatter preserves ten corrected Corona properties with no parser noise', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, 'Legacy.d2x'), { pd2Tables: tables });
   const page = summary.pages.find((p) => p.name === 'Season 4 Armor');
@@ -1150,10 +1111,10 @@ test('formatter is a no-op for a mixed real/noise fixture once parser-level nois
   assert.equal(corona.displayName, 'Corona', 'fixture sanity: topLevelItems[6] is the Corona');
 
   const rawList = corona.propertyLists[0];
-  assert.equal(rawList.properties.length, 7, 'fixture sanity: parser should already drop Corona zero-saveBits noise');
+  assert.equal(rawList.properties.length, 10);
 
   const displayList = formatPropertyListForDisplay(rawList, tables);
-  assert.equal(displayList.propertyCount, 7);
+  assert.equal(displayList.propertyCount, 10);
   assert.equal(displayList.noiseCount, 0);
 
   const droppedKeys = ['item_crush_damage_percent', 'item_tohit_percent_vs_monster', 'unit_dooverlay'];
@@ -1362,7 +1323,7 @@ test('formats map stats from real fixture items', () => {
   }
 });
 
-test('formats canonical map_mon_splash from maps and hides non-map fixture leaks', () => {
+test('formats canonical map_mon_splash while corrected potion parsing has no false leak', () => {
   const tables = loadPd2Tables();
   const sharedSummary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
   const canonicalMap = sharedSummary.pages
@@ -1391,15 +1352,10 @@ test('formats canonical map_mon_splash from maps and hides non-map fixture leaks
     { pd2Tables: tables }
   );
   const nonMapPotion = showcaseSummary.topLevelItems.find((item) =>
-    item.displayName === 'Greater Mana Potion' &&
-    item.properties.some((property) =>
-      property.statKey === 'map_mon_splash' &&
-      property.values?.[0] === 32896 &&
-      property.values?.[1] === 82
-    )
+    item.displayName === 'Greater Mana Potion'
   );
-  assert.ok(nonMapPotion, 'expected summoner.d2s Greater Mana Potion to expose noncanonical map_mon_splash');
-  assert.deepEqual(renderStat(nonMapPotion, 'map_mon_splash'), []);
+  assert.ok(nonMapPotion);
+  assert.equal(nonMapPotion.properties.some((property) => property.statKey === 'map_mon_splash'), false);
 });
 
 test('formats item_elemskill_* from real fixture items', () => {
@@ -1513,82 +1469,54 @@ test('hides internal stat leaks from presentation output', () => {
   assert.deepEqual(displayList.displayLines.map((line) => line.text), ['+10 to Strength']);
 });
 
-test('hides clout, immune, and monster cooldown leaks from real character fixtures', () => {
+test('corrected potion parsing does not attach internal stats', () => {
   const tables = loadPd2Tables();
   const cases = [
-    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'dclone_clout', 5],
-    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'maxlevel_clout', 0],
-    ['fire-bloodraven.d2s', 'Full Rejuv Potion', 'rvl', 'dev_clout', 4],
-    ['rathma-spear.d2s', 'Full Rejuv Potion', 'rvl', 'rathma_clout', 1],
-    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'immune_stat', 411],
-    ['summoner3.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown1', 42],
-    ['demon-crossbow.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown2', 321],
-    ['fire-bloodraven.d2s', 'Full Rejuv Potion', 'rvl', 'mon_cooldown3', 85]
+    ['demon-crossbow.d2s', 'dclone_clout'],
+    ['demon-crossbow.d2s', 'maxlevel_clout'],
+    ['fire-bloodraven.d2s', 'dev_clout'],
+    ['rathma-spear.d2s', 'rathma_clout'],
+    ['demon-crossbow.d2s', 'immune_stat'],
+    ['summoner3.d2s', 'mon_cooldown1'],
+    ['demon-crossbow.d2s', 'mon_cooldown2'],
+    ['fire-bloodraven.d2s', 'mon_cooldown3']
   ];
 
-  for (const [fileName, displayName, code, statKey, value] of cases) {
+  for (const [fileName, statKey] of cases) {
     const summary = parseCharacterFile(findFixtureFile(fileName), { pd2Tables: tables });
     const item = summary.topLevelItems.find((candidate) =>
-      candidate.displayName === displayName &&
-      candidate.code === code &&
-      candidate.properties.some((property) =>
-        property.statKey === statKey &&
-        property.values?.[0] === value
-      )
+      candidate.displayName === 'Full Rejuv Potion' && candidate.code === 'rvl'
     );
 
-    assert.ok(item, `expected ${fileName} to expose ${statKey} on ${displayName}`);
-    const property = item.properties.find((candidate) =>
-      candidate.statKey === statKey &&
-      candidate.values?.[0] === value
-    );
-    const displayList = formatPropertyListForDisplay({
-      kind: 'base',
-      complete: true,
-      error: null,
-      properties: [property]
-    }, tables);
-
-    assert.deepEqual(displayList.displayLines, [], `${statKey} should not render`);
+    assert.ok(item, `expected ${fileName} Full Rejuv Potion`);
+    assert.equal(item.properties.some((property) => property.statKey === statKey), false,
+      `${fileName} Full Rejuv Potion has false ${statKey}`);
   }
 });
 
-test('hides extra_holybolts from real shared-stash fixture items', () => {
+test('corrected El Rune parsing has no false extra_holybolts', () => {
   const tables = loadPd2Tables();
   const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
   const item = summary.pages
     .find((page) => page.name === 'Miscellaneous')
     ?.items?.find(
       (candidate) =>
-        candidate.displayName === 'El Rune' &&
-        candidate.properties.some((property) => property.statKey === 'extra_holybolts' && property.values?.[0] === 3)
+        candidate.displayName === 'El Rune'
     );
 
-  assert.ok(item, 'expected El Rune in Miscellaneous to expose extra_holybolts in the shared stash fixture');
-
-  const displayList = formatPropertyListForDisplay(
-    {
-      ...item.propertyLists[0],
-      properties: item.propertyLists[0].properties.filter((property) => property.statKey === 'extra_holybolts')
-    },
-    tables
-  );
-
-  assert.deepEqual(displayList.displayLines, []);
+  assert.ok(item);
+  assert.equal(item.properties.some((property) => property.statKey === 'extra_holybolts'), false);
 });
 
-test('hides corruptor from real shared-stash fixture items', () => {
+test('hides a real corruptor stat on a corrected character charm', () => {
   const tables = loadPd2Tables();
-  const summary = parsePlugyStashFile(path.join(FIXTURE_DIR, '_LOD_SharedStashSave.sss'), { pd2Tables: tables });
-  const item = summary.pages
-    .find((page) => page.name === 'Rejuvenation')
-    ?.items?.find(
-      (candidate) =>
-        candidate.displayName === 'Full Rejuv Potion' &&
-        candidate.properties.some((property) => property.statKey === 'corruptor' && property.values?.[0] === 1650)
-    );
-
-  assert.ok(item, 'expected Full Rejuv Potion in Rejuvenation to expose corruptor in the shared stash fixture');
+  const summary = parseCharacterFile(path.join(FIXTURE_DIR, 'Showcase Characters', 'amazon', 'cold_arrow.d2s'),
+    { pd2Tables: tables });
+  const item = summary.topLevelItems.find((candidate) =>
+    candidate.code === 'cm1' && candidate.byteOffset === 1225
+  );
+  assert.ok(item);
+  assert.deepEqual(item.properties.find((property) => property.statKey === 'corruptor')?.values, [1887]);
 
   const displayList = formatPropertyListForDisplay(
     {

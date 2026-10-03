@@ -6,6 +6,8 @@
   "scripts": {
     "inspect": "node ./src/cli.mjs",
     "ui": "node ./src/cli.mjs ui",
+    "bank": "node ./src/cli.mjs bank",
+    "coverage": "node ./scripts/parser-coverage.mjs",
     "test": "node --test \"test/*.test.mjs\""
   }
 }

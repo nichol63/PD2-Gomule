@@ -828,6 +828,29 @@ function formatSingleProperty(property, pd2Tables) {
   }
 
   switch (statKey) {
+    case 'blood_warp_life_reduction':
+      // Archive wording is a fixed string. Only the source-backed value is proven.
+      if (property.values?.length === 1 && firstValue === 2) return 'Bloodwarp Costs 2% Less Health';
+      break;
+    case 'item_dmgpercent_pereth':
+      // Purgatory's raw coefficient and the recovered helper string both specify 60.
+      if (property.values?.length === 1 && firstValue === 60) return 'Gains +60% Enhanced Damage per equipped ethereal item';
+      break;
+    case 'item_mindamage_energy':
+      // ItemStatCost op=4, op param=3: coefficient 4 / 2^3 per Energy.
+      // Show the rate because the browser has no character Energy context.
+      if (property.values?.length === 1 && firstValue === 4) return '+0.5 to Minimum Damage per Energy';
+      break;
+    case 'lifedrain_percentcap':
+      if (property.values?.length === 1 && firstValue === 35) return 'You cannot life steal when above 35% maximum life';
+      break;
+    case 'inc_splash_radius_permissinghp':
+      // Nightmares Feast uses splash%/missinghp%=1 in UniqueItems and Properties.
+      if (property.values?.length === 1 && firstValue === 1) return '+1% Increased Splash Radius per 1% missing life';
+      break;
+    case 'uber_difficulty':
+      if (property.values?.length === 1 && [1, 2].includes(firstValue)) return `Tier: ${firstValue}`;
+      break;
     case 'deep_wounds':
       // OpenWoundsItem in the installed PD2 patchstring.tbl; see mpq-string-proof.json.
       return `${formatSignedNumber(firstValue ?? 0)} Open Wounds Damage Per Second`;

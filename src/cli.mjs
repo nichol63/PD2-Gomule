@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { runBankCli } from './bank-cli.mjs';
 
 import {
   collectBrowseEntries,
@@ -170,6 +171,11 @@ function printUsage() {
   console.error('  node ./src/cli.mjs items <save file> [--page <name|index>] [--query <text>] [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs search <save files...> --query <text> [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs ui [save files or directories...] [--host <addr>] [--port <n>]');
+  console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>]');
+  console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <stash> --page <1-based page> --item <1-based item> [--experimental-write] [--dry-run]');
+  console.error('  node ./src/cli.mjs bank withdraw --bank <bank.json> --item-id <id> --destination <stash> --page <1-based page> --column <0-based column> --row <0-based row> [--experimental-write] [--dry-run]');
+  console.error('  node ./src/cli.mjs bank recover --bank <bank.json> [--experimental-write] [--dry-run]');
+  console.error('  Bank mutations default to dry-run. Experimental writes require explicit paths and --experimental-write.');
 }
 
 function runInspect(fileArgs, pd2Tables) {
@@ -299,6 +305,11 @@ async function main(argv) {
   const command = args[0] && !args[0].startsWith('-') ? args[0] : 'inspect';
   const parsed = parseCliArguments(command === 'inspect' ? args.slice(1) : args.slice(1));
   const pd2Tables = loadPd2Tables();
+
+  if (command === 'bank') {
+    await runBankCli(args.slice(1), pd2Tables);
+    return;
+  }
 
   if (command === 'inspect') {
     runInspect(parsed.fileArgs, pd2Tables);
