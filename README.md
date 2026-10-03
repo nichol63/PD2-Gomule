@@ -29,6 +29,8 @@ The October 3, 2026 development request expands the prior read-only milestone. F
 
 The inspector remains read-only. Explicit bank commands default to previews. Committed transfers are limited to supported PlugY pages whose item lengths, socket trees, counts, and placement can be validated. They preserve opaque item bytes and patch only location fields and page counts. Character writes and a general property serializer are not implemented. Game acceptance remains unverified, so copy-based writes require `--experimental-write`. Known game-save directories and the canonical fixture library are protected.
 
+The canonical Library now has zero incomplete records across 134 files. Older Deep Wounds and map layouts are decoded only after the current layout fails and the proven historical layout reaches the item's terminator with valid padding. Those 16 historical-profile items retain provenance in coverage reports and remain read-only for transfers. The separate undeclared-key anomaly remains transfer-blocked.
+
 For the current stopping point and blockers, read `docs/autopilot/WORK_QUEUE.md` and run `node ./scripts/session-snapshot.mjs`. The older GoMule projects are references only.
 
 ## Usage

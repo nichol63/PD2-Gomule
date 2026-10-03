@@ -728,13 +728,15 @@ test('parser decodes packed item_skilloncast metadata on real fixture items', ()
   assert.equal(typeof elderSkillOnCast.castSkillDesc, 'string');
 });
 
-test('parser filters state out of parsed properties for real fixture items', () => {
+test('parser retains encoded state markers on trophies without inventing them on other items', () => {
   const sharedSummary = getStashSummary('_LOD_SharedStashSave.sss');
   const flawlessSkull = findTopLevelItem(sharedSummary, 'Flawless Skull');
+  assert.deepEqual(flawlessSkull.properties.filter((property) => property.statId === 98), []);
 
-  assert.equal(
-    flawlessSkull.properties.some((property) => property.statKey === 'state'),
-    false,
-    'Flawless Skull should not retain a parsed state property'
-  );
+  const trophyPage = sharedSummary.pages.find((page) => page.name === 'Testing 2');
+  const devCharm = trophyPage?.items.find((item) => item.byteOffset === 145308);
+  assert.ok(devCharm);
+  assert.equal(devCharm.propertiesComplete, true);
+  assert.deepEqual(devCharm.properties.filter((property) => property.statId === 98)
+    .map((property) => property.values), [[211, 1]]);
 });

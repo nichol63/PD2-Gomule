@@ -348,6 +348,7 @@ const BYTIME_STAT_RULES = {
 };
 
 const HIDDEN_DISPLAY_STATS = new Set([
+  'state',
   'transform_dye',
   'extra_holybolts',
   'corruptor',

@@ -391,6 +391,55 @@ function getPd2Tables(options) {
   return options?.pd2Tables ?? loadPd2Tables();
 }
 
+const CHARACTER_FOLLOWING_ITEM_SECTION = Buffer.from('4a4d00006a664a4d', 'hex');
+
+function hasOnlyZeroPadding(buffer, startBitOffset, endBitOffset) {
+  const paddingBits = endBitOffset - startBitOffset;
+  if (paddingBits < 0 || paddingBits > 7) {
+    return false;
+  }
+  for (let bitOffset = startBitOffset; bitOffset < endBitOffset; bitOffset += 1) {
+    if (((buffer[bitOffset >>> 3] >>> (bitOffset & 7)) & 1) !== 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function findCharacterPrimaryItemRegion(buffer, startOffset, itemCount, pd2Tables) {
+  const candidateOffsets = [];
+  for (let offset = buffer.indexOf(CHARACTER_FOLLOWING_ITEM_SECTION, startOffset);
+    offset >= 0;
+    offset = buffer.indexOf(CHARACTER_FOLLOWING_ITEM_SECTION, offset + 1)) {
+    if (offset + 10 <= buffer.length) {
+      candidateOffsets.push(offset);
+    }
+  }
+
+  // The marker begins the next character item section: JM zero-count, jf,
+  // then another JM count. Verify the preceding list against the declared root
+  // count and its own terminator before treating those bytes as a boundary.
+  for (const stopOffset of candidateOffsets.reverse()) {
+    let parsed;
+    try {
+      parsed = parseLegacyItemList(buffer, startOffset, itemCount, stopOffset, pd2Tables);
+    } catch {
+      continue;
+    }
+    const lastItem = parsed.items.at(-1);
+    const lastPropertyBitOffset = lastItem?.byteOffset * 8 + lastItem?.coreBitLength;
+    if (parsed.parsedRootCount === itemCount && parsed.missingSocketChildCount === 0 &&
+        parsed.sourceSpan.endOffset === stopOffset &&
+        parsed.items.every((item) => item.propertiesComplete) &&
+        (lastItem ? hasOnlyZeroPadding(buffer, lastPropertyBitOffset, stopOffset * 8)
+          : startOffset === stopOffset)) {
+      return parsed;
+    }
+  }
+
+  return parseLegacyItemList(buffer, startOffset, itemCount, buffer.length, pd2Tables);
+}
+
 export function parseCharacterFile(filePath, options = {}) {
   const buffer = readFileBuffer(filePath);
   const pd2Tables = getPd2Tables(options);
@@ -403,13 +452,7 @@ export function parseCharacterFile(filePath, options = {}) {
   const itemListOffset = skillsBlockOffset >= 0 ? findAscii(buffer, 'JM', skillsBlockOffset) : -1;
   const itemCount = itemListOffset >= 0 ? buffer.readUInt16LE(itemListOffset + 2) : null;
   const parsedItems = itemListOffset >= 0 && itemCount !== null
-    ? parseLegacyItemList(
-        buffer,
-        itemListOffset + 4,
-        itemCount,
-        buffer.length,
-        pd2Tables
-      )
+    ? findCharacterPrimaryItemRegion(buffer, itemListOffset + 4, itemCount, pd2Tables)
     : { items: [], flatItems: [] };
 
   return {

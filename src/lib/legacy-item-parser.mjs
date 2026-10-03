@@ -14,6 +14,14 @@ const LONG_GUID_TYPE_PREFIXES = ['amu', 'gem', 'rin', 'rune'];
 const THROWABLE_WEAPON_CODES = new Set(['ajav', 'jave', 'taxe', 'tkni']);
 const MAX_PROPERTY_COUNT = 256;
 const MAX_PROPERTY_BITS = 8192;
+// These rows are from PD2's historical tables. They are considered only after
+// the current table fails on a bounded item, then checked against its terminator.
+const HISTORICAL_DEEP_WOUNDS_BITS = 11; // Season 7 ItemStatCost.txt, 7cf86adb
+const HISTORICAL_NONSTACKABLE_MAP_CODES = new Set(['t32', 't37', 't39']);
+const HISTORICAL_DEEP_WOUNDS_COMMIT = '7cf86adb4167c4302c6326ea8c1df5d6ad8126c0';
+const HISTORICAL_DEEP_WOUNDS_TABLE_SHA256 = '7e8dfedc00ae0502e5afabd11b3866ce1da1678ca7d94a9c30cbb46df409bd9c';
+const HISTORICAL_NONSTACKABLE_MAP_COMMIT = '4b1f140491a69d4104b27bbdab14c44b519ff9e0';
+const HISTORICAL_NONSTACKABLE_MAP_TABLE_SHA256 = '7a6f0687c2ee289f3950bc0fc06ea3ceee829239a1f82a45e0812593e52b3d95';
 
 function createSourceSpan(startOffset, endOffset) {
   return {
@@ -315,12 +323,11 @@ function requireItemStat(pd2Tables, statId) {
   return stat;
 }
 
-function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
-  if (statId === 98) {
-    return null;
-  }
-
-  const stat = requireItemStat(pd2Tables, statId);
+function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind, profile) {
+  const currentStat = requireItemStat(pd2Tables, statId);
+  const stat = profile?.deepWounds && statId === 501
+    ? { ...currentStat, saveBits: HISTORICAL_DEEP_WOUNDS_BITS }
+    : currentStat;
   if (stat.saveBits === 0) {
     return null;
   }
@@ -397,7 +404,7 @@ function parseLegacyProperty(reader, statId, pd2Tables, qFlag, listKind) {
   return property;
 }
 
-function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
+function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind, profile) {
   const properties = [];
   let rootProp = null;
   let readingStatId = true;
@@ -416,46 +423,46 @@ function parseLegacyPropertyList(reader, pd2Tables, qFlag, listKind) {
         throw new Error(`Property list exceeded ${MAX_PROPERTY_BITS} bits`);
       }
 
-      const property = parseLegacyProperty(reader, rootProp, pd2Tables, qFlag, listKind);
+      const property = parseLegacyProperty(reader, rootProp, pd2Tables, qFlag, listKind, profile);
       if (property !== null) {
         properties.push(property);
       }
 
       if (rootProp === 17) {
-        const expandedProperty = parseLegacyProperty(reader, 18, pd2Tables, qFlag, listKind);
+        const expandedProperty = parseLegacyProperty(reader, 18, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty !== null) {
           properties.push(expandedProperty);
         }
       } else if (rootProp === 48) {
-        const expandedProperty = parseLegacyProperty(reader, 49, pd2Tables, qFlag, listKind);
+        const expandedProperty = parseLegacyProperty(reader, 49, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty !== null) {
           properties.push(expandedProperty);
         }
       } else if (rootProp === 50) {
-        const expandedProperty = parseLegacyProperty(reader, 51, pd2Tables, qFlag, listKind);
+        const expandedProperty = parseLegacyProperty(reader, 51, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty !== null) {
           properties.push(expandedProperty);
         }
       } else if (rootProp === 52) {
-        const expandedProperty = parseLegacyProperty(reader, 53, pd2Tables, qFlag, listKind);
+        const expandedProperty = parseLegacyProperty(reader, 53, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty !== null) {
           properties.push(expandedProperty);
         }
       } else if (rootProp === 54) {
-        const expandedProperty55 = parseLegacyProperty(reader, 55, pd2Tables, qFlag, listKind);
+        const expandedProperty55 = parseLegacyProperty(reader, 55, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty55 !== null) {
           properties.push(expandedProperty55);
         }
-        const expandedProperty56 = parseLegacyProperty(reader, 56, pd2Tables, qFlag, listKind);
+        const expandedProperty56 = parseLegacyProperty(reader, 56, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty56 !== null) {
           properties.push(expandedProperty56);
         }
       } else if (rootProp === 57) {
-        const expandedProperty58 = parseLegacyProperty(reader, 58, pd2Tables, qFlag, listKind);
+        const expandedProperty58 = parseLegacyProperty(reader, 58, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty58 !== null) {
           properties.push(expandedProperty58);
         }
-        const expandedProperty59 = parseLegacyProperty(reader, 59, pd2Tables, qFlag, listKind);
+        const expandedProperty59 = parseLegacyProperty(reader, 59, pd2Tables, qFlag, listKind, profile);
         if (expandedProperty59 !== null) {
           properties.push(expandedProperty59);
         }
@@ -494,7 +501,7 @@ function isJewelItem(summary) {
   return summary.itemInfo?.namestr === 'jew' || summary.code === 'jew';
 }
 
-function parseExtendedCore(reader, summary, pd2Tables) {
+function parseExtendedCore(reader, summary, pd2Tables, profile = null) {
   summary.socketsFilled = reader.read(3);
   summary.fingerprint = reader.read(32);
   summary.itemLevel = reader.read(7);
@@ -562,7 +569,8 @@ function parseExtendedCore(reader, summary, pd2Tables) {
     if (summary.itemInfo.stackable) {
       summary.stackSize = reader.read(9);
     }
-  } else if (summary.itemInfo?.section === 'Misc.txt' && summary.itemInfo.stackable) {
+  } else if (summary.itemInfo?.section === 'Misc.txt' && summary.itemInfo.stackable &&
+      !profile?.nonStackableMap) {
     summary.stackSize = reader.read(9);
   }
 
@@ -584,7 +592,7 @@ function parseExtendedCore(reader, summary, pd2Tables) {
   summary.propertyParseError = null;
 
   const baseQFlag = isJewelItem(summary) ? 1 : 0;
-  const basePropertyList = parseLegacyPropertyList(reader, pd2Tables, baseQFlag, 'base');
+  const basePropertyList = parseLegacyPropertyList(reader, pd2Tables, baseQFlag, 'base', profile);
   summary.propertyLists.push(basePropertyList);
 
   if (summary.quality === 5 && basePropertyList.complete) {
@@ -593,7 +601,7 @@ function parseExtendedCore(reader, summary, pd2Tables) {
         continue;
       }
 
-      const setPropertyList = parseLegacyPropertyList(reader, pd2Tables, index + 2, 'set');
+      const setPropertyList = parseLegacyPropertyList(reader, pd2Tables, index + 2, 'set', profile);
       summary.propertyLists.push(setPropertyList);
       if (!setPropertyList.complete) {
         break;
@@ -602,7 +610,7 @@ function parseExtendedCore(reader, summary, pd2Tables) {
   }
 
   if (summary.isRuneword && summary.propertyLists.every((entry) => entry.complete)) {
-    summary.propertyLists.push(parseLegacyPropertyList(reader, pd2Tables, 0, 'runeword'));
+    summary.propertyLists.push(parseLegacyPropertyList(reader, pd2Tables, 0, 'runeword', profile));
   }
 
   summary.properties = summary.propertyLists.flatMap((entry) => entry.properties);
@@ -610,6 +618,42 @@ function parseExtendedCore(reader, summary, pd2Tables) {
   summary.propertiesComplete = summary.propertyLists.every((entry) => entry.complete);
   summary.propertyParseError = summary.propertyLists.find((entry) => !entry.complete)?.error ?? null;
   normalizeSocketMetadata(summary);
+}
+
+function hasOnlyItemPadding(reader) {
+  const trailingBitCount = reader.endBitOffset - reader.bitOffset;
+  if (trailingBitCount < 0 || trailingBitCount > 7) {
+    return false;
+  }
+
+  for (let bitOffset = reader.bitOffset; bitOffset < reader.endBitOffset; bitOffset += 1) {
+    if (((reader.buffer[bitOffset >>> 3] >>> (bitOffset & 7)) & 1) !== 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function historicalPropertyProfiles(summary, pd2Tables) {
+  const profiles = [];
+  const deepWoundsRow = pd2Tables.resolveItemStat(501);
+  const hasDeepWounds = summary.propertyLists.some((list) =>
+    list.failedStatId === 501 || list.properties.some((property) => property.statId === 501)
+  ) && deepWoundsRow?.stat === 'deep_wounds' && deepWoundsRow.saveBits === 16 &&
+    deepWoundsRow.saveAdd === 0 && deepWoundsRow.saveParamBits === null;
+  const hasInvalidMapStack = HISTORICAL_NONSTACKABLE_MAP_CODES.has(summary.code) &&
+    summary.itemInfo?.section === 'Misc.txt' && summary.itemInfo.stackable &&
+    summary.itemInfo.maxStack === 50 &&
+    summary.stackSize > summary.itemInfo.maxStack;
+
+  if (hasDeepWounds) {
+    profiles.push({ name: 'pd2-s7-deep-wounds', deepWounds: true });
+  }
+  if (hasInvalidMapStack) {
+    profiles.push({ name: 'pd2-pre-s7-map', nonStackableMap: true });
+  }
+  return profiles;
 }
 
 function isPlausibleLegacyItemSummary(summary, options = {}) {
@@ -760,8 +804,49 @@ export function parseLegacyItemSummary(buffer, offset, pd2Tables, options = {}) 
   summary.coreParseError = null;
 
   if (!summary.isSimple) {
+    const extendedStartBitOffset = reader.bitOffset;
+    const unparsedSummary = { ...summary };
     try {
       parseExtendedCore(reader, summary, pd2Tables);
+      if (!summary.propertiesComplete) {
+        const originalError = summary.propertyParseError;
+        const validCandidates = [];
+        for (const profile of historicalPropertyProfiles(summary, pd2Tables)) {
+          const candidateReader = new LegacyBitReader(buffer, extendedStartBitOffset, endOffset * 8);
+          const candidateSummary = { ...unparsedSummary };
+          try {
+            parseExtendedCore(candidateReader, candidateSummary, pd2Tables, profile);
+          } catch {
+            continue;
+          }
+          if (!candidateSummary.propertiesComplete || !hasOnlyItemPadding(candidateReader)) {
+            continue;
+          }
+          validCandidates.push({ profile, reader: candidateReader, summary: candidateSummary });
+        }
+        // A failed current decode can support at most one historical layout.
+        // Keep ambiguous source bytes incomplete rather than choosing an order.
+        if (validCandidates.length === 1) {
+          const { profile, reader: candidateReader, summary: candidateSummary } = validCandidates[0];
+          Object.assign(summary, candidateSummary);
+          reader.bitOffset = candidateReader.bitOffset;
+          summary.parseProfile = profile.name;
+          summary.parseRecovery = {
+            originalError,
+            historicalTable: profile.nonStackableMap ? 'Misc.txt' : 'ItemStatCost.txt',
+            historicalRow: profile.nonStackableMap ? summary.code : 501,
+            sourceCommit: profile.nonStackableMap
+              ? HISTORICAL_NONSTACKABLE_MAP_COMMIT
+              : HISTORICAL_DEEP_WOUNDS_COMMIT,
+            historicalTableSha256: profile.nonStackableMap
+              ? HISTORICAL_NONSTACKABLE_MAP_TABLE_SHA256
+              : HISTORICAL_DEEP_WOUNDS_TABLE_SHA256,
+            propertyEndBitOffset: reader.bitOffset,
+            itemEndBitOffset: reader.endBitOffset,
+            trailingBitCount: reader.endBitOffset - reader.bitOffset
+          };
+        }
+      }
     } catch (error) {
       summary.coreParseError = error.message;
       summary.propertiesComplete = false;

@@ -30,8 +30,9 @@ test('canonical coverage report is deterministic, hashed, and keeps failures at 
     { files: 134, parsed: 134, fileErrors: 0, pages: 286,
       declared: 19778, parsedItems: 19778, parsedNodes: 22072, topLevel: 19778 }
   );
-  assert.ok(report.totals.incompleteItemCount <= 33,
-    'the corrected parser must not regress above the bounded baseline');
+  assert.equal(report.totals.incompleteItemCount, 0);
+  assert.equal(report.totals.incompletePropertyListCount, 0);
+  assert.deepEqual(report.failures, []);
   assert.deepEqual(report.sourcePartitionAnomalies.map((anomaly) => ({
     file: anomaly.file,
     page: anomaly.pageName,

@@ -60,6 +60,19 @@ function countItems(items) {
   return items.filter((item) => !item.propertiesComplete).length;
 }
 
+function itemRecoveries(relativePath, page, items) {
+  return items.filter((item) => item.parseRecovery).map((item) => ({
+    file: relativePath,
+    pageIndex: page?.index ?? null,
+    pageName: page?.name ?? null,
+    itemOffset: item.byteOffset,
+    itemCode: item.code,
+    itemName: item.displayName,
+    parseProfile: item.parseProfile,
+    parseRecovery: item.parseRecovery
+  }));
+}
+
 function countProperties(items) {
   return items.reduce((sum, item) => sum + (item.propertyCount ?? 0), 0);
 }
@@ -112,6 +125,7 @@ function summarizePage(page) {
     parsedPropertyCount: countProperties(page.items),
     incompletePropertyListCount: countPropertyLists(page.items, false),
     incompleteItemCount: countItems(page.items),
+    recoveredItemCount: page.items.filter((item) => item.parseRecovery).length,
     pageRegion: page.pageRegion,
     itemRegion: page.itemRegion
   };
@@ -167,9 +181,13 @@ function summarizeSave(root, filePath, summary, hash) {
     completePropertyListCount: countPropertyLists(allItems, true),
     incompletePropertyListCount: countPropertyLists(allItems, false),
     incompleteItemCount: countItems(allItems),
+    recoveredItemCount: allItems.filter((item) => item.parseRecovery).length,
     pageCount: pages.length,
     pages: pages.map(summarizePage),
     sourcePartitions,
+    recoveries: itemGroups.flatMap((group) =>
+      itemRecoveries(relativePath, pages.length > 0 ? group : null, group.items ?? [])
+    ),
     failures: itemGroups.flatMap((group) =>
       itemFailures(relativePath, pages.length > 0 ? group : null, group.items ?? [])
     )
@@ -225,9 +243,11 @@ export function collectParserCoverage(options = {}) {
         completePropertyListCount: null,
         incompletePropertyListCount: null,
         incompleteItemCount: null,
+        recoveredItemCount: 0,
         pageCount: null,
         pages: [],
         sourcePartitions: [],
+        recoveries: [],
         failures: [failure]
       });
       failures.push(failure);
@@ -271,6 +291,7 @@ export function collectParserCoverage(options = {}) {
     completePropertyListCount: parsedFiles.reduce((sum, file) => sum + file.completePropertyListCount, 0),
     incompletePropertyListCount: parsedFiles.reduce((sum, file) => sum + file.incompletePropertyListCount, 0),
     incompleteItemCount: parsedFiles.reduce((sum, file) => sum + file.incompleteItemCount, 0),
+    recoveredItemCount: parsedFiles.reduce((sum, file) => sum + file.recoveredItemCount, 0),
     sourcePartitionAnomalyCount: sourcePartitionAnomalies.length,
     failureCount: failures.length
   };
@@ -283,6 +304,7 @@ export function collectParserCoverage(options = {}) {
     totals,
     files,
     sourcePartitionAnomalies,
+    recoveries: parsedFiles.flatMap((file) => file.recoveries),
     failures
   };
 }

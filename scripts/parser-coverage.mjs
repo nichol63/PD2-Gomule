@@ -58,6 +58,16 @@ function formatMarkdown(report) {
   for (const file of report.files) {
     lines.push(`| ${markdownCell(file.file)} | ${markdownCell(file.version)} | ${file.bytes} | ${file.sha256} | ${file.declaredItemCount ?? ''} | ${file.parsedItemCount ?? ''} | ${file.parsedNodeCount ?? ''} | ${file.incompleteItemCount ?? ''} |`);
   }
+  lines.push('', '## Historical item profiles', '');
+  if (report.recoveries.length === 0) {
+    lines.push('None.');
+  } else {
+    lines.push('These items decode with a proven historical layout and remain ineligible for transfers.', '',
+      '| File | Page | Item offset | Code | Profile |', '| --- | --- | ---: | --- | --- |');
+    for (const item of report.recoveries) {
+      lines.push(`| ${markdownCell(item.file)} | ${markdownCell(item.pageName)} | ${item.itemOffset} | ${markdownCell(item.itemCode)} | ${markdownCell(item.parseProfile)} |`);
+    }
+  }
   lines.push('', '## Source partition anomalies', '');
   if (report.sourcePartitionAnomalies.length === 0) {
     lines.push('None.');

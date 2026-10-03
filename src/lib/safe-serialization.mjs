@@ -13,6 +13,7 @@ function integer(value, min, max, label) {
 
 function assertNode(node, endOffset) {
   if (!node.itemInfo || node.isEar || !node.propertiesComplete) throw new Error('Item has unsupported or incomplete data');
+  if (node.parseRecovery) throw new Error('Historical item profiles are read-only until transfer compatibility is verified');
   if (![100, 101].includes(node.version)) throw new Error('Unsupported item version');
   if (!Number.isInteger(node.coreBitLength) || Math.ceil(node.coreBitLength / 8) !== endOffset - node.byteOffset) {
     throw new Error('Item boundary is not proven by its decoded bit length');

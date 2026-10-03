@@ -56,7 +56,9 @@ function buildItemRecord(row, tableFile, codeColumn) {
     invFile: row.invfile?.trim() || '',
     invWidth: Number.parseInt(row.invwidth ?? '', 10) || 0,
     invHeight: Number.parseInt(row.invheight ?? '', 10) || 0,
-    stackable: row.stackable === '1'
+    stackable: row.stackable === '1',
+    minStack: parseOptionalInt(row.minstack),
+    maxStack: parseOptionalInt(row.maxstack)
   };
 }
 
