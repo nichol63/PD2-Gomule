@@ -1,17 +1,17 @@
 # PD2 Mule development workflow
 
-Authorized October 3, 2026. The user requested Astra as orchestrator and Sol or Sonnet workers at high effort, with implementation of the parser, naming, serialization, and mule milestones. This expands the previous read-only development scope. It does not authorize modifying the user's installed game saves during development.
+Authorized October 3, 2026. The user requested Astra as orchestrator and Sol workers at high effort, with implementation continuing toward a full GoMule-style application. This expands the previous read-only scope to an optional browser transfer interface as well as CLI transfers. Development and game acceptance tests use independent copies; installed saves stay protected.
 
 ## Team
 
 | Role | Model | Effort | Responsibility |
 | --- | --- | --- | --- |
 | Orchestrator | gpt-6-astra | high | Evidence review, contracts, ownership, integration decisions |
-| Implementation worker | gpt-6-sol | high | Parser, names, display, serializer, bank implementation |
-| Test and fixture worker | gpt-6-sol | high | Independent tests, fixture proof, regression review |
+| Implementation worker | gpt-6.1-sol | high | Parser, names, display, serializer, bank implementation |
+| Test and fixture worker | gpt-6.1-sol | high | Independent tests, fixture proof, regression review |
 | Parent integration | Current chat | Current setting | CLI, documentation, full validation, user updates |
 
-Sonnet is not exposed by this session's agent tool. Sol workers are used without claiming to run Sonnet. The maximum active team is the parent, Astra, and two workers. Reuse workers between phases. Do not create additional sidebar chats for internal work.
+The user explicitly selected GPT-6.1 Sol at high effort for workers on October 3, 2026, superseding the earlier GPT-6 Sol assignment. Sonnet is not exposed by this session's agent tool. The maximum active team is the parent, Astra, and two workers. Reuse workers between phases. Do not create additional sidebar chats for internal work.
 
 ## Working loop
 
@@ -46,7 +46,7 @@ Define the supported editable fields and preserve every untouched/unknown bit. N
 
 ### 5. Persistent bank and transfers
 
-Provide explicit item selection, a persistent bank, dry-run previews, conflict checks, backups, and recoverable transactions. Do not overwrite an existing output unintentionally. Detect external file changes before commit. Interrupted multi-file operations must be recoverable without duplicating or losing items. The browser can remain read-only while explicit CLI operations implement the bounded transfer workflow.
+Provide explicit item selection, a persistent bank, dry-run previews, conflict checks, backups, and recoverable transactions. Do not overwrite an existing output unintentionally. Detect external file changes before commit. Interrupted multi-file operations must be recoverable without duplicating or losing items. The browser stays read-only by default. Explicit `--bank` and `--experimental-write` options enable reviewed copy-based transfers through the same journaled bank engine as the CLI.
 
 In-game loading of disposable output saves is a separate acceptance gate. Reparse tests do not establish game acceptance. If a game cannot be exercised in this environment, record that limitation and keep unsupported transfer paths disabled.
 

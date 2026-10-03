@@ -23,11 +23,12 @@ Current scope:
   - safe fallback via `propertiesComplete` / `propertyParseError` when a fixture hits an unsupported layout
 - fixture-driven validation against the local PD2 singleplayer pack
 - reproducible parser coverage with source/table hashes and precise failure offsets
-- experimental persistent item bank and bounded PlugY stash deposit/withdraw commands
+- persistent item bank and experimental copy-based transfers between characters and PlugY stashes
+- optional browser bank controls with previews, automatic placement, backups, and recovery
 
 The October 3, 2026 development request expands the prior read-only milestone. Follow [the Astra/Sol workflow](docs/DEVELOPMENT_WORKFLOW.md) for ownership, evidence, and acceptance gates. See [the verified recovery result](docs/recovery-2026-10-03.md) for the current baseline and remaining work.
 
-The inspector remains read-only. Explicit bank commands default to previews. Committed transfers are limited to supported PlugY pages whose item lengths, socket trees, counts, and placement can be validated. They preserve opaque item bytes and patch only location fields and page counts. Character writes and a general property serializer are not implemented. Game acceptance remains unverified, so copy-based writes require `--experimental-write`. Known game-save directories and the canonical fixture library are protected.
+The inspector opens read-only by default. Explicit bank commands default to previews. Transfer mode supports proven character inventory, cube, personal stash, and PlugY pages. It preserves item bytes, updates location and count fields, and recalculates character size and checksum. A general property editor is not implemented. Game acceptance remains unverified, so copy-based writes require `--experimental-write`. Known game-save directories and the canonical fixture library are protected.
 
 The canonical Library now has zero incomplete records across 134 files. Older Deep Wounds and map layouts are decoded only after the current layout fails and the proven historical layout reaches the item's terminator with valid padding. Those 16 historical-profile items retain provenance in coverage reports and remain read-only for transfers. The separate undeclared-key anomaly remains transfer-blocked.
 
@@ -96,7 +97,24 @@ npm test
 
 ## Experimental item bank
 
-Choose disposable `.d2x` or `.sss` copies outside the game Save directories. List their pages and items first using the commands above. Page and item numbers in the CLI start at 1; column and row positions start at 0. The supported PD2 stash grid is 10 columns by 15 rows, and an item must fit entirely inside it without overlaps.
+Choose disposable `.d2s`, `.d2x`, or `.sss` copies outside the game Save directories. List their pages and items first using the commands above. Page and item numbers in the CLI start at 1; column and row positions start at 0. PD2 inventory is 10 by 8, cube is 4 by 4, and stash is 10 by 15. Items must fit without overlaps.
+
+To use the browser controls, load the copy directory and select a bank file:
+
+```powershell
+node .\src\cli.mjs ui "C:\path\save-copies" --bank "C:\path\bank.json" --experimental-write
+```
+
+Select an item in the browser, choose **Preview deposit**, review it, then **Commit transfer**. To withdraw, choose a bank item and destination. Automatic placement finds available space; turn it off to choose a position. Each move saves immediately and retains backups. A preview expires after five minutes and is refused if its files change. The server binds to loopback and accepts transfers only for loaded sources. Omit `--experimental-write` to preview only.
+
+Characters use the same bank commands without `--page`; withdrawals specify a container:
+
+```powershell
+npm run bank -- deposit --bank "C:\path\bank.json" --source "C:\path\copy.d2s" --item 1
+npm run bank -- withdraw --bank "C:\path\bank.json" --item-id "<id>" --destination "C:\path\copy.d2s" --panel inventory --column 4 --row 0
+```
+
+`--panel` accepts `inventory`, `cube`, or `stash`. Socket children move with their parent. Equipped items, belt items, panel-six items, PvP ears, and historical-profile items cannot be selected for transfer. Existing records in those locations, mercenary equipment, and iron golems are preserved. Characters with nonempty corpse sections remain unsupported. See [character transfer evidence](docs/character-transfers-2026-10-03.md).
 
 Preview a deposit, with no bank or save changes:
 

@@ -1,9 +1,9 @@
-const VALUE_OPTIONS = new Set(['bank', 'source', 'destination', 'page', 'item', 'item-id', 'column', 'row', 'query']);
+const VALUE_OPTIONS = new Set(['bank', 'source', 'destination', 'page', 'panel', 'item', 'item-id', 'column', 'row', 'query']);
 const ACTIONS = new Set(['list', 'deposit', 'withdraw', 'recover']);
 const ALLOWED_OPTIONS = {
   list: new Set(['bank', 'query']),
   deposit: new Set(['bank', 'source', 'page', 'item', 'experimental-write', 'dry-run']),
-  withdraw: new Set(['bank', 'destination', 'page', 'item-id', 'column', 'row', 'experimental-write', 'dry-run']),
+  withdraw: new Set(['bank', 'destination', 'page', 'panel', 'item-id', 'column', 'row', 'experimental-write', 'dry-run']),
   recover: new Set(['bank', 'experimental-write', 'dry-run'])
 };
 
@@ -41,13 +41,17 @@ export function parseBankArguments(args) {
   const request = { bankPath: required(options, 'bank'), dryRun: options['dry-run'] === true || options['experimental-write'] !== true };
   if (action === 'deposit') {
     request.sourcePath = required(options, 'source');
-    request.pageIndex = integer(options, 'page', 1) - 1;
+    if (options.page !== undefined) request.pageIndex = integer(options, 'page', 1) - 1;
     request.itemIndex = integer(options, 'item', 1) - 1;
   }
   if (action === 'withdraw') {
     request.destinationPath = required(options, 'destination');
     request.itemId = required(options, 'item-id');
-    request.pageIndex = integer(options, 'page', 1) - 1;
+    if (options.page !== undefined) request.pageIndex = integer(options, 'page', 1) - 1;
+    if (options.panel !== undefined) {
+      if (!['inventory', 'cube', 'stash'].includes(options.panel)) throw new Error('--panel must be inventory, cube, or stash.');
+      request.panel = options.panel;
+    }
     request.column = integer(options, 'column', 0);
     request.row = integer(options, 'row', 0);
   }

@@ -152,6 +152,13 @@ function parseCliArguments(args) {
         options.port = args[index + 1] ?? '4173';
         index += 1;
         break;
+      case '--bank':
+        if (!args[index + 1] || args[index + 1].startsWith('--')) throw new Error('--bank requires a file path.');
+        options.bankPath = args[++index];
+        break;
+      case '--experimental-write':
+        options.experimentalWrite = true;
+        break;
       case '--complete-only':
         options.completeOnly = true;
         break;
@@ -170,10 +177,10 @@ function printUsage() {
   console.error('  node ./src/cli.mjs pages <stash file> [--query <text>] [--limit <n>]');
   console.error('  node ./src/cli.mjs items <save file> [--page <name|index>] [--query <text>] [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs search <save files...> --query <text> [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
-  console.error('  node ./src/cli.mjs ui [save files or directories...] [--host <addr>] [--port <n>]');
+  console.error('  node ./src/cli.mjs ui [save files or directories...] [--host <addr>] [--port <n>] [--bank <bank.json>] [--experimental-write]');
   console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>]');
-  console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <stash> --page <1-based page> --item <1-based item> [--experimental-write] [--dry-run]');
-  console.error('  node ./src/cli.mjs bank withdraw --bank <bank.json> --item-id <id> --destination <stash> --page <1-based page> --column <0-based column> --row <0-based row> [--experimental-write] [--dry-run]');
+  console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <save> [--page <1-based stash page>] --item <1-based item> [--experimental-write] [--dry-run]');
+  console.error('  node ./src/cli.mjs bank withdraw --bank <bank.json> --item-id <id> --destination <save> [--page <1-based stash page> | --panel <inventory|cube|stash>] --column <0-based column> --row <0-based row> [--experimental-write] [--dry-run]');
   console.error('  node ./src/cli.mjs bank recover --bank <bank.json> [--experimental-write] [--dry-run]');
   console.error('  Bank mutations default to dry-run. Experimental writes require explicit paths and --experimental-write.');
 }
@@ -289,14 +296,16 @@ async function runUi(fileArgs, options, pd2Tables) {
   const { workspace, url } = await startInspectorServer(inputPaths, {
     host: options.host ?? '127.0.0.1',
     port: options.port ?? '4173',
-    pd2Tables
+    pd2Tables,
+    bankPath: options.bankPath,
+    experimentalWrite: options.experimentalWrite
   });
 
   printBanner(pd2Tables);
   console.log(`UI_URL     ${url}`);
   console.log(`FILES      ${workspace.sourceCount}`);
   console.log(`ROOTS      ${workspace.loadedFrom.join(' | ')}`);
-  console.log('MODE       read-only');
+  console.log(`MODE       ${options.experimentalWrite ? 'experimental copy transfers' : 'read-only'}`);
   console.log('PRESS      Ctrl+C to stop');
 }
 

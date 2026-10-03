@@ -41,6 +41,28 @@
         </aside>
 
         <section class="main-pane">
+          <section id="bank-panel" class="panel-block bank-panel" hidden>
+            <div class="section-header"><h2>Item bank</h2><span id="bank-mode" class="section-pill"></span></div>
+            <p id="bank-description" class="muted-copy"></p>
+            <div class="bank-actions">
+              <button id="bank-deposit" type="button" disabled>Preview deposit</button>
+              <button id="bank-refresh" type="button">Refresh library</button>
+              <button id="bank-recover" type="button">Check recovery</button>
+            </div>
+            <p id="bank-selection" class="muted-copy">Select an item in the browser to deposit it.</p>
+            <form id="bank-withdraw-form" class="bank-form">
+              <label><span>Find in bank</span><input id="bank-query" type="search" placeholder="Search bank items"></label>
+              <label class="bank-item-field"><span id="bank-count">Bank items</span><select id="bank-item" required></select></label>
+              <label><span>Destination</span><select id="bank-destination" required></select></label>
+              <label><span>Page or container</span><select id="bank-container" required></select></label>
+              <label><span>Column (from 0)</span><input id="bank-column" type="number" min="0" max="15" value="0" required></label>
+              <label><span>Row (from 0)</span><input id="bank-row" type="number" min="0" max="15" value="0" required></label>
+              <label class="bank-auto"><input id="bank-auto" type="checkbox" checked><span>Find the first available space</span></label>
+              <button id="bank-withdraw" type="submit">Preview withdrawal</button>
+            </form>
+            <div id="bank-message" role="status" aria-live="polite"></div>
+            <div id="bank-preview" class="bank-preview" hidden></div>
+          </section>
           <section class="panel-block filters-block">
             <div class="section-header">
               <h2>Browser</h2>

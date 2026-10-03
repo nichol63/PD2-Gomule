@@ -6,10 +6,29 @@ import { inspectSaveFile } from './save-parsers.mjs';
 import { getFixtureLibraryDir, getWorkspaceRoot } from './workspace-paths.mjs';
 import { loadPd2Tables } from './pd2-data.mjs';
 import { extractStashItem, removeStashItem, insertStashItem, inspectTransferSupport, sha256, TRANSFER_STATUS } from './safe-serialization.mjs';
+import { extractCharacterItem, removeCharacterItem, insertCharacterItem, inspectCharacterTransferSupport } from './character-serialization.mjs';
 
 const emptyBank = () => ({ schemaVersion: 1, revision: 0, items: [] });
 const readBytes = (file) => fs.existsSync(file) ? fs.readFileSync(file) : null;
 const hashOrNull = (bytes) => bytes === null ? null : sha256(bytes);
+
+function assertExpectedHash(options, key, bytes, label) {
+  if (Object.hasOwn(options, key) && options[key] !== hashOrNull(bytes)) {
+    throw new Error(`${label} changed since preview; refresh and preview again`);
+  }
+}
+
+function assertExpectedRecoveryFiles(expectedFiles) {
+  if (expectedFiles === undefined) return;
+  if (!Array.isArray(expectedFiles)) throw new Error('Invalid expected recovery file hashes');
+  for (const entry of expectedFiles) {
+    if (!Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string' ||
+        !(entry[1] === null || typeof entry[1] === 'string' && /^[0-9a-f]{64}$/.test(entry[1]))) {
+      throw new Error('Invalid expected recovery file hash');
+    }
+    if (hashOrNull(readBytes(entry[0])) !== entry[1]) throw new Error('Recovery files changed since preview; refresh and preview again');
+  }
+}
 
 function tableFingerprint(tables) {
   const files = ['ItemStatCost.txt', 'Misc.txt', 'armor.txt', 'weapons.txt'];
@@ -71,11 +90,12 @@ function readBank(file) {
   return { bytes, bank: bytes === null ? emptyBank() : validateBank(JSON.parse(bytes.toString('utf8'))) };
 }
 
-export function listBank(bankPath) {
+export function listBank(bankPath, options = {}) {
   const file = resolvedPath(bankPath);
   guardMetadata(file);
   if (fs.existsSync(file + '.journal.json')) throw new Error('An interrupted transaction requires bank recover before listing items');
-  const { bank } = readBank(file);
+  const { bytes, bank } = readBank(file);
+  assertExpectedHash(options, 'expectedBankSha256', bytes, 'Bank');
   return { ...bank, items: bank.items.map(({ bytesBase64, ...item }) => item) };
 }
 
@@ -133,9 +153,10 @@ function verifyResult(bytes, extension, pageIndex, expectedCount, tables) {
   try {
     fs.writeFileSync(file, bytes);
     const parsed = inspectSaveFile(file, { pd2Tables: tables });
-    if (parsed.pages?.[pageIndex]?.itemCount !== expectedCount) throw new Error('Serialized stash count verification failed');
-    const support = inspectTransferSupport(bytes, parsed)[pageIndex];
-    if (!support?.supported) throw new Error(`Serialized stash verification failed: ${support?.reason ?? 'missing page'}`);
+    const character = parsed.kind === 'character';
+    if ((character ? parsed.itemCount : parsed.pages?.[pageIndex]?.itemCount) !== expectedCount) throw new Error('Serialized save count verification failed');
+    const support = character ? inspectCharacterTransferSupport(bytes, parsed, { pd2Tables: tables }) : inspectTransferSupport(bytes, parsed)[pageIndex];
+    if (!support?.supported) throw new Error(`Serialized save verification failed: ${support?.reason ?? 'missing page'}`);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 }
 
@@ -179,34 +200,38 @@ function operation(options, type) {
   try {
     ensureNoPending(bankPath);
     const { bytes: bankBefore, bank } = readBank(bankPath);
+    assertExpectedHash(options, 'expectedBankSha256', bankBefore, 'Bank');
     const tablesHash = tableFingerprint(pd2Tables);
     const stashBefore = fs.readFileSync(stashPath);
+    assertExpectedHash(options, 'expectedSourceSha256', stashBefore, 'Save');
     const save = inspectSaveFile(stashPath, { pd2Tables });
-    if (!save.pages) throw new Error('Only PlugY stash transfers are supported');
-    const page = save.pages[options.pageIndex];
+    const character = save.kind === 'character';
+    if (character && options.pageIndex !== undefined) throw new Error('Character transfers do not use pageIndex');
+    if (!character && options.panel !== undefined) throw new Error('PlugY transfers use pageIndex rather than panel');
+    const page = character ? save : save.pages?.[options.pageIndex];
     if (!page) throw new Error('Invalid pageIndex');
     let changed; let itemId; let nodeCount;
     const nextBank = { ...bank, revision: bank.revision + 1, items: [...bank.items] };
     if (type === 'deposit') {
-      const extracted = extractStashItem(stashBefore, save, options);
-      changed = removeStashItem(stashBefore, save, options);
+      const selection = { ...options, pd2Tables };
+      const extracted = (character ? extractCharacterItem : extractStashItem)(stashBefore, save, selection);
+      changed = (character ? removeCharacterItem : removeStashItem)(stashBefore, save, selection);
       itemId = randomUUID(); nodeCount = extracted.nodeCount;
-      nextBank.items.push({ id: itemId, sha256: extracted.sha256, tableFingerprint: tablesHash, bytesBase64: extracted.bytes.toString('base64'), nodeCount, code: extracted.item.code, displayName: extracted.item.displayName, baseName: extracted.item.baseName ?? extracted.item.itemInfo?.name, quality: extracted.item.qualityLabel, source: { fileName: path.basename(stashPath), pageName: page.name, pageIndex: options.pageIndex, itemIndex: options.itemIndex }, depositedAt: new Date().toISOString() });
+      nextBank.items.push({ id: itemId, sha256: extracted.sha256, tableFingerprint: tablesHash, bytesBase64: extracted.bytes.toString('base64'), nodeCount, code: extracted.item.code, displayName: extracted.item.displayName, baseName: extracted.item.baseName ?? extracted.item.itemInfo?.name, quality: extracted.item.qualityLabel, invWidth: extracted.item.invWidth, invHeight: extracted.item.invHeight, source: { fileName: path.basename(stashPath), kind: save.kind, ...(character ? { characterName: save.name, panel: extracted.item.panel } : { pageName: page.name, pageIndex: options.pageIndex }), itemIndex: options.itemIndex }, depositedAt: new Date().toISOString() });
     } else {
       const index = bank.items.findIndex((item) => item.id === options.itemId);
       if (index < 0) throw new Error('Bank item not found');
       const item = bank.items[index];
       if (item.tableFingerprint !== tablesHash) throw new Error('Bank item table profile differs from the active PD2 tables; withdrawal refused');
       itemId = item.id; nodeCount = item.nodeCount;
-      changed = insertStashItem(stashBefore, save, { ...options, itemBytes: Buffer.from(item.bytesBase64, 'base64'), nodeCount, pd2Tables });
+      changed = (character ? insertCharacterItem : insertStashItem)(stashBefore, save, { ...options, itemBytes: Buffer.from(item.bytesBase64, 'base64'), nodeCount, pd2Tables });
       nextBank.items.splice(index, 1);
     }
-    // PlugY's header counts root items; socket children travel with their root
-    // but do not contribute to the page's declared item count.
+    // Both save formats count roots; socket children travel with their root.
     const expectedCount = page.itemCount + (type === 'deposit' ? -1 : 1);
     verifyResult(changed.buffer, path.extname(stashPath), options.pageIndex, expectedCount, pd2Tables);
     if (tableFingerprint(pd2Tables) !== tablesHash) throw new Error('PD2 tables changed during planning');
-    const result = { dryRun, operation: type, itemId, bankItemCountBefore: bank.items.length, bankItemCountAfter: nextBank.items.length, stashItemCountBefore: page.topLevelItems.length, stashItemCountAfter: page.topLevelItems.length + (type === 'deposit' ? -1 : 1), status: TRANSFER_STATUS };
+    const result = { dryRun, operation: type, itemId, saveKind: save.kind, bankItemCountBefore: bank.items.length, bankItemCountAfter: nextBank.items.length, stashItemCountBefore: page.topLevelItems.length, stashItemCountAfter: page.topLevelItems.length + (type === 'deposit' ? -1 : 1), status: TRANSFER_STATUS };
     if (dryRun) {
       if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankBefore) || hashOrNull(readBytes(stashPath)) !== sha256(stashBefore)) throw new Error('Bank or stash changed during preview');
       return result;
@@ -244,7 +269,7 @@ function validateJournal(bankPath, journal) {
   assertMetadataPath(directory);
   if (journal.entries[1]?.path !== bankPath) throw new Error('Journal bank target does not match the selected bank');
   const stashPath = journal.entries[0]?.path;
-  if (typeof stashPath !== 'string' || !['.d2x', '.sss'].includes(path.extname(stashPath).toLowerCase())) throw new Error('Invalid journal stash target');
+  if (typeof stashPath !== 'string' || !['.d2s', '.d2x', '.sss'].includes(path.extname(stashPath).toLowerCase())) throw new Error('Invalid journal stash target');
   checkDifferentFiles(bankPath, stashPath);
   for (const [index, entry] of journal.entries.entries()) {
     if (guardPath(entry.path) !== entry.path) throw new Error('Transaction target changed');
@@ -263,17 +288,22 @@ function validateJournal(bankPath, journal) {
   return { directory, stashPath };
 }
 
-export function recoverBank({ bankPath: requestedBankPath, dryRun = true }) {
+export function recoverBank(options) {
+  const { bankPath: requestedBankPath, dryRun = true, expectedRecoveryFileHashes } = options;
   const bankPath = guardPath(requestedBankPath);
   guardMetadata(bankPath);
   const bankLock = staleLock(bankPath + '.lock', bankPath);
+  assertExpectedHash(options, 'expectedBankLockSha256', bankLock?.bytes ?? null, 'Recovery bank lock');
   const journalPath = bankPath + '.journal.json';
   const journalBytes = readBytes(journalPath);
+  assertExpectedHash(options, 'expectedJournalSha256', journalBytes, 'Recovery journal');
+  assertExpectedRecoveryFiles(expectedRecoveryFileHashes);
   const journal = journalBytes === null ? null : JSON.parse(journalBytes.toString('utf8'));
   const validated = journal === null ? null : validateJournal(bankPath, journal);
   const stashPath = validated?.stashPath ?? bankLock?.lock.stashPath ?? null;
   if (stashPath && guardPath(stashPath) !== stashPath) throw new Error('Invalid stale lock stash target');
   const stashLock = stashPath ? staleLock(stashPath + '.pd2-mule.lock', bankPath, true) : null;
+  assertExpectedHash(options, 'expectedSourceLockSha256', stashLock?.bytes ?? null, 'Recovery save lock');
   const result = { dryRun, operation: 'recover', recovered: false, ...(journal ? { transactionId: journal.transactionId, action: journal.status === 'committed' ? 'finalize' : 'rollback' } : { status: 'No interrupted transaction', ...(bankLock || stashLock ? { action: 'remove-stale-lock' } : {}) }) };
   if (dryRun) return result;
   clearStaleLock(bankLock);
@@ -282,14 +312,24 @@ export function recoverBank({ bankPath: requestedBankPath, dryRun = true }) {
   try {
     guardMetadata(bankPath);
     if (hashOrNull(readBytes(journalPath)) !== hashOrNull(journalBytes)) throw new Error('Transaction journal changed during recovery');
+    assertExpectedRecoveryFiles(expectedRecoveryFileHashes);
     if (journal === null) return { ...result, recovered: Boolean(bankLock || stashLock) };
     validateJournal(bankPath, journal);
     if (journal.status === 'prepared') {
-      // Revalidation after acquiring both locks prevents another bank from
-      // changing the same stash between recovery preview and restoration.
-      for (const entry of journal.entries) {
-        if (entry.beforeSha256 === null) { if (fs.existsSync(entry.path)) fs.unlinkSync(entry.path); }
-        else replaceFile(entry.path, fs.readFileSync(entry.backupPath));
+      // Validate the exact buffers that will be restored before any target
+      // changes. Re-reading backups after checking them would permit a race.
+      const restorations = journal.entries.map((entry) => {
+        const bytes = entry.beforeSha256 === null ? null : fs.readFileSync(entry.backupPath);
+        if (hashOrNull(bytes) !== entry.beforeSha256) throw new Error('Recovery backup changed before restoration');
+        const currentSha256 = hashOrNull(readBytes(entry.path));
+        if (![entry.beforeSha256, entry.afterSha256].includes(currentSha256)) throw new Error('Recovery refused: a transaction file was externally modified');
+        return { entry, bytes, currentSha256 };
+      });
+      assertExpectedRecoveryFiles(expectedRecoveryFileHashes);
+      for (const { entry, bytes, currentSha256 } of restorations) {
+        if (hashOrNull(readBytes(entry.path)) !== currentSha256) throw new Error('Recovery target changed before restoration');
+        if (bytes === null) { if (fs.existsSync(entry.path)) fs.unlinkSync(entry.path); }
+        else replaceFile(entry.path, bytes);
       }
     }
     fs.renameSync(journalPath, path.join(validated.directory, journal.status === 'committed' ? 'committed.json' : 'recovered.json'));

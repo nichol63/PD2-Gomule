@@ -15,7 +15,7 @@ import { getFixtureLibraryDir } from './workspace-paths.mjs';
 const SAVE_FILE_EXTENSIONS = new Set(['.d2s', '.d2x', '.sss']);
 const PANEL_DETAILS = {
   '1/0': { label: 'Equipped', columns: 10, rows: 4, order: 10 },
-  '0/1': { label: 'Inventory', columns: 10, rows: 4, order: 20 },
+  '0/1': { label: 'Inventory', columns: 10, rows: 8, order: 20 },
   '0/4': { label: 'Cube', columns: 4, rows: 4, order: 30 },
   '0/5': { label: 'Stash', columns: 10, rows: 15, order: 40 },
   '2/0': { label: 'Belt', columns: 4, rows: 4, order: 50 }
@@ -111,7 +111,7 @@ function getEntrySourceLabel(entry) {
   return entry.fileName;
 }
 
-function getItemKey(entry) {
+export function getItemKey(entry) {
   return [
     entry.filePath,
     entry.pageIndex ?? 'root',
@@ -304,6 +304,9 @@ function createSelectedItem(entry, pd2Tables) {
     : null;
   return {
     itemKey: getItemKey(entry),
+    filePath: entry.filePath,
+    pageIndex: entry.pageIndex ?? null,
+    itemIndex: entry.itemIndex,
     displayName: entry.displayName,
     baseName: entry.baseName ?? item.baseName ?? item.itemInfo?.name ?? entry.displayName,
     code: entry.code,

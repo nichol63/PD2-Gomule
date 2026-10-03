@@ -381,9 +381,19 @@ test('character items expose ordered non-overlapping source spans within itemReg
   );
   assert.equal(
     charSummary.itemRegion.endOffset,
-    charSummary.actualSize,
-    'character itemRegion should end at the character file size'
+    1066,
+    'Legacy primary item region ends before its empty corpse and mercenary markers'
   );
+  const bytes = getFixtureBuffer('Legacy.d2s');
+  assert.equal(charSummary.actualSize, 1075);
+  assert.equal(bytes.subarray(1066).toString('hex'), '4a4d00006a666b6600');
+  assert.equal(charSummary.characterSections.corpse.markerOffset, 1066);
+  assert.equal(charSummary.characterSections.corpse.itemCount, 0);
+  assert.equal(charSummary.characterSections.mercenary.markerOffset, 1070);
+  assert.equal(charSummary.characterSections.mercenary.itemListOffset, null);
+  assert.equal(charSummary.characterSections.mercenary.itemCount, 0);
+  assert.equal(charSummary.characterSections.golem.markerOffset, 1072);
+  assert.equal(charSummary.characterSections.golem.present, false);
 
   assertItemsBoundedByRegion(charSummary.items, charSummary.itemRegion, 'Legacy.d2s');
   assertOrderedItemSpans(charSummary.items, charSummary.itemRegion.endOffset, 'Legacy.d2s');

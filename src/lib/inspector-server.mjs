@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createMuleService } from './mule-service.mjs';
 
 import {
   buildInspectorView,
@@ -17,6 +18,7 @@ const STATIC_FILES = {
   '/': { filePath: path.join(UI_DIR, 'index.html'), contentType: 'text/html; charset=utf-8' },
   '/index.html': { filePath: path.join(UI_DIR, 'index.html'), contentType: 'text/html; charset=utf-8' },
   '/app.js': { filePath: path.join(UI_DIR, 'app.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/bank.js': { filePath: path.join(UI_DIR, 'bank.js'), contentType: 'text/javascript; charset=utf-8' },
   '/styles.css': { filePath: path.join(UI_DIR, 'styles.css'), contentType: 'text/css; charset=utf-8' }
 };
 
@@ -45,8 +47,19 @@ function normalizeQueryValue(value) {
   return trimmed === '' ? undefined : trimmed;
 }
 
-function createRequestHandler(workspace) {
-  return (request, response) => {
+async function readRequestJson(request) {
+  if (request.headers['content-type']?.split(';')[0] !== 'application/json') throw new Error('JSON requests only.');
+  let body = '';
+  for await (const chunk of request) {
+    body += chunk;
+    if (Buffer.byteLength(body) > 16384) throw new Error('Request too large.');
+  }
+  return JSON.parse(body);
+}
+
+function createRequestHandler(workspace, mule, options) {
+  return async (request, response) => {
+    try {
     if (!request.url) {
       writeJson(response, 400, { error: 'Missing request URL.' });
       return;
@@ -54,8 +67,39 @@ function createRequestHandler(workspace) {
 
     const url = new URL(request.url, 'http://127.0.0.1');
 
+    if (options.bankPath) {
+      const host = request.headers.host;
+      const port = request.socket.localPort;
+      if (![`127.0.0.1:${port}`, `localhost:${port}`, `[::1]:${port}`].includes(host)
+        || request.headers.origin && request.headers.origin !== `http://${host}`
+        || request.headers['sec-fetch-site'] === 'cross-site') {
+        writeJson(response, 403, { error: 'Bank requests must come from this local app.' });
+        return;
+      }
+    }
+
+    if (request.method === 'POST' && options.bankPath && url.pathname.startsWith('/api/bank/')) {
+      if (request.headers['x-pd2-mule-token'] !== mule.sessionToken) {
+        writeJson(response, 403, { error: 'Invalid app session. Reload this page.' });
+        return;
+      }
+      const input = await readRequestJson(request);
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid request.');
+      const result = url.pathname === '/api/bank/preview' ? mule.preview(input)
+        : url.pathname === '/api/bank/commit' ? mule.commit(input.ticket)
+          : url.pathname === '/api/bank/refresh' ? mule.refresh() : null;
+      if (result === null) { writeJson(response, 404, { error: 'Unknown bank endpoint.' }); return; }
+      writeJson(response, 200, result);
+      return;
+    }
+
     if (request.method !== 'GET') {
       writeJson(response, 405, { error: 'Read-only GET endpoints only.' });
+      return;
+    }
+
+    if (url.pathname === '/api/bank') {
+      writeJson(response, 200, mule.status());
       return;
     }
 
@@ -87,6 +131,9 @@ function createRequestHandler(workspace) {
     }
 
     writeJson(response, 404, { error: `Not found: ${url.pathname}` });
+    } catch (error) {
+      writeJson(response, 400, { error: error.message });
+    }
   };
 }
 
@@ -101,9 +148,13 @@ function createServerUrl(host, port) {
 export async function startInspectorServer(inputPaths = [], options = {}) {
   const workspace = loadInspectorWorkspace(inputPaths, options);
   const host = options.host ?? '127.0.0.1';
+  if (options.bankPath && !['127.0.0.1', 'localhost', '::1'].includes(host)) {
+    throw new Error('The item bank is available on loopback hosts only.');
+  }
   const requestedPort = Number.parseInt(`${options.port ?? 4173}`, 10);
   const port = Number.isNaN(requestedPort) ? 4173 : requestedPort;
-  const server = http.createServer(createRequestHandler(workspace));
+  const mule = createMuleService(workspace, options);
+  const server = http.createServer(createRequestHandler(workspace, mule, options));
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);

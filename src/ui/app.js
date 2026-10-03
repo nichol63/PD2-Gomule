@@ -1,3 +1,5 @@
+import { createBankUi } from '/bank.js';
+
 const state = {
   catalog: null,
   view: null,
@@ -482,6 +484,7 @@ function render() {
   renderGridPanels();
   renderMatchList();
   renderItemDetails();
+  bankUi.selectionChanged();
 }
 
 let queryTimer = null;
@@ -544,6 +547,14 @@ function bindEvents() {
   });
 }
 
+const bankUi = createBankUi(state, async () => {
+  const selectedSource = state.sourceId;
+  await loadCatalog();
+  if (state.catalog.sources.some(source => source.id === selectedSource)) state.sourceId = selectedSource;
+  state.selectedItemKey = null;
+  await loadView();
+});
+
 async function main() {
   bindEvents();
   setupTooltip();
@@ -552,6 +563,7 @@ async function main() {
   try {
     await loadCatalog();
     await loadView();
+    await bankUi.load();
   } catch (error) {
     elements.gridPanels.innerHTML = `<div class="panel-block empty-state">Failed to load inspector data: ${escapeHtml(error.message)}</div>`;
   }

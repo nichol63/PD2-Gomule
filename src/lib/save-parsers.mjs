@@ -391,7 +391,41 @@ function getPd2Tables(options) {
   return options?.pd2Tables ?? loadPd2Tables();
 }
 
-const CHARACTER_FOLLOWING_ITEM_SECTION = Buffer.from('4a4d00006a664a4d', 'hex');
+const CHARACTER_FOLLOWING_ITEM_SECTION = Buffer.from('4a4d00006a66', 'hex');
+
+// v96 statistics begin at the fixed gf header. Their bit-packed terminator
+// proves the following skills marker; searching for text can match a name or
+// arbitrary header/item bytes instead. Both skills layouts occur in PD2 saves.
+export function findCharacterSkillsBlockOffset(buffer, pd2Tables = loadPd2Tables()) {
+  if (buffer.length < 769 || buffer.toString('ascii', 765, 767) !== 'gf') return -1;
+  let bitOffset = 767 * 8;
+  function readBits(width) {
+    if (bitOffset + width > buffer.length * 8) throw new Error('Truncated character stats');
+    let value = 0;
+    for (let index = 0; index < width; index += 1) {
+      value += ((buffer[(bitOffset + index) >>> 3] >>> ((bitOffset + index) & 7)) & 1) * 2 ** index;
+    }
+    bitOffset += width;
+    return value;
+  }
+  try {
+    const seen = new Set();
+    for (let count = 0; count < 512; count += 1) {
+      const id = readBits(9);
+      if (id === 511) {
+        const skillsOffset = Math.ceil(bitOffset / 8);
+        return buffer.toString('ascii', skillsOffset, skillsOffset + 2) === 'if' ? skillsOffset : -1;
+      }
+      const width = pd2Tables.itemStatsById.get(id)?.csvBits;
+      if (!Number.isInteger(width) || width < 1 || width > 32 || seen.has(id)) return -1;
+      seen.add(id);
+      readBits(width);
+    }
+  } catch {
+    return -1;
+  }
+  return -1;
+}
 
 function hasOnlyZeroPadding(buffer, startBitOffset, endBitOffset) {
   const paddingBits = endBitOffset - startBitOffset;
@@ -411,14 +445,14 @@ function findCharacterPrimaryItemRegion(buffer, startOffset, itemCount, pd2Table
   for (let offset = buffer.indexOf(CHARACTER_FOLLOWING_ITEM_SECTION, startOffset);
     offset >= 0;
     offset = buffer.indexOf(CHARACTER_FOLLOWING_ITEM_SECTION, offset + 1)) {
-    if (offset + 10 <= buffer.length) {
+    if (offset + CHARACTER_FOLLOWING_ITEM_SECTION.length <= buffer.length) {
       candidateOffsets.push(offset);
     }
   }
 
-  // The marker begins the next character item section: JM zero-count, jf,
-  // then another JM count. Verify the preceding list against the declared root
-  // count and its own terminator before treating those bytes as a boundary.
+  // The marker begins the empty corpse section, followed by jf. Some v96
+  // files omit the mercenary JM entirely, so it is not part of this anchor.
+  // Verify the preceding list against its declared root count and terminator.
   for (const stopOffset of candidateOffsets.reverse()) {
     let parsed;
     try {
@@ -440,6 +474,35 @@ function findCharacterPrimaryItemRegion(buffer, startOffset, itemCount, pd2Table
   return parseLegacyItemList(buffer, startOffset, itemCount, buffer.length, pd2Tables);
 }
 
+function inspectCharacterSections(buffer, itemRegion) {
+  const corpseOffset = itemRegion?.endOffset;
+  if (!Number.isInteger(corpseOffset) ||
+      buffer.toString('hex', corpseOffset, corpseOffset + 6) !== '4a4d00006a66') {
+    return null;
+  }
+  const mercMarkerOffset = corpseOffset + 4;
+  const mercListOffset = buffer.toString('ascii', mercMarkerOffset + 2, mercMarkerOffset + 4) === 'JM'
+    ? mercMarkerOffset + 2 : null;
+  if (mercListOffset !== null && mercListOffset + 4 > buffer.length) return null;
+  const mercItemCount = mercListOffset === null ? 0 : buffer.readUInt16LE(mercListOffset + 2);
+  const mercItemStart = mercListOffset === null ? mercMarkerOffset + 2 : mercListOffset + 4;
+  const golemMarkerOffset = buffer.lastIndexOf('kf');
+  if (golemMarkerOffset < mercItemStart || golemMarkerOffset + 3 > buffer.length) {
+    return null;
+  }
+  return {
+    corpse: { markerOffset: corpseOffset, itemCount: 0 },
+    mercenary: {
+      markerOffset: mercMarkerOffset,
+      itemListOffset: mercListOffset,
+      itemCount: mercItemCount,
+      itemRegion: createSourceSpan(mercItemStart, golemMarkerOffset)
+    },
+    golem: { markerOffset: golemMarkerOffset, present: buffer[golemMarkerOffset + 2] !== 0,
+      itemRegion: createSourceSpan(golemMarkerOffset + 3, buffer.length) }
+  };
+}
+
 export function parseCharacterFile(filePath, options = {}) {
   const buffer = readFileBuffer(filePath);
   const pd2Tables = getPd2Tables(options);
@@ -448,12 +511,27 @@ export function parseCharacterFile(filePath, options = {}) {
   const name = readFixedNullTerminatedAscii(buffer, 20, 16);
   const classId = buffer[40];
   const level = buffer[43];
-  const skillsBlockOffset = findAscii(buffer, 'if', 0);
-  const itemListOffset = skillsBlockOffset >= 0 ? findAscii(buffer, 'JM', skillsBlockOffset) : -1;
+  const provenSkillsBlockOffset = findCharacterSkillsBlockOffset(buffer, pd2Tables);
+  if (version === 96 && provenSkillsBlockOffset < 0) {
+    throw new Error('Character statistics or skills boundary is invalid or truncated');
+  }
+  // Preserve read-only inspection of other versions without claiming their
+  // layout is proven by the v96 codec.
+  const skillsBlockOffset = provenSkillsBlockOffset >= 0 ? provenSkillsBlockOffset
+    : findAscii(buffer, 'if', 765);
+  const itemListCandidates = skillsBlockOffset < 0 ? [] : [32, 35]
+    .map((distance) => skillsBlockOffset + distance)
+    .filter((offset) => offset + 4 <= buffer.length && buffer.toString('ascii', offset, offset + 2) === 'JM');
+  if (version === 96 && itemListCandidates.length !== 1) {
+    throw new Error('Character primary item header is missing, truncated, or ambiguous');
+  }
+  const itemListOffset = itemListCandidates.length === 1 ? itemListCandidates[0]
+    : version !== 96 && skillsBlockOffset >= 0 ? findAscii(buffer, 'JM', skillsBlockOffset) : -1;
   const itemCount = itemListOffset >= 0 ? buffer.readUInt16LE(itemListOffset + 2) : null;
   const parsedItems = itemListOffset >= 0 && itemCount !== null
     ? findCharacterPrimaryItemRegion(buffer, itemListOffset + 4, itemCount, pd2Tables)
     : { items: [], flatItems: [] };
+  const characterSections = inspectCharacterSections(buffer, parsedItems.sourceSpan);
 
   return {
     kind: 'character',
@@ -467,9 +545,11 @@ export function parseCharacterFile(filePath, options = {}) {
     classId,
     className: CLASS_NAMES[classId] ?? `Unknown (${classId})`,
     level,
+    skillsBlockOffset,
     itemListOffset,
     itemCount,
     itemRegion: parsedItems.sourceSpan ?? null,
+    characterSections,
     items: parsedItems.items,
     topLevelItems: parsedItems.topLevelItems,
     parsedItemCount: parsedItems.topLevelItems?.length ?? 0,

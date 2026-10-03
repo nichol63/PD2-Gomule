@@ -15,6 +15,22 @@
   --quality-crafted: #ff8e8e;
 }
 
+[hidden] { display: none !important; }
+.bank-panel { border-color: rgba(126, 214, 126, 0.4); }
+.bank-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.bank-panel button { cursor: pointer; padding: 0.6rem 0.8rem; color: var(--text); border: 1px solid var(--panel-border); background: #483424; border-radius: 0.4rem; }
+.bank-panel button:disabled { opacity: 0.45; cursor: default; }
+.bank-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+.bank-form label { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; color: var(--muted); font-size: 0.85rem; }
+.bank-form input, .bank-form select { width: 100%; min-width: 0; padding: 0.6rem; border: 1px solid var(--panel-border); background: #231916; color: var(--text); border-radius: 0.4rem; }
+.bank-item-field { grid-column: 1 / -1; }
+.bank-preview { margin-top: 0.8rem; padding: 1rem; border: 1px solid #87b476; border-radius: 0.5rem; }
+.bank-preview button + button { margin-left: 0.5rem; }
+.bank-message { margin-top: 0.75rem; overflow-wrap: anywhere; color: #b4dba4; }
+.bank-message.is-error { color: #ffac9a; }
+.bank-form .bank-auto { flex-direction: row; align-items: center; }
+.bank-auto input { width: auto; }
+
 * {
   box-sizing: border-box;
 }
