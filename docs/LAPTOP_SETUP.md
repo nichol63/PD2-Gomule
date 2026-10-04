@@ -66,7 +66,7 @@ npm run coverage -- --format markdown
 node .\src\cli.mjs ui "..\PD2-Singleplayer\Diablo II\Save\Library" --port 4175
 ```
 
-Open http://127.0.0.1:4175. Expected baseline: 234 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
+Open http://127.0.0.1:4175. Expected baseline: 245 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
 
 For transfer development, prepare disposable copies outside any game Save directory and run:
 
@@ -85,6 +85,14 @@ npm run prepare:acceptance -- --output .game-acceptance/2026-10-04
 ```
 
 The command refuses an existing output directory and keeps canonical sources unchanged. It uses the existing bank engine to move a Town Portal Book and a socketed bow in two independent scenarios. Each has a character, a matching personal stash filename, retained bank transaction backups, and pre-game evidence in `manifest.json`. Follow the generated `CHECKLIST.md` in a separate compatible PD2/PlugY installation. The pack does not install or launch the game, and preparation does not satisfy game acceptance. Keep the two scenario save directories separate.
+
+After the game checks, keep the retained pack unchanged and place independent game-written save copies in a results directory with the same `tome/` and `socketed/` paths. Verify both cases without modifying inputs:
+
+```sh
+npm run verify:acceptance -- --pack .game-acceptance/2026-10-04 --results <post-game-results>
+```
+
+The report checks prepared provenance, headers/checksums, counts, selected-item placement, properties, stack and sockets, and exact selected tree bytes. Exit code 1 means a structural mismatch or invalid input; diagnostics identify the failed checks. Whole-file rewrites alone do not fail, but changes to the selected item bytes require review. Matching independent copies can pass without ever entering the game. Every report keeps `gameAcceptance: "unverified"`; actual load/save/reload observations and screenshots remain required. Use the script directly, or `npm run --silent verify:acceptance`, when redirecting pure JSON to a separate report file.
 
 The `.game-acceptance/` directory is ignored by Git. Copy the pack to the desktop for game validation if necessary, preserving the manifest and backups. After saving, exiting, and reloading in PD2, reparse the game-saved files and record the results in the [acceptance record](game-acceptance-2026-10-03.md). Multi-item development remains gated on that evidence.
 

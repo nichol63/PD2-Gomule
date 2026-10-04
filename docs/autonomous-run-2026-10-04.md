@@ -1,6 +1,6 @@
 # Autonomous development run: October 4, 2026
 
-The user explicitly requested an orchestration run with a 300,000-token goal budget. That is a ceiling for the run, not a prediction of the Plus weekly allowance. Account usage limits may stop the run sooner.
+The user explicitly requested an orchestration run with a 300,000-token goal budget. That first goal reached its budget after the page-selection commit and verifier implementation. On October 4 the user cleared it and started a new continuation goal with a 3,000,000-token budget. These budgets are ceilings for the runs, not predictions of the Plus weekly allowance. Account usage limits may stop the run sooner.
 
 The active goal is to complete useful, evidence-backed work in post-game verification tooling, read-only browsing usability, portability, and transfer reliability while preserving the pending game-acceptance gate. Each batch uses strict implementation/test ownership, canonical fixture proof, full regression validation, and an independent review before commit. The run must stop when the scoped work is complete, its budget is reached, or no defensible progress remains without user input. It must not manufacture work just to consume the budget.
 
@@ -23,3 +23,5 @@ Actual PD2/PlugY load, save, and reload evidence remains required from an isolat
 ## Completed batches
 
 BROWSE-001 preserves numeric page identity in both the inspector model and UI. The real shared stash's page 31 and page 118 now display their own 15 and 57 roots, with distinct numbered labels, matching summary/grid/details/item keys, and compatible legacy name selectors. Independent tests checked all seven repeated class-page pairs and executed the actual UI's page/item/filter/sort/clear handlers in a controlled DOM with fixture-backed responses. The canonical shared-stash SHA256 is unchanged. Full suite: 234 passing, zero failures or skips. Independent review found no material regression.
+
+WRITE-004 adds the read-only verifier and JSON CLI, npm alias, and prepared-checklist instructions. Fifteen checks per scenario validate retained provenance, headers/checksums, counts, selected identity/location, stack, sockets, properties and exact tree bytes. Review found and corrected a malformed-stash-header gap; independent tests now cover signature and version corruption. Eleven targeted tests pass; the full suite has 245 passing, zero failures/skips. A local comparison using independent copies of both retained cases passes, with unchanged file hashes and `gameAcceptance: "unverified"`. This is structural test evidence, not a game run. No canonical or retained-pack input changed. The shared stale supplied-table-object limitation is queued for immediate BANK-002, including preparation and verification callers.

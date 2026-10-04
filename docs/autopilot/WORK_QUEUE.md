@@ -6,14 +6,14 @@ Laptop continuation restored the pinned fixture checkout and all ten matching pa
 
 The corrected-parser display audit found zero bytime properties and zero `item_dmgpercent_permissinghppercent` properties across all 22,072 physical records. Historical bytime/noise samples below are superseded. Blood Warp and five bounded scaling/tier displays already shipped in the October 3 recovery; missing strings are no longer their blocker.
 
-The user started a persistent development goal on October 4 with a 300,000-token ceiling. Continue bounded ungated work with implementation, independent fixture/tests, and review lanes. Account limits may stop the run before its goal budget. [The run record](../autonomous-run-2026-10-04.md) tracks batches and evidence. Multi-item transfers still require actual game acceptance.
+The user started a persistent development goal on October 4 with a 300,000-token ceiling, then continued with a new 3,000,000-token goal after the first budget was reached. Continue bounded ungated work with implementation, independent fixture/tests, and review lanes. Account limits may stop the run before its goal budget. [The run record](../autonomous-run-2026-10-04.md) tracks batches and evidence. Multi-item transfers still require actual game acceptance.
 
 Character and browser bank transfers now support disposable copies. See [character transfer evidence](../character-transfers-2026-10-03.md): 131 supported characters, 224 tests passing, 10 timing/recovery regressions, and unchanged canonical hashes. GPT-6.1 Sol high workers replace GPT-6 Sol. Game acceptance remains a separate gate; the isolated test installation is `../pd2-game-validation-2026-10-03` from the workspace root's `pd2-mule` checkout.
 
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 234 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 245 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -53,9 +53,11 @@ The canonical shared stash has two `Amazon` pages: page 31 (index 30, 15 roots) 
 
 Outcome: fixed in the inspector model and UI. All seven duplicate class-page pairs select the correct physical page; numeric identity survives item selection, reloads, quality/sort changes, and clearing filters. Legacy name selection still resolves the first matching name. Five independent real-fixture/UI tests pass; full suite: 234 passing, zero failures/skips. Review found no material issue; canonical shared-stash hash is unchanged.
 
-### [ready] WRITE-004 - Read-only acceptance result verification
+### [done] WRITE-004 - Read-only acceptance result verification
 
 Compare a retained prepared pack against independent post-game save copies. Validate manifest/table provenance, protected relative paths, checksums, sizes, counts, placement, identities, properties, and socket children; emit a diagnostic JSON report without modifying inputs. Distinguish structural verification from observed game acceptance: neither matching bytes nor changed file hashes prove the game was used. Keep the game gate pending until actual load/save/reload observations and evidence review. Provide a CLI command and tests using disposable real-fixture cases and targeted corruptions.
+
+Outcome: read-only API and JSON CLI implemented with 15 checks per scenario. Independent real-fixture tests cover unchanged copies, valid timestamp/checksum rewrites, counts/placement/stack/property/socket/tree corruption, malformed stash signatures/versions, provenance, unsafe paths, aliases and CLI exit status. All 11 targeted tests and the full 245-test suite pass. Retained pack comparison on independent copies passes with no observed rewrite and still reports game acceptance unverified. Independent review is clean. Supplied stale table objects will be rejected in the immediately following BANK-002 shared-provenance batch.
 
 ### [ready] BANK-002 - Bind transfer profiles to loaded table bytes
 

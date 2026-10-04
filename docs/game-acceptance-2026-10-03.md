@@ -33,3 +33,13 @@ Computer Use could not obtain a targetable window for the running copied PD2 pro
 5. Reparse the game-saved character and stash, record checksums, counts, item identity, and screenshots. Repeat with a socketed item before broadening transfer availability.
 
 This is the remaining game acceptance gate. Live installed-save writes, selected historical-profile transfers, and broader write support stay disabled until their own evidence is established.
+
+## Read-only result comparison
+
+Keep the prepared pack and its manifest unchanged. Copy both game-written cases into an independent results directory that mirrors the manifest paths (`tome/Amazon.d2s`, `tome/Amazon.d2x`, `socketed/freezing-arrow.d2s`, `socketed/freezing-arrow.d2x`). Run:
+
+```sh
+node scripts/verify-game-acceptance.mjs --pack <retained-pack> --results <post-game-results>
+```
+
+This emits JSON with per-case checks, prepared/result hashes, and whether each file changed. It validates provenance and structural preservation without writing inputs. It exits 1 for structural failures or invalid inputs. Exact selected tree changes require review even when decoded properties match. A checksum-correct character timestamp rewrite can pass; identical independent copies can also pass. Neither establishes game use. Every report leaves `gameAcceptance` unverified and the acceptance gate pending until actual game observations and evidence review.

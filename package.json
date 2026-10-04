@@ -9,6 +9,7 @@
     "bank": "node ./src/cli.mjs bank",
     "coverage": "node ./scripts/parser-coverage.mjs",
     "prepare:acceptance": "node ./scripts/prepare-game-acceptance.mjs",
+    "verify:acceptance": "node ./scripts/verify-game-acceptance.mjs",
     "test": "node --test \"test/*.test.mjs\""
   }
 }
