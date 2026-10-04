@@ -181,7 +181,7 @@ function printUsage() {
   console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>]');
   console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <save> [--page <1-based stash page>] --item <1-based item> [--experimental-write] [--dry-run]');
   console.error('  node ./src/cli.mjs bank withdraw --bank <bank.json> --item-id <id> --destination <save> [--page <1-based stash page> | --panel <inventory|cube|stash>] --column <0-based column> --row <0-based row> [--experimental-write] [--dry-run]');
-  console.error('  node ./src/cli.mjs bank recover --bank <bank.json> [--experimental-write] [--dry-run]');
+  console.error('  node ./src/cli.mjs bank recover --bank <bank.json> [--source <disposable save>] [--experimental-write] [--dry-run]');
   console.error('  Bank mutations default to dry-run. Experimental writes require explicit paths and --experimental-write.');
 }
 

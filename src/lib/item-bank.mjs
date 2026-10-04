@@ -170,15 +170,23 @@ function replaceFile(file, bytes) {
   } finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
 }
 
-function lockResource(lock, bankPath, stashPath) {
+function lockResource(lock, bankPath, stashPath, requireExact = false) {
   assertMetadataPath(lock);
   const token = randomUUID();
-  try { durableWrite(lock, JSON.stringify({ pid: process.pid, token, bankPath, stashPath: stashPath ?? null, createdAt: new Date().toISOString() }), true); }
+  const bytes = Buffer.from(JSON.stringify({ pid: process.pid, token, bankPath, stashPath: stashPath ?? null, createdAt: new Date().toISOString() }));
+  try { durableWrite(lock, bytes, true); }
   catch (error) { if (error.code === 'EEXIST') throw new Error('Bank is locked by another operation; recover a stale lock before continuing'); throw error; }
-  return () => {
-    if (!fs.existsSync(lock) || JSON.parse(fs.readFileSync(lock, 'utf8')).token !== token) throw new Error('Operation lock changed unexpectedly');
+  const verify = () => {
+    if (requireExact) assertMetadataPath(lock);
+    const current = readBytes(lock);
+    if (current === null || requireExact && !current.equals(bytes) || JSON.parse(current.toString('utf8')).token !== token) throw new Error('Operation lock changed unexpectedly');
+  };
+  const release = () => {
+    verify();
     fs.unlinkSync(lock);
   };
+  release.verify = verify;
+  return release;
 }
 
 function lockOperation(bankPath, stashPath) {
@@ -363,12 +371,63 @@ export function recoverBank(options) {
   assertExpectedRecoveryFiles(expectedRecoveryFileHashes);
   const journal = journalBytes === null ? null : JSON.parse(journalBytes.toString('utf8'));
   const validated = journal === null ? null : validateJournal(bankPath, journal);
-  const stashPath = validated?.stashPath ?? bankLock?.lock.stashPath ?? null;
+  const associatedSource = validated?.stashPath ?? bankLock?.lock.stashPath ?? null;
+  let explicitSource = null;
+  if (options.sourcePath !== undefined) {
+    explicitSource = guardPath(options.sourcePath);
+    if (!['.d2s', '.d2x', '.sss'].includes(path.extname(explicitSource).toLowerCase()) ||
+        !fs.existsSync(explicitSource) || !fs.statSync(explicitSource).isFile()) {
+      throw new Error('Explicit recovery source must be an existing independent regular save file');
+    }
+    checkDifferentFiles(bankPath, explicitSource);
+    if (associatedSource && explicitSource !== associatedSource) throw new Error('Explicit recovery source conflicts with the interrupted transaction');
+  }
+  const stashPath = associatedSource ?? explicitSource;
   if (stashPath && guardPath(stashPath) !== stashPath) throw new Error('Invalid stale lock stash target');
   const stashLock = stashPath ? staleLock(stashPath + '.pd2-mule.lock', bankPath, true) : null;
   assertExpectedHash(options, 'expectedSourceLockSha256', stashLock?.bytes ?? null, 'Recovery save lock');
+  if (explicitSource !== null && stashLock && (stashLock.lock.bankPath !== bankPath || stashLock.lock.stashPath !== stashPath)) throw new Error('Explicit recovery source lock ownership does not match the selected bank and save');
+  const orphanOnly = explicitSource !== null && associatedSource === null && journal === null;
+  let bankSnapshot;
+  let sourceSnapshot;
+  if (orphanOnly) {
+    if (bankLock && bankLock.lock.bankPath !== bankPath) throw new Error('Explicit recovery bank lock ownership does not match the selected bank');
+    bankSnapshot = readBytes(bankPath);
+    sourceSnapshot = fs.readFileSync(stashPath);
+    assertExpectedHash(options, 'expectedBankSha256', bankSnapshot, 'Recovery bank');
+    assertExpectedHash(options, 'expectedSourceSha256', sourceSnapshot, 'Recovery save');
+  }
   const result = { dryRun, operation: 'recover', recovered: false, ...(journal ? { transactionId: journal.transactionId, action: journal.status === 'committed' ? 'finalize' : 'rollback' } : { status: 'No interrupted transaction', ...(bankLock || stashLock ? { action: 'remove-stale-lock' } : {}) }) };
   if (dryRun) return result;
+  if (orphanOnly) {
+    if (!stashLock && !bankLock) return result;
+    if (bankLock) {
+      const stale = staleLock(bankPath + '.lock', bankPath, true);
+      if (!stale || !stale.bytes.equals(bankLock.bytes)) throw new Error('Operation lock changed during recovery');
+      clearStaleLock(stale);
+    }
+    // Publish a discoverable association before removing historical save-only
+    // metadata. An interrupted cleanup can then use ordinary bank recovery.
+    const unlock = lockResource(bankPath + '.lock', bankPath, stashPath, true);
+    try {
+      const assertSnapshots = () => {
+        unlock.verify();
+        if (guardPath(bankPath) !== bankPath || guardPath(stashPath) !== stashPath || !fs.statSync(stashPath).isFile()) throw new Error('Explicit recovery source target changed during recovery');
+        guardMetadata(bankPath);
+        if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankSnapshot) || hashOrNull(readBytes(stashPath)) !== sha256(sourceSnapshot)) throw new Error('Bank or save changed during explicit source recovery');
+        if (readBytes(journalPath) !== null) throw new Error('Transaction journal changed during recovery');
+        assertExpectedRecoveryFiles(expectedRecoveryFileHashes);
+      };
+      assertSnapshots();
+      if (stashLock) {
+        const owned = staleLock(stashLock.lockPath, bankPath, true);
+        if (!owned || sha256(owned.bytes) !== sha256(stashLock.bytes) || owned.lock.stashPath !== stashPath) throw new Error('Operation lock changed during recovery');
+        clearStaleLock(owned);
+      } else if (readBytes(stashPath + '.pd2-mule.lock') !== null) throw new Error('Operation lock changed during recovery');
+      assertSnapshots();
+      return { ...result, recovered: true };
+    } finally { unlock(); }
+  }
   clearStaleLock(stashLock);
   clearStaleLock(bankLock);
   const unlock = lockOperation(bankPath, stashPath);

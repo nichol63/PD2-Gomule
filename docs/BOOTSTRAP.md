@@ -2,7 +2,7 @@
 
 This is the portable continuation entry point. Start with [laptop setup](LAPTOP_SETUP.md) on a fresh machine, then read [the work queue](autopilot/WORK_QUEUE.md) and [the development workflow](DEVELOPMENT_WORKFLOW.md).
 
-Latest known full test baseline: `328` passing, `0` failing.
+Latest known full test baseline: `348` passing, `0` failing.
 
 The user started an autonomous development run, continued with a new 3,000,000-token goal on October 4. [The run record](autonomous-run-2026-10-04.md) tracks ungated batches and evidence. Duplicate stash page labels now retain their exact numeric identity in the inspector and UI; all seven repeated class-page pairs and real UI navigation are tested. Read-only post-game comparison is available with `npm run verify:acceptance -- --pack <retained-pack> --results <post-game-results>`; every report retains unverified game acceptance. In-game acceptance still gates multi-item transfers.
 
@@ -32,4 +32,4 @@ Save discovery deduplicates physical files and terminates directory cycles while
 
 Workspace completeness filtering now applies the same normalized flag it reports, including HTTP string selectors. Acceptance verification checks selected-item absence across validated primary, mercenary and golem records; uncertain boundaries fail conservatively.
 
-The bank now shows read-only decoded item properties, socket contents and stack counts; see [bank details evidence](bank-details-2026-10-04.md). Withdrawal containers survive refresh when the destination identity remains valid. Bank-first acquisition and save-first cleanup keep interrupted locks discoverable; see [navigation and lock evidence](bank-navigation-locks-2026-10-04.md). Explicit recovery of historical save-only locks is the next ready task.
+The bank now shows read-only decoded item properties, socket contents and stack counts; see [bank details evidence](bank-details-2026-10-04.md). Withdrawal containers survive refresh when the destination identity remains valid. Bank-first acquisition and save-first cleanup keep interrupted locks discoverable; see [navigation and lock evidence](bank-navigation-locks-2026-10-04.md). Historical save-only locks support [explicit-source recovery](bank-orphan-recovery-2026-10-04.md). Preserving surviving source IDs across refresh discovery is the next ready task.

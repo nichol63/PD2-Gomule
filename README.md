@@ -140,3 +140,11 @@ npm run bank -- recover --bank "C:\path\bank.json"
 ```
 
 Add `--experimental-write` to perform the proposed rollback or finalization. Recovery refuses externally modified files or damaged backups. It does not silently choose which copy to keep.
+
+For a stale save-only lock left by an older version, explicitly select the known disposable save:
+
+```sh
+npm run bank -- recover --bank "C:\path\bank.json" --source "C:\path\copy.d2x"
+```
+
+Review the preview, then add `--experimental-write` to clear the matching stale lock. Lock-only recovery preserves bank and save bytes and requires the recorded bank/save ownership to match. See [explicit orphan recovery evidence](docs/bank-orphan-recovery-2026-10-04.md).

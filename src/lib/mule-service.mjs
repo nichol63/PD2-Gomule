@@ -88,6 +88,11 @@ export function createMuleService(workspace, options = {}) {
     let label;
     if (action === 'recover') {
       label = 'Recover interrupted transfer';
+      if (input.sourceId !== undefined) {
+        const selected = source(input.sourceId);
+        request.sourcePath = selected.summary.filePath;
+        request.expectedSourceSha256 = selected.summary.sourceSha256;
+      }
     } else if (action === 'deposit') {
       const selected = source(input.sourceId);
       const entry = collectBrowseEntries(selected.summary).find(entry => getItemKey(entry) === input.itemKey);
@@ -119,7 +124,7 @@ export function createMuleService(workspace, options = {}) {
       const journal = readPinnedJson(journalFile, fileHashes[1][1]);
       const lockFile = bankPath + '.lock';
       const lock = readPinnedJson(lockFile, fileHashes[2][1]);
-      const recoverySave = journal?.entries?.[0]?.path ?? lock?.stashPath;
+      const recoverySave = journal?.entries?.[0]?.path ?? lock?.stashPath ?? request.sourcePath;
       request.expectedBankLockSha256 = fileHashes[2][1];
       request.expectedSourceLockSha256 = null;
       if (recoverySave) {

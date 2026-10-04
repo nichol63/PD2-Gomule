@@ -4,7 +4,7 @@ const ALLOWED_OPTIONS = {
   list: new Set(['bank', 'query']),
   deposit: new Set(['bank', 'source', 'page', 'item', 'experimental-write', 'dry-run']),
   withdraw: new Set(['bank', 'destination', 'page', 'panel', 'item-id', 'column', 'row', 'experimental-write', 'dry-run']),
-  recover: new Set(['bank', 'experimental-write', 'dry-run'])
+  recover: new Set(['bank', 'source', 'experimental-write', 'dry-run'])
 };
 
 function required(options, name) {
@@ -55,6 +55,7 @@ export function parseBankArguments(args) {
     request.column = integer(options, 'column', 0);
     request.row = integer(options, 'row', 0);
   }
+  if (action === 'recover' && options.source !== undefined) request.sourcePath = options.source;
   return { action, request, query: options.query ?? '' };
 }
 
