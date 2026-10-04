@@ -83,12 +83,23 @@ async function fetchJson(url) {
 
 async function loadCatalog() {
   state.catalog = await fetchJson('/api/catalog');
-  state.sourceId = state.catalog.defaultSourceId;
+  const sourceFallback = !state.catalog.sources.some(source => source.id === state.sourceId);
+  if (sourceFallback) {
+    state.sourceId = state.catalog.defaultSourceId;
+    state.page = null;
+    // Invalidate a pending response for a source that no longer exists.
+    viewRequestGeneration += 1;
+    activeViewRequest = null;
+    clearView('Loading items...');
+  }
   elements.sourceCount.textContent = `${state.catalog.sourceCount}`;
   elements.workspaceMeta.textContent = state.catalog.loadedFrom.join(' | ');
+  renderSourceList();
+  return sourceFallback;
 }
 
 let viewRequestGeneration = 0;
+let activeViewRequest = null;
 
 function clearView(message) {
   state.view = null;
@@ -103,10 +114,11 @@ function clearView(message) {
   bankUi.selectionChanged();
 }
 
-async function loadView() {
+async function loadView(preservedParams) {
   const generation = ++viewRequestGeneration;
   // Preserve the requested item key before clearing controls for the old view.
-  const params = createSearchParams();
+  const params = new URLSearchParams(preservedParams ?? createSearchParams());
+  activeViewRequest = { generation, params };
   clearView('Loading items...');
 
   try {
@@ -122,6 +134,8 @@ async function loadView() {
   } catch {
     if (generation !== viewRequestGeneration) return;
     clearView('Unable to load items. Try again.');
+  } finally {
+    if (activeViewRequest?.generation === generation) activeViewRequest = null;
   }
 }
 
@@ -573,11 +587,19 @@ function bindEvents() {
 }
 
 const bankUi = createBankUi(state, async () => {
-  const selectedSource = state.sourceId;
-  await loadCatalog();
-  if (state.catalog.sources.some(source => source.id === selectedSource)) state.sourceId = selectedSource;
-  state.selectedItemKey = null;
-  await loadView();
+  const generationBeforeCatalog = viewRequestGeneration;
+  const sourceFallback = await loadCatalog();
+  if (!sourceFallback && viewRequestGeneration !== generationBeforeCatalog) return;
+
+  let params = createSearchParams();
+  if (!sourceFallback && activeViewRequest?.generation === viewRequestGeneration) {
+    const pendingIntent = new URLSearchParams(activeViewRequest.params);
+    const currentIntent = new URLSearchParams(params);
+    pendingIntent.delete('selectedItemKey');
+    currentIntent.delete('selectedItemKey');
+    if (pendingIntent.toString() === currentIntent.toString()) params = activeViewRequest.params;
+  }
+  await loadView(params);
 });
 
 async function main() {

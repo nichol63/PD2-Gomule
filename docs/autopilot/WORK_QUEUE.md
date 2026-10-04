@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 269 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 278 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -77,15 +77,20 @@ A temporary directory self-symlink caused discovery to fail with `ELOOP`; an exp
 
 Outcome: discovery now tracks visited directory identities and deduplicates saves by bigint device/inode identity. Requested paths and stable result slots remain; directly encountered leaves replace their leaf symlink representatives. Independent copies remain distinct, alias-only paths remain aliases, and existing link transfer guards and missing/broken-path errors remain. Nine new tests and 47 focused tests pass; full suite: 269 passing, zero failures/skips; final review clean. Canonical discovery remains 134 files / 19,778 roots / 22,072 nodes, with all fixture hashes unchanged.
 
-### [needs-research] IDENTITY-002 - Bind optional naming-cache provenance
+### [done] BROWSE-003 - Preserve navigation during catalog refresh
+
+Executing the updated app with controlled responses reproduced a separate refresh race: start bank catalog reload while viewing source A, navigate to B and resolve its view, then resolve the old catalog. The reload restores captured A and requests its view, ending on A despite the user's newer navigation. Coordinate catalog/reload completion with current navigation intent and view generations. Preserve later source/page/filter/item requests during refresh, keep initial default selection and fallback behavior, and retain bank preview invalidation. Add actual UI deferred-response tests; this is separate from BROWSE-002 view-response ordering.
+
+Outcome: catalog refresh preserves completion-time valid navigation, skips refresh-owned view requests after newer navigation, retains matching already-pending item keys, and explicitly falls back when the source disappears. Obsolete responses cannot restore removed or earlier selections. Nine independent actual app/bank UI tests and 21 focused tests pass; full suite: 278 passing, zero failures/skips; canonical hashes unchanged; review clean. Refresh/catalog/bank status still run without extra transfer commits.
+
+### [ready] IDENTITY-002 - Bind optional naming-cache provenance
 
 On independent copied tables, parsing the real socketed Grand Matron Bow (fingerprint 70879556) cached the runeword name `Edge`. Changing only the copied `Runes.txt` name to `Edge Test Rename` left the cached object displaying `Edge`, while a freshly loaded table object displayed the new name. The six-core-table provenance guard remained current, as intended for BANK-002. Trace the lazy identity cache and define a bounded policy for optional UniqueItems/SetItems/Runes/ItemTypes bytes, including absent files. Before implementation, prove a user-visible stale bank-label or mixed-load case and choose consistent loaded snapshots or explicit reload rejection. Preserve optional read-only loading and the existing bank fingerprint format; do not claim optional identity data is pinned by the core-table fix.
 
 Additional disposable evidence: after that naming-table edit, a character-to-bank deposit succeeds using the cached object and stores `Edge`, while fresh inspection of the selected real bow displays `Edge Test Rename`. Canonical tables and saves remain unchanged. This establishes a user-visible bank-label case; loaded optional snapshots versus explicit stale-cache rejection still needs a bounded policy.
 
-### [ready] BROWSE-003 - Preserve navigation during catalog refresh
+Bounded policy after source review: capture private immutable provenance from the seven buffers actually decoded by the lazy naming cache (three core item tables plus four optional naming tables), recording absent optional files explicitly. Compare reread core hashes to their loader provenance to reject mixed first loads. A combined core/identity freshness guard must reject stale cached labels at the existing bank and acceptance boundaries without silently rebuilding reviewed intent. Preserve read-only mock/optional fallbacks and exact legacy bank fingerprints. Test old versus fresh Edge labels, optional appearance/removal/retargeting, actual decoded-buffer hashes, no-write entry rejection and late journal recovery. Core loading must not make optional naming files required.
 
-Executing the updated app with controlled responses reproduced a separate refresh race: start bank catalog reload while viewing source A, navigate to B and resolve its view, then resolve the old catalog. The reload restores captured A and requests its view, ending on A despite the user's newer navigation. Coordinate catalog/reload completion with current navigation intent and view generations. Preserve later source/page/filter/item requests during refresh, keep initial default selection and fallback behavior, and retain bank preview invalidation. Add actual UI deferred-response tests; this is separate from BROWSE-002 view-response ordering.
 
 ## Historical recovery result (2026-09-05)
 
