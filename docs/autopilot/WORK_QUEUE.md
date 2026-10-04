@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 260 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 269 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -71,9 +71,11 @@ A controlled execution of the shipped app requested page 31, then page 118, and 
 
 Outcome: only the newest view request may apply success or failure. Pending/error views clear old item controls, details, tooltip and selection immediately, invalidating existing bank deposit previews while retaining navigation/filter intent. Current failures are handled internally with a retryable message. Seven independent tests execute the shipped app and bank UI with real fixture responses, including reversed page 31/118 completion, HTTP/network/JSON errors, source switches, and late bank previews. Twelve focused and all 260 full-suite tests pass; canonical hashes unchanged; final review clean. The separate catalog refresh race is BROWSE-003.
 
-### [ready] DISCOVER-001 - Deduplicate filesystem aliases and avoid cycles
+### [done] DISCOVER-001 - Deduplicate filesystem aliases and avoid cycles
 
 A temporary directory self-symlink caused discovery to fail with `ELOOP`; an explicit save plus a symlink alias loaded the same physical save twice. Track visited real directories and deduplicate real file identities, retaining useful display paths and deterministic ordering. Validate temporary directory/file aliases and cycles, overlapping inputs, and the unchanged canonical 134-file discovery result. Do not expand transfer support for linked targets.
+
+Outcome: discovery now tracks visited directory identities and deduplicates saves by bigint device/inode identity. Requested paths and stable result slots remain; directly encountered leaves replace their leaf symlink representatives. Independent copies remain distinct, alias-only paths remain aliases, and existing link transfer guards and missing/broken-path errors remain. Nine new tests and 47 focused tests pass; full suite: 269 passing, zero failures/skips; final review clean. Canonical discovery remains 134 files / 19,778 roots / 22,072 nodes, with all fixture hashes unchanged.
 
 ### [needs-research] IDENTITY-002 - Bind optional naming-cache provenance
 

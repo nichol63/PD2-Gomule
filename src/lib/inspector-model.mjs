@@ -36,19 +36,32 @@ function isSupportedSaveFile(filePath) {
   return SAVE_FILE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
-function walkSaveFiles(targetPath, files) {
-  const stat = fs.statSync(targetPath);
+function walkSaveFiles(targetPath, discovery) {
+  const stat = fs.statSync(targetPath, { bigint: true });
+  const identity = `${stat.dev}:${stat.ino}`;
   if (stat.isDirectory()) {
+    if (discovery.directories.has(identity)) return;
+    discovery.directories.add(identity);
     const entries = fs.readdirSync(targetPath, { withFileTypes: true })
       .sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
-      walkSaveFiles(path.join(targetPath, entry.name), files);
+      walkSaveFiles(path.join(targetPath, entry.name), discovery);
     }
     return;
   }
 
   if (stat.isFile() && isSupportedSaveFile(targetPath)) {
-    files.push(normalizeFilePath(targetPath));
+    const leafSymlink = fs.lstatSync(targetPath).isSymbolicLink();
+    const previous = discovery.fileIdentities.get(identity);
+    if (!previous) {
+      discovery.fileIdentities.set(identity, { index: discovery.files.length, leafSymlink });
+      discovery.files.push(normalizeFilePath(targetPath));
+    } else if (previous.leafSymlink && !leafSymlink) {
+      // Keep traversal order, but prefer a direct leaf when it is also supplied.
+      // Preserve directory aliases and alias-only leaves as requested paths.
+      discovery.files[previous.index] = normalizeFilePath(targetPath);
+      previous.leafSymlink = false;
+    }
   }
 }
 
@@ -412,8 +425,7 @@ function normalizeCompleteOnly(value) {
 }
 
 export function discoverSaveFiles(inputPaths = []) {
-  const files = [];
-  const uniqueFiles = new Set();
+  const discovery = { files: [], directories: new Set(), fileIdentities: new Map() };
 
   for (const inputPath of getDefaultInputs(inputPaths)) {
     const resolvedPath = normalizeFilePath(inputPath);
@@ -421,18 +433,10 @@ export function discoverSaveFiles(inputPaths = []) {
       throw new Error(`Save path does not exist: ${resolvedPath}`);
     }
 
-    walkSaveFiles(resolvedPath, files);
+    walkSaveFiles(resolvedPath, discovery);
   }
 
-  return files
-    .filter((filePath) => {
-      if (uniqueFiles.has(filePath)) {
-        return false;
-      }
-
-      uniqueFiles.add(filePath);
-      return true;
-    });
+  return discovery.files;
 }
 
 export function loadInspectorWorkspace(inputPaths = [], options = {}) {
