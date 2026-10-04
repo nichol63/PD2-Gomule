@@ -541,7 +541,8 @@ export function buildInspectorView(workspace, options = {}) {
   const summary = source.summary;
   const selectedPage = getSelectedPage(summary, options.page);
   const browseOptions = {
-    page: selectedPage?.name ?? null,
+    // Labels can repeat or contain numbers; retain the resolved physical page.
+    page: selectedPage ? String(selectedPage.index + 1) : null,
     query: options.query ?? '',
     quality: options.quality ?? '',
     sort: options.sort ?? 'name',

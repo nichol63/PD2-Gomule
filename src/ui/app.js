@@ -94,7 +94,7 @@ async function loadView() {
   state.sourceId = state.view.source?.id ?? state.sourceId;
 
   const selectedPage = state.view.pages.find((page) => page.selected);
-  state.page = selectedPage?.name ?? null;
+  state.page = selectedPage ? String(selectedPage.index + 1) : null;
   state.selectedItemKey = state.view.selectedItem?.itemKey ?? null;
 
   render();
@@ -191,8 +191,8 @@ function renderPageList() {
   elements.pageList.innerHTML = pages.map((page) => {
     const pct = Math.round((page.topLevelCount / maxCount) * 100);
     return `
-    <button class="page-card ${page.selected ? 'is-selected' : ''}" data-page-name="${escapeHtml(page.name)}">
-      <strong>${escapeHtml(page.name)}</strong>
+    <button class="page-card ${page.selected ? 'is-selected' : ''}" data-page-index="${page.index}">
+      <strong>${escapeHtml(`${page.index + 1}. ${page.name}`)}</strong>
       <span>${page.topLevelCount} top-level items</span>
       <div class="page-card__bar-track">
         <div class="page-card__bar-fill" style="width:${pct}%"></div>
@@ -201,9 +201,9 @@ function renderPageList() {
   `;
   }).join('');
 
-  for (const button of elements.pageList.querySelectorAll('[data-page-name]')) {
+  for (const button of elements.pageList.querySelectorAll('[data-page-index]')) {
     button.addEventListener('click', async () => {
-      state.page = button.dataset.pageName;
+      state.page = String(Number(button.dataset.pageIndex) + 1);
       state.selectedItemKey = null;
       setLoading('Loading page...');
       await loadView();

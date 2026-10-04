@@ -6,12 +6,14 @@ Laptop continuation restored the pinned fixture checkout and all ten matching pa
 
 The corrected-parser display audit found zero bytime properties and zero `item_dmgpercent_permissinghppercent` properties across all 22,072 physical records. Historical bytime/noise samples below are superseded. Blood Warp and five bounded scaling/tier displays already shipped in the October 3 recovery; missing strings are no longer their blocker.
 
+The user started a persistent development goal on October 4 with a 300,000-token ceiling. Continue bounded ungated work with implementation, independent fixture/tests, and review lanes. Account limits may stop the run before its goal budget. [The run record](../autonomous-run-2026-10-04.md) tracks batches and evidence. Multi-item transfers still require actual game acceptance.
+
 Character and browser bank transfers now support disposable copies. See [character transfer evidence](../character-transfers-2026-10-03.md): 131 supported characters, 224 tests passing, 10 timing/recovery regressions, and unchanged canonical hashes. GPT-6.1 Sol high workers replace GPT-6 Sol. Game acceptance remains a separate gate; the isolated test installation is `../pd2-game-validation-2026-10-03` from the workspace root's `pd2-mule` checkout.
 
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 224 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 234 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -44,6 +46,28 @@ Character primary edits now prove stats/skills and empty corpse boundaries, pres
 ### [next] MULE-003 - Multi-item transfers
 
 After game acceptance, add multi-selection with complete placement preview and a single recoverable batch transaction. Do not implement a loop of separately committed deposits as an atomic batch.
+
+### [done] BROWSE-001 - Preserve exact stash page identity
+
+The canonical shared stash has two `Amazon` pages: page 31 (index 30, 15 roots) and page 118 (index 117, 57 roots). The inspector currently selects page 118 but converts it back to its label and renders page 31's items. Resolve the page once and retain its one-based numeric selector in internal model/UI state. Page cards must show numbered labels and select by index. Keep external name selectors compatible. Validate all repeated class-page labels against actual fixtures, including selected details and item keys, plus UI navigation/filter round trips. This changes browsing only.
+
+Outcome: fixed in the inspector model and UI. All seven duplicate class-page pairs select the correct physical page; numeric identity survives item selection, reloads, quality/sort changes, and clearing filters. Legacy name selection still resolves the first matching name. Five independent real-fixture/UI tests pass; full suite: 234 passing, zero failures/skips. Review found no material issue; canonical shared-stash hash is unchanged.
+
+### [ready] WRITE-004 - Read-only acceptance result verification
+
+Compare a retained prepared pack against independent post-game save copies. Validate manifest/table provenance, protected relative paths, checksums, sizes, counts, placement, identities, properties, and socket children; emit a diagnostic JSON report without modifying inputs. Distinguish structural verification from observed game acceptance: neither matching bytes nor changed file hashes prove the game was used. Keep the game gate pending until actual load/save/reload observations and evidence review. Provide a CLI command and tests using disposable real-fixture cases and targeted corruptions.
+
+### [ready] BANK-002 - Bind transfer profiles to loaded table bytes
+
+A disposable fixture reproduction loaded `ci3` with width 2, changed only a copied `armor.txt` row to width 3, and then committed a deposit using the old table object. The bank stored width 2 with the new disk-table fingerprint. Capture provenance from the bytes actually used by `loadPd2Tables` and refuse transfers when current tables differ from those loaded definitions. Preserve existing bank format and fingerprint compatibility deliberately. Test stale loads, changes after preview, and normal deposits/withdrawals on copies. Never modify canonical tables to reproduce this defect.
+
+### [ready] BROWSE-002 - Keep the latest browser request selected
+
+A controlled execution of the shipped app requested page 31, then page 118, and resolved the newer response first. The older response subsequently restored page 31 and its item selection. Apply view state/render updates only for the latest request, and handle current-request errors without allowing old responses to restore stale results. Test deferred response ordering through actual UI handlers.
+
+### [ready] DISCOVER-001 - Deduplicate filesystem aliases and avoid cycles
+
+A temporary directory self-symlink caused discovery to fail with `ELOOP`; an explicit save plus a symlink alias loaded the same physical save twice. Track visited real directories and deduplicate real file identities, retaining useful display paths and deterministic ordering. Validate temporary directory/file aliases and cycles, overlapping inputs, and the unchanged canonical 134-file discovery result. Do not expand transfer support for linked targets.
 
 ## Historical recovery result (2026-09-05)
 

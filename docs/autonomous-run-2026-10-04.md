@@ -1,0 +1,25 @@
+# Autonomous development run: October 4, 2026
+
+The user explicitly requested an orchestration run with a 300,000-token goal budget. That is a ceiling for the run, not a prediction of the Plus weekly allowance. Account usage limits may stop the run sooner.
+
+The active goal is to complete useful, evidence-backed work in post-game verification tooling, read-only browsing usability, portability, and transfer reliability while preserving the pending game-acceptance gate. Each batch uses strict implementation/test ownership, canonical fixture proof, full regression validation, and an independent review before commit. The run must stop when the scoped work is complete, its budget is reached, or no defensible progress remains without user input. It must not manufacture work just to consume the budget.
+
+Starting state: clean `main` at `121b287`, synchronized with `origin/main`; 229 tests passing; pinned fixture/table dependencies restored. The user has not performed desktop in-game acceptance. The generated acceptance pack is local and excluded from Git.
+
+## Work selected
+
+1. BROWSE-001: fix a reproduced duplicate-page identity bug. `_LOD_SharedStashSave.sss` page 118 (`Amazon`, 57 roots) highlights correctly but currently renders page 31 (`Amazon`, 15 roots) because model and UI state use page names after resolving a numeric selection.
+2. WRITE-004: add read-only comparison of retained prepared acceptance evidence with post-game save copies. Structural results must never be reported as game acceptance.
+3. BANK-002: a temporary table-copy reproduction changed `ci3` width 2 → 3 after loading. A deposit using the stale object still committed and stored width 2 with the changed disk fingerprint. Bind transfer provenance to the table bytes actually loaded.
+4. BROWSE-002: a controlled execution of the shipped UI confirmed that a late page-31 response can replace an already displayed page-118 response. Retain only the latest request's state/render updates.
+5. DISCOVER-001: temporary directory cycles cause `ELOOP`, and a save plus its filesystem alias are discovered twice. Deduplicate physical files and visited real directories without expanding linked-target transfer support.
+
+## Boundaries and pending evidence
+
+Canonical fixtures, original saves, game archives, and reference repositories stay unchanged. Write tests use independent disposable copies. The inspector remains read-only by default. Experimental single-item transfers keep existing guards, previews, locks, backups, and journals. Multi-item transfers, unsupported item shapes, historical-profile transfer eligibility, and power-loss durability are not expanded by this run.
+
+Actual PD2/PlugY load, save, and reload evidence remains required from an isolated compatible installation. The autonomous run can prepare and analyze that evidence but cannot infer game success from parser or serialization tests.
+
+## Completed batches
+
+BROWSE-001 preserves numeric page identity in both the inspector model and UI. The real shared stash's page 31 and page 118 now display their own 15 and 57 roots, with distinct numbered labels, matching summary/grid/details/item keys, and compatible legacy name selectors. Independent tests checked all seven repeated class-page pairs and executed the actual UI's page/item/filter/sort/clear handlers in a controlled DOM with fixture-backed responses. The canonical shared-stash SHA256 is unchanged. Full suite: 234 passing, zero failures or skips. Independent review found no material regression.

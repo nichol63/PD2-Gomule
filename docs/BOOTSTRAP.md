@@ -2,7 +2,9 @@
 
 This is the portable continuation entry point. Start with [laptop setup](LAPTOP_SETUP.md) on a fresh machine, then read [the work queue](autopilot/WORK_QUEUE.md) and [the development workflow](DEVELOPMENT_WORKFLOW.md).
 
-Latest known full test baseline: `229` passing, `0` failing.
+Latest known full test baseline: `234` passing, `0` failing.
+
+The user started a 300,000-token autonomous development goal on October 4. [The run record](autonomous-run-2026-10-04.md) tracks ungated batches and evidence. Duplicate stash page labels now retain their exact numeric identity in the inspector and UI; all seven repeated class-page pairs and real UI navigation are tested. In-game acceptance still gates multi-item transfers.
 
 October 4 laptop continuation restored the pinned fixtures/tables and added portable acceptance preparation. The prepared pack contains independent Town Portal Book and socketed-bow transfers, retained backups, and a game checklist. See [continuation evidence](continuation-2026-10-04.md); regenerate with `npm run prepare:acceptance -- --output <new-directory>`. In-game acceptance remains pending.
 
