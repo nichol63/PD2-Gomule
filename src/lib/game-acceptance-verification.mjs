@@ -6,6 +6,7 @@ import { assertItemIdentityTablesCurrent } from './item-identity.mjs';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { calculateCharacterChecksum, inspectCharacterTransferSupport } from './character-serialization.mjs';
 import { extractStashItem, sha256 } from './safe-serialization.mjs';
+import { parseLegacyItemList } from './legacy-item-parser.mjs';
 
 const PREPARED_STATUS = 'prepared; in-game acceptance pending';
 const CASES = {
@@ -145,12 +146,24 @@ function compareScenario(scenario, original, result, pd2Tables) {
   check('stash-pages', pages(original.stash.save), pages(stash));
   check('landing-counts', landingCounts(original.stash.save), landingCounts(stash));
   const characterSupport = inspectCharacterTransferSupport(characterBytes, character, { pd2Tables });
+  let sourceRecords = null;
+  if (characterSupport.supported) {
+    try {
+      sourceRecords = [...character.items];
+      const { mercenary, golem } = character.characterSections;
+      for (const [section, rootCount] of [[mercenary, mercenary.itemCount], [golem, golem.present ? 1 : 0]]) {
+        if (rootCount === 0) continue;
+        const { startOffset, endOffset } = section.itemRegion;
+        sourceRecords.push(...parseLegacyItemList(characterBytes, startOffset, rootCount, endOffset, pd2Tables).items);
+      }
+    } catch { sourceRecords = null; }
+  }
   check('complete-records', { character: true, stash: true }, {
-    character: characterSupport.supported && character.items.every(completeNode),
+    character: sourceRecords !== null && sourceRecords.every(completeNode),
     stash: stash.pages.every(page => page.items.every(completeNode) && page.itemCount === page.topLevelItems.length
       && page.parsedNodeCount === page.items.length && page.clampedItemCount === 0 && page.missingSocketChildCount === 0)
   });
-  check('source-absence', 0, character.topLevelItems.filter(item => isSelected(item, scenario.item)).length);
+  check('source-absence', 0, sourceRecords === null ? null : sourceRecords.filter(item => isSelected(item, scenario.item)).length);
   const occurrences = stash.pages.flatMap(page => page.topLevelItems.map((item, index) => ({ item, pageIndex: page.index, itemIndex: index })))
     .filter(entry => isSelected(entry.item, scenario.item));
   check('destination-occurrences', 1, occurrences.length);

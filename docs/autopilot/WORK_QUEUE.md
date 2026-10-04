@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 293 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 299 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -100,9 +100,15 @@ The HTTP route supplies `completeOnly` as the string `true`. The model normalize
 
 Outcome: workspace filtering uses one normalized completeness flag for activation, results and reported state. Exact existing true/string true/string 1 semantics remain. Five independent real-fixture model/HTTP tests and 30 focused tests pass, including excluded partial selections, combined filters and empty filtered results. Full suite: 293 passing, zero failures/skips; review clean; fixture bytes unchanged. Recursive socket-child filtering semantics were not established and are unchanged.
 
-### [ready] WRITE-005 - Check selected absence in all character item sections
+### [done] WRITE-005 - Check selected absence in all character item sections
 
 Read-only verifier audit on disposable results found that `source-absence` scans only primary character roots. Adding the selected prepared Grand Matron Bow (fingerprint 70879556, Tir/Tal/Amn children) to the socketed result's validated mercenary section still passes all 15 checks while its destination copy remains. A same-root-count substitution also passes: six mercenary roots remain, with the selected bow replacing a book. Extend absence checks to all validated primary, mercenary and golem item records. Reuse existing bounded section evidence; do not enable new writing or transfer paths. Add real disposable duplicate-section regressions, retain existing game-unverified status and untouched inputs, and refuse to claim absence when section parsing cannot be established.
+
+Outcome: selected identity is checked once per physical record across all validated primary, mercenary and golem sections. Unsupported boundaries report unknown absence and fail completeness rather than claiming zero. Six independent disposable-fixture tests and 35 focused tests pass, covering added and substituted mercenary duplicates, populated golem duplicates, legitimate auxiliary items and unsupported boundaries. All 15 diagnostics and game-unverified status remain; input hashes are unchanged. Full suite: 299 passing, zero failures/skips; final review clean.
+
+### [ready] BANK-003 - Read-only selected bank item details
+
+The bank dropdown shows name/code/source but cannot distinguish two Wolf Heads from Bases.d2x page index 12, items 12 and 15: their existing property displays are `+2 to Hunger` versus `+2 to Oak Sage` and `+2 to Summon Spirit Wolf`. Add a configured-bank-only read-only details endpoint and separate presentation model, decoding and validating the stored single tree under current table provenance. Show actual properties and socket children without exposing raw bytes or enabling writes. Clear stale details immediately and ignore obsolete responses. Verify these two real items, the socketed Edge bow and the stack-20 Town Portal Book on disposable copies; retain existing previews and transfer guards.
 
 ## Historical recovery result (2026-09-05)
 

@@ -43,3 +43,5 @@ node scripts/verify-game-acceptance.mjs --pack <retained-pack> --results <post-g
 ```
 
 This emits JSON with per-case checks, prepared/result hashes, and whether each file changed. It validates provenance and structural preservation without writing inputs. It exits 1 for structural failures or invalid inputs. Exact selected tree changes require review even when decoded properties match. A checksum-correct character timestamp rewrite can pass; identical independent copies can also pass. Neither establishes game use. Every report leaves `gameAcceptance` unverified and the acceptance gate pending until actual game observations and evidence review.
+
+Selected-item absence includes validated primary, mercenary and golem records, including socket children. Unsupported section boundaries yield unknown absence and a failed completeness check; they cannot establish that the transferred item is absent.
