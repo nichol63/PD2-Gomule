@@ -1,12 +1,34 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { assertPd2TablesCurrent, getPd2TableProvenance } from './pd2-data.mjs';
 
 const cache = new WeakMap();
+const provenance = new WeakMap();
+const CORE_FILES = ['armor.txt', 'weapons.txt', 'Misc.txt'];
+const hashBytes = bytes => createHash('sha256').update(bytes).digest('hex');
+const reloadError = () => new Error('PD2 item identity tables changed or became inaccessible; reload PD2 tables before continuing');
 
-function readRows(dataDir, file, skipExpansion = false) {
+function readRows(dataDir, file, skipExpansion = false, snapshot = null) {
   const filePath = path.join(dataDir, file);
-  if (!fs.existsSync(filePath)) return [];
-  const lines = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/);
+  if (!fs.existsSync(filePath)) {
+    if (snapshot) {
+      snapshot.files.push(Object.freeze({ fileName: file, sha256: null }));
+      snapshot.targets.set(file, null);
+      if (snapshot.coreHashes.has(file)) throw reloadError();
+    }
+    return [];
+  }
+  const target = snapshot ? fs.realpathSync.native(filePath) : null;
+  const bytes = fs.readFileSync(filePath);
+  if (snapshot) {
+    const sha256 = hashBytes(bytes);
+    snapshot.files.push(Object.freeze({ fileName: file, sha256 }));
+    snapshot.targets.set(file, target);
+    if (snapshot.coreHashes.has(file) && snapshot.coreHashes.get(file) !== sha256) throw reloadError();
+  }
+  // Snapshot the same read that supplies decoded family and naming rows.
+  const lines = bytes.toString('utf8').replace(/^\uFEFF/, '').split(/\r?\n/);
   const headers = lines.shift().split('\t');
   return lines.filter((line) => line && (!skipExpansion || line.split('\t')[0] !== 'Expansion')).map((line) => {
     const values = line.split('\t');
@@ -16,26 +38,73 @@ function readRows(dataDir, file, skipExpansion = false) {
 
 export function loadItemIdentityTables(pd2Tables) {
   if (cache.has(pd2Tables)) return cache.get(pd2Tables);
+  let core = null;
+  try { core = getPd2TableProvenance(pd2Tables); } catch { /* Read-only mocks keep optional fallbacks. */ }
+  if (core) assertPd2TablesCurrent(pd2Tables);
   const dataDir = pd2Tables.dataDir;
+  let snapshot = null;
+  if (core) {
+    try {
+      snapshot = {
+        requestedRoot: path.resolve(dataDir), realRoot: fs.realpathSync.native(dataDir),
+        files: [], targets: new Map(), coreHashes: new Map(core.map(entry => [entry.fileName, entry.sha256]))
+      };
+    } catch { throw reloadError(); }
+  }
+  const rows = (file, skipExpansion = false) => {
+    try { return readRows(dataDir, file, skipExpansion, snapshot); }
+    catch (error) { if (snapshot) throw reloadError(); throw error; }
+  };
   const families = new Map();
   const itemTypes = new Map();
-  for (const file of ['armor.txt', 'weapons.txt', 'Misc.txt']) {
-    for (const row of readRows(dataDir, file)) {
+  for (const file of CORE_FILES) {
+    for (const row of rows(file)) {
       if (!row.code) continue;
       families.set(row.code, new Set([row.code, row.normcode, row.ubercode, row.ultracode].filter(Boolean)));
       itemTypes.set(row.code, [row.type, row.type2].filter(Boolean));
     }
   }
   const tables = {
-    uniques: readRows(dataDir, 'UniqueItems.txt', true),
-    sets: readRows(dataDir, 'SetItems.txt', true),
-    runewords: readRows(dataDir, 'Runes.txt').filter((row) => row.complete === '1'),
-    typeParents: new Map(readRows(dataDir, 'ItemTypes.txt').map((row) => [row.Code, [row.Equiv1, row.Equiv2].filter(Boolean)])),
+    uniques: rows('UniqueItems.txt', true),
+    sets: rows('SetItems.txt', true),
+    runewords: rows('Runes.txt').filter((row) => row.complete === '1'),
+    typeParents: new Map(rows('ItemTypes.txt').map((row) => [row.Code, [row.Equiv1, row.Equiv2].filter(Boolean)])),
     families,
     itemTypes
   };
+  if (snapshot) {
+    assertPd2TablesCurrent(pd2Tables);
+    snapshot.files = Object.freeze(snapshot.files);
+    provenance.set(pd2Tables, snapshot);
+  }
   cache.set(pd2Tables, tables);
   return tables;
+}
+
+export function getItemIdentityTableProvenance(pd2Tables) {
+  getPd2TableProvenance(pd2Tables);
+  loadItemIdentityTables(pd2Tables);
+  return provenance.get(pd2Tables).files;
+}
+
+export function assertItemIdentityTablesCurrent(pd2Tables) {
+  const core = assertPd2TablesCurrent(pd2Tables);
+  const files = getItemIdentityTableProvenance(pd2Tables);
+  const snapshot = provenance.get(pd2Tables);
+  const coreHashes = new Map(core.map(entry => [entry.fileName, entry.sha256]));
+  try {
+    if (path.resolve(pd2Tables.dataDir) !== snapshot.requestedRoot || fs.realpathSync.native(snapshot.requestedRoot) !== snapshot.realRoot) throw reloadError();
+    for (const entry of files) {
+      if (CORE_FILES.includes(entry.fileName) && coreHashes.get(entry.fileName) !== entry.sha256) throw reloadError();
+      const file = path.join(snapshot.requestedRoot, entry.fileName);
+      if (entry.sha256 === null) {
+        if (fs.existsSync(file)) throw reloadError();
+      } else if (!fs.existsSync(file) || fs.realpathSync.native(file) !== snapshot.targets.get(entry.fileName) || hashBytes(fs.readFileSync(file)) !== entry.sha256) {
+        throw reloadError();
+      }
+    }
+  } catch { throw reloadError(); }
+  return files;
 }
 
 function compatibleCode(actual, expected, tables) {

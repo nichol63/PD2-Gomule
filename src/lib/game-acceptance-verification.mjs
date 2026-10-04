@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { loadPd2Tables, assertPd2TablesCurrent } from './pd2-data.mjs';
+import { loadPd2Tables } from './pd2-data.mjs';
+import { assertItemIdentityTablesCurrent } from './item-identity.mjs';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { calculateCharacterChecksum, inspectCharacterTransferSupport } from './character-serialization.mjs';
 import { extractStashItem, sha256 } from './safe-serialization.mjs';
@@ -176,7 +177,7 @@ function compareScenario(scenario, original, result, pd2Tables) {
 }
 
 export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2Tables() } = {}) {
-  assertPd2TablesCurrent(pd2Tables);
+  assertItemIdentityTablesCurrent(pd2Tables);
   const pack = directory(packDir, 'Pack');
   const results = directory(resultsDir, 'Results');
   demand(pack !== results, 'Pack and results must be independent directories');
@@ -201,7 +202,7 @@ export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2T
     const input = read(artifact(tablesRoot, table.fileName, 'PD2 table'));
     demand(input.sha256 === table.sha256, `PD2 table provenance hash mismatch: ${table.fileName}`);
   }
-  assertPd2TablesCurrent(pd2Tables);
+  assertItemIdentityTablesCurrent(pd2Tables);
   const saveIdentities = new Set();
   const loadSave = (root, relative, label) => {
     const input = read(artifact(root, relative, label));
@@ -235,7 +236,7 @@ export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2T
       && sha256(fs.readFileSync(input.real)) === input.sha256, 'An input changed during verification; retry with stable copies');
   }
   demand(isDeepStrictEqual(diskTableNames(), tableNames), 'PD2 tables changed during verification');
-  assertPd2TablesCurrent(pd2Tables);
+  assertItemIdentityTablesCurrent(pd2Tables);
   const structuralPassed = scenarios.every(scenario => scenario.checks.every(check => check.passed));
   return { schemaVersion: 1,
     status: `${structuralPassed ? 'structural checks passed' : 'structural checks failed'}; in-game acceptance pending`,

@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 278 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 288 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -83,7 +83,7 @@ Executing the updated app with controlled responses reproduced a separate refres
 
 Outcome: catalog refresh preserves completion-time valid navigation, skips refresh-owned view requests after newer navigation, retains matching already-pending item keys, and explicitly falls back when the source disappears. Obsolete responses cannot restore removed or earlier selections. Nine independent actual app/bank UI tests and 21 focused tests pass; full suite: 278 passing, zero failures/skips; canonical hashes unchanged; review clean. Refresh/catalog/bank status still run without extra transfer commits.
 
-### [ready] IDENTITY-002 - Bind optional naming-cache provenance
+### [done] IDENTITY-002 - Bind optional naming-cache provenance
 
 On independent copied tables, parsing the real socketed Grand Matron Bow (fingerprint 70879556) cached the runeword name `Edge`. Changing only the copied `Runes.txt` name to `Edge Test Rename` left the cached object displaying `Edge`, while a freshly loaded table object displayed the new name. The six-core-table provenance guard remained current, as intended for BANK-002. Trace the lazy identity cache and define a bounded policy for optional UniqueItems/SetItems/Runes/ItemTypes bytes, including absent files. Before implementation, prove a user-visible stale bank-label or mixed-load case and choose consistent loaded snapshots or explicit reload rejection. Preserve optional read-only loading and the existing bank fingerprint format; do not claim optional identity data is pinned by the core-table fix.
 
@@ -91,6 +91,12 @@ Additional disposable evidence: after that naming-table edit, a character-to-ban
 
 Bounded policy after source review: capture private immutable provenance from the seven buffers actually decoded by the lazy naming cache (three core item tables plus four optional naming tables), recording absent optional files explicitly. Compare reread core hashes to their loader provenance to reject mixed first loads. A combined core/identity freshness guard must reject stale cached labels at the existing bank and acceptance boundaries without silently rebuilding reviewed intent. Preserve read-only mock/optional fallbacks and exact legacy bank fingerprints. Test old versus fresh Edge labels, optional appearance/removal/retargeting, actual decoded-buffer hashes, no-write entry rejection and late journal recovery. Core loading must not make optional naming files required.
 
+
+Outcome: lazy naming-cache provenance records seven actual decoded-buffer hashes, including absent optional files. Combined core/identity guards reject stale cached labels at all bank/acceptance boundaries; first-load core reread mismatches fail before caching. Read-only mocks and missing-optional fallbacks remain; legacy fingerprints/schema-version-1 banks stay compatible. Ten independent tests and 42 focused tests pass. Review corrected the mixed-read regression to exercise the identity decoder; isolated mutation proof confirms its effectiveness. Full suite: 288 passing, zero failures/skips; final review clean; canonical hashes unchanged. See [identity provenance evidence](../identity-provenance-2026-10-04.md).
+
+### [ready] BROWSE-004 - Apply normalized workspace completeness filters
+
+The HTTP route supplies `completeOnly` as the string `true`. The model normalizes it for reported filters and source-specific browsing, but forwards raw options to workspace filtering, which requires boolean true. On a real parsed Bases workspace with one root marked incomplete in memory, workspace string `true` returns 2,586 items including that root while reporting the filter enabled; boolean true correctly returns 2,585, excluding it. Normalize once and use the same filter options in workspace and source browsing. Add independent model and HTTP tests with controlled parsed partial records; retain canonical fixture bytes and existing default behavior. The canonical corpus currently has no incomplete records, so pristine fixtures alone cannot exercise this defect.
 
 ## Historical recovery result (2026-09-05)
 

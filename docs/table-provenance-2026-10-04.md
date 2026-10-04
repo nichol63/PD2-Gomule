@@ -18,4 +18,4 @@ Acceptance preparation checks freshness before creating output and before publis
 
 Eight independent real-fixture tests cover actual loaded-buffer hashing, immutable/private provenance, stale core files, mutable paths and symlinks, read-only clones, old bank compatibility, browser preview/commit staleness, acceptance callers, and post-journal rejection/recovery. Forty focused tests and the full 253-test suite pass, with zero failures or skips. Canonical fixture and table hashes remain unchanged.
 
-The optional identity tables (`UniqueItems.txt`, `SetItems.txt`, `Runes.txt`, `ItemTypes.txt`) use a separate lazy naming cache. This batch pins the six core files only; optional naming-cache provenance is recorded as IDENTITY-002 research. Multi-item transfers still require actual game acceptance.
+The optional identity tables (`UniqueItems.txt`, `SetItems.txt`, `Runes.txt`, `ItemTypes.txt`) use a separate lazy naming cache. BANK-002 pins the six core files; the subsequent [IDENTITY-002 batch](identity-provenance-2026-10-04.md) adds naming-cache provenance at guarded operation boundaries. Multi-item transfers still require actual game acceptance.
