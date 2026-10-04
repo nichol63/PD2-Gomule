@@ -1,0 +1,66 @@
+# Continue on another computer
+
+Use Git and Node.js 22 (the verified desktop runtime is 22.17.0). There are no npm package dependencies to install. The code, tests, research scripts, queue, and development evidence are in this repository. Data tables and canonical saves are external dependencies.
+
+## Clone the code and fixtures
+
+Run these PowerShell commands from a new workspace directory of your choice:
+
+```powershell
+git clone https://github.com/nichol63/PD2-Gomule.git pd2-mule
+git clone https://github.com/BetweenWalls/PD2-Singleplayer.git PD2-Singleplayer
+git -C PD2-Singleplayer checkout 1e2fb4a7c44bdbd8f971e80cc3ff67a2da17af89
+```
+
+The fixture revision is pinned to the clean desktop checkout used for the current tests. Keep it unchanged. A newer fixture pack may have different counts and layouts.
+
+## Set up the matching tables
+
+The pinned fixture repository includes all ten matching tables. From the workspace directory, copy them into the location expected by the parser:
+
+```powershell
+$tableSource = '.\PD2-Singleplayer\Diablo II\ProjectD2\data\global\excel\modpacks\official'
+$tableDestination = '.\gomule-d2r\gomule\pd2'
+$tableNames = @('armor.txt', 'weapons.txt', 'Misc.txt', 'ItemStatCost.txt', 'Skills.txt', 'MonStats.txt', 'UniqueItems.txt', 'SetItems.txt', 'Runes.txt', 'ItemTypes.txt')
+New-Item -ItemType Directory -Path $tableDestination -Force | Out-Null
+foreach ($tableName in $tableNames) {
+    Copy-Item -LiteralPath (Join-Path $tableSource $tableName) -Destination $tableDestination
+}
+```
+
+All ten files in that pinned checkout were verified to match the desktop parser's tables byte for byte. Their expected hashes are recorded in [the coverage report](parser-coverage-2026-10-03-current.md). No manual file transfer from the desktop is required.
+
+```text
+workspace/
+  pd2-mule/                         # this repository
+  gomule-d2r/gomule/pd2/            # ten matching .txt tables
+  PD2-Singleplayer/Diablo II/Save/Library/
+```
+
+The `gomule-d2r` directory is just the expected table location for runtime and tests; a GoMule checkout is not required. Cloning upstream `gomule-d2r` alone does not provide this local PD2 table directory. Do not substitute newer tables when reproducing this baseline. The workspace can live anywhere; the main application resolves these paths relative to its repository. Some historical scratch scripts and evidence documents retain desktop paths.
+
+## Verify and launch
+
+```powershell
+Set-Location .\pd2-mule
+node .\scripts\session-snapshot.mjs
+npm test
+npm run coverage -- --format markdown
+node .\src\cli.mjs ui "..\PD2-Singleplayer\Diablo II\Save\Library" --port 4175
+```
+
+Open http://127.0.0.1:4175. Expected baseline: 224 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
+
+For transfer development, prepare disposable copies outside any game Save directory and run:
+
+```powershell
+node .\src\cli.mjs ui "..\save-copies" --bank "..\save-copies\bank.json" --experimental-write --port 4175
+```
+
+Never use original saves for write validation. In-game acceptance is still pending and requires a separately installed, compatible PD2/PlugY setup. The desktop's disposable validation installation and active bank are not part of this repository.
+
+## Resume development
+
+Read [BOOTSTRAP.md](BOOTSTRAP.md), [the work queue](autopilot/WORK_QUEUE.md), and [the development workflow](DEVELOPMENT_WORKFLOW.md). The next acceptance gate is loading transferred copies in PD2, followed by atomic multi-item transfers. Use Astra high for coordination and GPT-6.1 Sol high for workers where available.
+
+Commit and push laptop work before switching computers. On a clean checkout, use `git pull --ff-only` before resuming. Do not force-push to reconcile changes made on both machines.

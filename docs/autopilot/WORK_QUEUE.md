@@ -1,5 +1,42 @@
 # PD2 Mule Work Queue
 
+## Current development state (2026-10-03)
+
+Character and browser bank transfers now support disposable copies. See [character transfer evidence](../character-transfers-2026-10-03.md): 131 supported characters, 224 tests passing, 10 timing/recovery regressions, and unchanged canonical hashes. GPT-6.1 Sol high workers replace GPT-6 Sol. Game acceptance remains a separate gate; the isolated test installation is `../pd2-game-validation-2026-10-03` from the workspace root's `pd2-mule` checkout.
+
+The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
+
+- Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 224 passing.
+- Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
+- Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
+- Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
+- Process-interruption recovery and bounded character writes on copies are tested. In-game acceptance and power-loss durability remain unverified.
+
+### [done] RECOVERY-001 - Parser coverage and root/flag correctness
+
+Runnable report: `npm run coverage`. Raw byte and Java evidence established one-based flag bit numbering and root item header counts. Socket children remain attached and do not decrement/increment the PlugY root count separately. The real undeclared 22-byte key on `Legacy.d2x / Season 6 Extra` is reported and that page remains ineligible for transfers.
+
+### [done] IDENTITY-001 - Unique, set, and runeword search
+
+Resolve source-backed IDs and upgraded item families; resolve runewords from ordered rune recipes and compatible item types. Retain base names for search and display. Correct alias table overwrites using each item's canonical `code` row.
+
+### [done] BANK-001 - Bounded PlugY bank and copy-based transfers
+
+CLI previews and explicit experimental commits support eligible `.d2x`/`.sss` pages, including socketed trees. Keep hash/profile guards, backups, per-bank/per-stash locks, exact count verification, and recoverable journals. Reject ambiguous byte lengths, misplaced items, and incomplete properties.
+
+### [done] PARSER-002 - Remaining bounded property failures
+
+Fixed all 33 baseline failures: consume stat-98 payloads, support proven historical Deep Wounds/map layouts with strict bounded termination and provenance, and separate the last multishot item from the next character section. All 134 sources reconstruct byte-for-byte. Historical profiles remain transfer-blocked. See `docs/incomplete-records-2026-10-03.md` and pinned row evidence; never zero-pad or suppress decoding errors.
+
+### [implemented; acceptance pending] WRITE-002 - Character transfer and game acceptance
+
+Character primary edits now prove stats/skills and empty corpse boundaries, preserve exact mercenary and populated golem trees, recalculate size/checksum, and reject unsupported selections. All 131 fixture characters pass disposable remove/reinsert checks. Browser and CLI transfers use the same bank engine. Nonempty corpses, selected historical profiles, equipment/belt/panel-six/ear transfers, and live installed-save writes remain unsupported. In-game acceptance is pending isolated game validation.
+
+### [next] MULE-003 - Multi-item transfers
+
+After game acceptance, add multi-selection with complete placement preview and a single recoverable batch transaction. Do not implement a loop of separately committed deposits as an atomic batch.
+
 ## Current recovery result (2026-09-05)
 
 - STAT-007 is complete for Deep Wounds and the proven single-value Eaglehorn [500] case. See [the proof and limitations](stat-007-proof.md). Other Eaglehorn values retain their fallback.
@@ -18,7 +55,7 @@ Use this queue for hands-off, context-light sessions. Each item is intended to b
 - Read only the reference docs named by the selected item.
 - If an item discovers ambiguity, update it to `blocked` or `needs-research` with the specific reason.
 - Keep parser, presentation, UI, and tests in separate file-ownership lanes.
-- Preserve read-only product behavior.
+- Preserve the copy-based write boundary in `docs/DEVELOPMENT_WORKFLOW.md`; the inspector remains read-only.
 
 ## Items
 
@@ -121,7 +158,7 @@ Candidate expected strings once fixture evidence exists:
 - `of Sunlight` / `item_armor_bytime` with `center=0`, `min=-10`, `max=60` should render a Day-peaking defense line with `min -10, max +60`.
 - `of Dawn` / `item_armor_bytime` with `center=3`, `min=10`, `max=40` should render a Dawn-peaking defense line with `min +10, max +40`.
 
-Outcome: follow-up proof sweeps still did not produce an implementation-safe example. Exact `item_armor_bytime` packed targets for `of Sunlight` (`1038396`) and `of Dawn` (`3156008`) are absent from the Library, and no complete gear-coded `item_armor_bytime` fixture came close enough to stand in as proof. After parser provenance landed, a qualityData-enabled sweep across all 134 Library fixtures still found `0` hits for `magicSuffixId` 456 / 457, `15` magic items with any `_bytime` property (`35` properties total), suffix ids limited to `0`, `120`, `169`, `298`, and `331`, and `0` magic `item_armor_bytime` examples. Clean real-gear bytime samples do exist for other stats, including `_LOD_SharedStashSave.sss / RW Helms 2 / Diadem` and `Sacred Armor` with `item_tohitpercent_bytime` packed `4181061` (`center=3, min=-13, max=69`) plus `_LOD_SharedStashSave.sss / Bases 10 / Seraph Rod` with `item_resist_pois_bytime` packed `1040554` (`center=0, min=-8, max=170`), which supports the signed-slot hypothesis in general. Visible magic bytime examples such as `_LOD_SharedStashSave.sss / Magic +6 Bows / Matriarchal Bow` (`magicPrefixId` 435, `magicSuffixId` 169, `item_armorpercent_bytime=55733`) resolve to non-`/time` affixes, so they do not unlock formatter work.
+Outcome: follow-up proof sweeps still did not produce an implementation-safe example. Exact `item_armor_bytime` packed targets for `of Sunlight` (`1038396`) and `of Dawn` (`3156008`) are absent from the Library, and no complete gear-coded `item_armor_bytime` fixture came close enough to stand in as proof. After parser provenance landed, a qualityData-enabled sweep across all 134 Library fixtures still found `0` hits for `magicSuffixId` 456 / 457, `15` magic items with any `_bytime` property (`35` properties total), suffix ids limited to `0`, `120`, `169`, `298`, and `331`, and `0` magic `item_armor_bytime` examples. A later subagent proof pass rechecked all 134 Library saves and found `175` parsed `item_armor_bytime` occurrences (`99` top-level), `0` magic `item_armor_bytime` occurrences, `0` suffix 456 / 457 hits, and `0` occurrences of target packed values `1038396` / `3156008` anywhere in parsed property values. Clean real-gear bytime samples do exist for other stats, including `_LOD_SharedStashSave.sss / RW Helms 2 / Diadem` and `Sacred Armor` with `item_tohitpercent_bytime` packed `4181061` (`center=3, min=-13, max=69`) plus `_LOD_SharedStashSave.sss / Bases 10 / Seraph Rod` with `item_resist_pois_bytime` packed `1040554` (`center=0, min=-8, max=170`), which supports the signed-slot hypothesis in general. Visible magic bytime examples such as `_LOD_SharedStashSave.sss / Magic +6 Bows / Matriarchal Bow` (`magicPrefixId` 435, `magicSuffixId` 169, `item_armorpercent_bytime=55733`) resolve to non-`/time` affixes, so they do not unlock formatter work.
 
 Blocked because no real Library fixture has yet been proven to carry `MagicSuffix.txt` row 456 or 457 on `item_armor_bytime`; `qualityData` now exposes magic affix ids, so the remaining blocker is fixture proof, not parser provenance. Do not implement from synthetic values alone. Unblock only with a clean fixture item tied to a known bytime source row, equivalent raw-byte/affix proof, or authoritative tooltip/UI capture.
 
@@ -157,7 +194,7 @@ Evidence already found:
 - `deep_wounds`: `Gems.txt` Um Rune, prefix/suffix rows, Malice, and multiple unique item rows use the stat. Clean `_LOD_SharedStashSave.sss` fixture examples include amulets with `[300]`, class helms with `[350]` and `[360]`, Hellforged Plate with `[32]`, and Loricated Mail with `[70]`.
 - `eaglehorn_raven`: Eaglehorn carries `eaglehorn-raven 500 500`, Raven skill formulas consume `stat('eaglehorn_raven'.accr)`, and clean `_LOD_SharedStashSave.sss` fixture examples exist on Diamond Bow and Crusader Bow samples with `[500]`.
 
-Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`; those desc keys are mirrored across local PD2 data roots, so the blocker is not table provenance. The actual missing piece is the payload string: local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, and nearby PD2 DLLs still found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. A vanilla clue exists for open wounds (`%d%% Chance of Open Wounds` in GoMule translations / string stores), but it is not authoritative proof for PD2 `OpenWoundsItem`. Do not implement until the exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
+Outcome: fixture evidence is strong, but exact wording is not proven. `ItemStatCost.txt` points `deep_wounds` at `OpenWoundsItem` with `descfunc=1`, `descval=1`, and points `eaglehorn_raven` at `EaglehornRaven` with `descfunc=3`, `descval=0`; those desc keys are mirrored across local PD2 data roots, so the blocker is not table provenance. A subagent fixture pass found `181` parsed `deep_wounds` occurrences with `59` clean source-backed unique-item occurrences, plus `95` parsed `eaglehorn_raven` occurrences with `2` clean Eaglehorn `[500]` occurrences. The actual missing piece remains the payload string: local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, nearby PD2 DLLs, and mirrored PD2 data still found neither `OpenWoundsItem` nor `EaglehornRaven`. GoMule `D2Prop` proves the formatting shape depends on those missing strings: `deep_wounds` would be `+N <string>` unless the missing string contains `%d`; `eaglehorn_raven` would render the missing string only, with no value. A vanilla clue exists for open wounds (`%d%% Chance of Open Wounds` in GoMule translations / string stores), but it is not authoritative proof for PD2 `OpenWoundsItem`. Do not implement until the exact strings are found in an authoritative source or captured in-game tooltip/UI proof.
 
 ### [done] STAT-008 - Clout, blood-warp, and immune stat display policy
 
@@ -176,7 +213,7 @@ Outcome: the item split cleanly. Clout stats (`dclone_clout`, `maxlevel_clout`, 
 
 `blood_warp_life_reduction` stays blocked. Clean unique `9wn` fixture hits now confirm real Suicide Branch samples in `_LOD_SharedStashSave.sss` and `war_cryb.d2s`, but the `bloodwarplifereduction` desc key is absent from local PD2 `.tbl` files, so exact wording remains unproven.
 
-### [needs-research] STAT-009 - Blood Warp exact display string
+### [done] STAT-009 - Blood Warp exact display string
 
 Goal: prove exact user-facing wording for `blood_warp_life_reduction` before replacing the generic fallback line on Suicide Branch.
 
@@ -187,7 +224,7 @@ Evidence already found:
 - `Skills.txt` / `SkillDesc.txt` Blood Warp formulas consume `stat('blood_warp_life_reduction'.accr)`.
 - Clean unique `9wn` fixture hits exist in `_LOD_SharedStashSave.sss / Wands 1,2,3` and `war_cryb.d2s`.
 
-Blocked because the desc key provenance is clean but the payload string is still missing. `bloodwarplifereduction` exists in local `ItemStatCost.txt` mirrors, yet local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, and nearby PD2 DLLs still found no `bloodwarplifereduction` string payload. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
+Blocked because the desc key provenance is clean but the payload string is still missing. `bloodwarplifereduction` exists in local `ItemStatCost.txt` mirrors, and a subagent fixture pass found `83` parsed occurrences with `3` clean Suicide Branch occurrences, but local scans of `patchstring.tbl`, `expansionstring.tbl`, `string.tbl`, historical GoMule string stores, nearby PD2 DLLs, and mirrored PD2 data still found no `bloodwarplifereduction` string payload. Do not implement until the exact string is proven from an authoritative source or captured UI tooltip.
 
 ### [done] PARSER-001 - Round-trip serializer proof milestone
 
@@ -231,9 +268,10 @@ Candidate stats:
 Known blockers:
 
 - Table provenance is now proven: the relevant desc keys are present in local `ItemStatCost.txt` mirrors, and save-editor `Properties.txt` carries raw wording clues for several scaling rows (`mindmg/energy`, `dmg%/eth`, `dmg%/missinghp%`, `lifesteal-cap`, `splash%/missinghp%`). Those clues are not final tooltip proof.
-- `item_mindamage_energy`: `descstr2=increaseswithenergy` payload is absent from local string stores.
+- A subagent fixture pass found clean source-backed examples for `item_mindamage_energy` (`2` Uldyssian's Awakening occurrences), `item_dmgpercent_pereth` (`2` Purgatory occurrences), `inc_splash_radius_permissinghp` and `lifedrain_percentcap` (`2` Nightmare's Feast occurrences each), and `uber_difficulty` (`5` clean map occurrences). It found parsed hits but `0` clean source-backed examples for `item_dmgpercent_permissinghppercent`.
+- `item_mindamage_energy`: `ModStr1g` is proven locally as `to Minimum Damage`, but `descstr2=increaseswithenergy` payload is still absent from local string stores.
 - `item_dmgpercent_pereth`: `ModStrEnhancedDamage` / `increaseswithequippedeth` payloads are absent from local string stores.
 - `item_dmgpercent_permissinghppercent`: `ModStrEnhancedDamage` / `increaseswithmissinghp` payloads are absent from local string stores.
 - `inc_splash_radius_permissinghp`: `ModStrIncSplashRadius` / `incsplashwithmissinghp` payloads are absent from local string stores.
 - `lifedrain_percentcap`: `ModStrLifeStealCap` / `ofmaximumhp` payloads are absent from local string stores.
-- `uber_difficulty`: real uber maps exist in fixtures and `CubeMain.txt` mutates the stat. `MapTier` is present as a desc key in local `ItemStatCost.txt` mirrors, and local clues exist in `TreasureClassEx.txt`, `Misc.txt`, and the modpack tutorial filter (`Map Tier N`, `T1/T2`), but the exact tooltip payload still does not exist in local string stores.
+- `uber_difficulty`: real uber maps exist in fixtures and `CubeMain.txt` mutates the stat. `MapTier` is present as a desc key in local `ItemStatCost.txt` mirrors, and local clues exist in `TreasureClassEx.txt`, `Misc.txt`, and the modpack tutorial filter (`Map Tier N`, `T1/T2`), but the exact tooltip payload still does not exist in local string stores or the checked `BH.dll` strings.

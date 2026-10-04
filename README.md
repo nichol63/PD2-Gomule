@@ -2,6 +2,8 @@
 
 `pd2-mule` is a new PD2-native, parser-first replacement project for the legacy GoMule workflow.
 
+**New computer:** follow [Laptop setup](docs/LAPTOP_SETUP.md) for the matching data tables, pinned fixtures, and launch commands. Continue development from [the portable bootstrap](docs/BOOTSTRAP.md).
+
 Current scope:
 
 - read-only inspection

@@ -7,7 +7,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const workspaceRoot = path.resolve(repoRoot, '..');
 const queuePath = path.join(repoRoot, 'docs', 'autopilot', 'WORK_QUEUE.md');
-const bootstrapPath = path.join(workspaceRoot, 'PD2_MULE_BOOTSTRAP.md');
+const bootstrapPath = path.join(repoRoot, 'docs', 'BOOTSTRAP.md');
 const fixturePath = path.join(workspaceRoot, 'PD2-Singleplayer', 'Diablo II', 'Save', 'Library');
 
 function runGit(args) {

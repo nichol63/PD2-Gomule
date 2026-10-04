@@ -11,6 +11,8 @@ Use the role names below as working assignments layered on top of those built-in
 
 ## Project Scope
 
+On another computer, use this repository as the primary codebase, `docs/BOOTSTRAP.md` as the bootstrap, and `docs/autopilot/WORK_QUEUE.md` as the queue. Follow `docs/LAPTOP_SETUP.md` for sibling dependencies. Desktop absolute paths below are historical references and do not require the same drive or username. The portable bootstrap and committed milestone documents supersede the desktop-only root handoff for current state.
+
 - Primary codebase: `C:\Codex\GoMuleR4.3.2_1.13\pd2-mule`
 - Bootstrap: `C:\Codex\GoMuleR4.3.2_1.13\PD2_MULE_BOOTSTRAP.md`
 - Work queue: `C:\Codex\GoMuleR4.3.2_1.13\pd2-mule\docs\autopilot\WORK_QUEUE.md`

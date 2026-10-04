@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.d2s
+*.d2x
+*.sss
+*.d2i
+*.bak
+*.zip
+*.transactions/
+bank.json
+.DS_Store
+Thumbs.db

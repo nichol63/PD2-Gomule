@@ -67,5 +67,5 @@ The implemented journal is tested for process-interruption recovery. Directory m
 - Tests use temporary directories or disposable copies inside the workspace.
 - Never suppress parsing errors to unlock writes.
 - Never test by overwriting an installed character.
-- Do not publish, push, or message community members as part of this workflow.
+- The user authorized pushing this project to `nichol63/PD2-Gomule` on October 4, 2026 for laptop continuation. Keep game assets, personal saves, banks, and credentials out of the public repository. Community messaging is not authorized.
 - Preserve pre-existing dirty queue/research changes; do not stage them into unrelated commits.
