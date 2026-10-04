@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 253 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 260 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -65,9 +65,11 @@ A disposable fixture reproduction loaded `ci3` with width 2, changed only a copi
 
 Outcome: six-core-file provenance is captured from actual parsed buffers and privately bound to each loaded table object. Bank preview/commit, acceptance preparation, and verification reject stale objects; late transaction rejection preserves recoverable journal/backups. Exact old four-file fingerprints and schema-version-1 banks remain compatible. Eight new real-fixture tests and 40 focused tests pass; full suite: 253 passing, zero failures/skips. Canonical hashes unchanged; independent review is clean. See [table provenance evidence](../table-provenance-2026-10-04.md). Optional identity cache provenance remains IDENTITY-002 research.
 
-### [ready] BROWSE-002 - Keep the latest browser request selected
+### [done] BROWSE-002 - Keep the latest browser request selected
 
 A controlled execution of the shipped app requested page 31, then page 118, and resolved the newer response first. The older response subsequently restored page 31 and its item selection. Apply view state/render updates only for the latest request, and handle current-request errors without allowing old responses to restore stale results. Test deferred response ordering through actual UI handlers.
+
+Outcome: only the newest view request may apply success or failure. Pending/error views clear old item controls, details, tooltip and selection immediately, invalidating existing bank deposit previews while retaining navigation/filter intent. Current failures are handled internally with a retryable message. Seven independent tests execute the shipped app and bank UI with real fixture responses, including reversed page 31/118 completion, HTTP/network/JSON errors, source switches, and late bank previews. Twelve focused and all 260 full-suite tests pass; canonical hashes unchanged; final review clean. The separate catalog refresh race is BROWSE-003.
 
 ### [ready] DISCOVER-001 - Deduplicate filesystem aliases and avoid cycles
 
@@ -76,6 +78,12 @@ A temporary directory self-symlink caused discovery to fail with `ELOOP`; an exp
 ### [needs-research] IDENTITY-002 - Bind optional naming-cache provenance
 
 On independent copied tables, parsing the real socketed Grand Matron Bow (fingerprint 70879556) cached the runeword name `Edge`. Changing only the copied `Runes.txt` name to `Edge Test Rename` left the cached object displaying `Edge`, while a freshly loaded table object displayed the new name. The six-core-table provenance guard remained current, as intended for BANK-002. Trace the lazy identity cache and define a bounded policy for optional UniqueItems/SetItems/Runes/ItemTypes bytes, including absent files. Before implementation, prove a user-visible stale bank-label or mixed-load case and choose consistent loaded snapshots or explicit reload rejection. Preserve optional read-only loading and the existing bank fingerprint format; do not claim optional identity data is pinned by the core-table fix.
+
+Additional disposable evidence: after that naming-table edit, a character-to-bank deposit succeeds using the cached object and stores `Edge`, while fresh inspection of the selected real bow displays `Edge Test Rename`. Canonical tables and saves remain unchanged. This establishes a user-visible bank-label case; loaded optional snapshots versus explicit stale-cache rejection still needs a bounded policy.
+
+### [ready] BROWSE-003 - Preserve navigation during catalog refresh
+
+Executing the updated app with controlled responses reproduced a separate refresh race: start bank catalog reload while viewing source A, navigate to B and resolve its view, then resolve the old catalog. The reload restores captured A and requests its view, ending on A despite the user's newer navigation. Coordinate catalog/reload completion with current navigation intent and view generations. Preserve later source/page/filter/item requests during refresh, keep initial default selection and fallback behavior, and retain bank preview invalidation. Add actual UI deferred-response tests; this is separate from BROWSE-002 view-response ordering.
 
 ## Historical recovery result (2026-09-05)
 

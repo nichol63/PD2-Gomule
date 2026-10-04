@@ -88,16 +88,41 @@ async function loadCatalog() {
   elements.workspaceMeta.textContent = state.catalog.loadedFrom.join(' | ');
 }
 
+let viewRequestGeneration = 0;
+
+function clearView(message) {
+  state.view = null;
+  state.selectedItemKey = null;
+  elements.matchCount.textContent = '0';
+  elements.selectedPath.textContent = '';
+  renderSummaryCard();
+  renderMatchList();
+  renderItemDetails();
+  setLoading(message);
+  elements.itemTooltip?.classList?.remove('is-visible');
+  bankUi.selectionChanged();
+}
+
 async function loadView() {
+  const generation = ++viewRequestGeneration;
+  // Preserve the requested item key before clearing controls for the old view.
   const params = createSearchParams();
-  state.view = await fetchJson(`/api/view?${params.toString()}`);
-  state.sourceId = state.view.source?.id ?? state.sourceId;
+  clearView('Loading items...');
 
-  const selectedPage = state.view.pages.find((page) => page.selected);
-  state.page = selectedPage ? String(selectedPage.index + 1) : null;
-  state.selectedItemKey = state.view.selectedItem?.itemKey ?? null;
+  try {
+    const view = await fetchJson(`/api/view?${params.toString()}`);
+    if (generation !== viewRequestGeneration) return;
+    state.view = view;
+    state.sourceId = view.source?.id ?? state.sourceId;
 
-  render();
+    const selectedPage = view.pages.find((page) => page.selected);
+    state.page = selectedPage ? String(selectedPage.index + 1) : null;
+    state.selectedItemKey = view.selectedItem?.itemKey ?? null;
+    render();
+  } catch {
+    if (generation !== viewRequestGeneration) return;
+    clearView('Unable to load items. Try again.');
+  }
 }
 
 function setLoading(message) {
