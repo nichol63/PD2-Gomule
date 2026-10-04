@@ -182,7 +182,8 @@ function lockResource(lock, bankPath, stashPath) {
 }
 
 function lockOperation(bankPath, stashPath) {
-  const locks = [bankPath + '.lock', ...(stashPath ? [stashPath + '.pd2-mule.lock'] : [])].sort();
+  // Keep the bank discovery lock until every associated save lock is gone.
+  const locks = [bankPath + '.lock', ...(stashPath ? [stashPath + '.pd2-mule.lock'] : [])];
   const releases = [];
   try {
     for (const lock of locks) releases.push(lockResource(lock, bankPath, stashPath));
@@ -368,8 +369,8 @@ export function recoverBank(options) {
   assertExpectedHash(options, 'expectedSourceLockSha256', stashLock?.bytes ?? null, 'Recovery save lock');
   const result = { dryRun, operation: 'recover', recovered: false, ...(journal ? { transactionId: journal.transactionId, action: journal.status === 'committed' ? 'finalize' : 'rollback' } : { status: 'No interrupted transaction', ...(bankLock || stashLock ? { action: 'remove-stale-lock' } : {}) }) };
   if (dryRun) return result;
-  clearStaleLock(bankLock);
   clearStaleLock(stashLock);
+  clearStaleLock(bankLock);
   const unlock = lockOperation(bankPath, stashPath);
   try {
     guardMetadata(bankPath);

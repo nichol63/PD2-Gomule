@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 315 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 328 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -112,13 +112,21 @@ The bank dropdown shows name/code/source but cannot distinguish two Wolf Heads f
 
 Outcome: validated read-only inspection decodes stored trees directly; the configured-bank GET and separate presentation model expose actual properties, stack and socket children. Latest-generation/selected-ID guards clear and prevent stale details. Nine backend/API and seven actual-UI tests pass, including rehashed capacity corruption concealed by parser normalization. Parent independently checked all four fixtures and the Safari interface; QA/canonical bytes unchanged. Full suite: 315 passing, zero failures/skips; final review clean. See [bank details evidence](../bank-details-2026-10-04.md).
 
-### [ready] BANK-004 - Preserve destination container during refresh
+### [done] BANK-004 - Preserve destination container during refresh
 
 Executing the shipped app and bank UI with real catalogs reproduces a destination reset: select shared-stash page index 117, refresh the unchanged library, and the source remains selected but its container becomes page index 0. A character's personal stash similarly resets to inventory. Preserve valid container identity when the same destination survives reload; retain numeric stash page identity, and fall back only when the source/container disappears or the user explicitly chooses a different destination source. Add independent actual-UI regressions for refresh and post-transfer reloads. This bank.js slice follows BANK-003 to avoid overlapping implementation ownership.
 
-### [ready] BANK-005 - Keep interrupted lock acquisition discoverable
+Outcome: valid containers survive refresh, bank loads and post-commit reloads when destination ID, file path and kind match. Reused IDs, missing sources/pages, changed kinds and explicit destination changes fall back safely. Seven independent actual-UI tests pass, including numeric page 117 versus duplicate-label page 30 and pending status selections. Parent reproduced corrected page/character behavior; final review clean.
+
+### [done] BANK-005 - Keep interrupted lock acquisition discoverable
 
 A disposable process-interruption reproduction exits after acquiring `a-copy.d2x.pd2-mule.lock`, before opening the lexically later `z-bank.json.lock`. Sorted acquisition leaves a save-only lock; bank recovery reports no interrupted transaction, leaves it behind and the next deposit refuses the lock. Acquire the bank discovery lock before the associated save lock and retain it until the save lock is removed, including stale-lock recovery cleanup. Prove interruption boundaries in independent child-process tests for both lexical path orders, preserving hashes, active-owner refusal and recovery guards. Define the existing orphan-lock limitation explicitly; do not infer a save path or silently remove unrelated locks.
+
+Outcome: bank discovery locks are acquired first and removed last during acquisition cleanup, ordinary release and stale recovery cleanup. Six deterministic child-process tests cover real fsync/unlink boundaries in both lexical orders, unchanged early bank/save bytes, recovery then retry, and active/hash/link guards. Historical save-only orphans remain untouched. Both bank fixes pass 62 focused and all 328 full-suite tests, zero failures/skips; canonical hashes unchanged; final review clean. See [navigation and lock evidence](../bank-navigation-locks-2026-10-04.md).
+
+### [ready] BANK-006 - Recover explicitly selected historical orphan locks
+
+The CLI rejects `recover --source`; the API ignores `sourcePath`. A historical save-only lock therefore remains undiscoverable when no bank lock or journal survives. Add optional explicit-source recovery with exact resolved bank/save ownership, stale PID, protected-path/link checks and pinned preview hashes. Claim the bank discovery lock before removing the orphan save lock. Never scan unrelated saves. CLI selection is an explicit copy path; browser API selection must resolve a loaded source ID. Conflicting discovered/explicit sources must reject. Prove unchanged bank/save bytes, refusal of foreign or changed locks, interrupted rescue discoverability and retained default behavior.
 
 ## Historical recovery result (2026-09-05)
 

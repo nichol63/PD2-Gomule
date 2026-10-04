@@ -6,6 +6,7 @@ export function createBankUi(state, reload) {
   let busy = false;
   let preview = null;
   let detailsGeneration = 0;
+  let containerSource = null;
 
   function clearDetails(text = 'Select a bank item to view its properties.') {
     detailsGeneration += 1;
@@ -97,10 +98,18 @@ export function createBankUi(state, reload) {
   }
 
   function showContainers() {
-    const source = state.catalog.sources.find(source => source.id === el('destination').value);
+    const destinationId = el('destination').value;
+    const selectedContainer = el('container').value;
+    const source = state.catalog.sources.find(source => source.id === destinationId);
     el('container').innerHTML = source?.kind === 'character'
       ? '<option value="inventory">Inventory</option><option value="cube">Cube</option><option value="stash">Personal stash</option>'
       : (source?.pages ?? []).map(page => `<option value="${page.index}">${page.index + 1}. ${escapeHtml(page.name)}</option>`).join('');
+    const validContainer = source?.kind === 'character'
+      ? ['inventory', 'cube', 'stash'].includes(selectedContainer)
+      : (source?.pages ?? []).some(page => `${page.index}` === selectedContainer);
+    if (containerSource?.id === destinationId && containerSource.filePath === source?.filePath
+        && containerSource.kind === source?.kind && validContainer) el('container').value = selectedContainer;
+    containerSource = source ? { id: destinationId, filePath: source.filePath, kind: source.kind } : null;
   }
 
   function showSources() {
