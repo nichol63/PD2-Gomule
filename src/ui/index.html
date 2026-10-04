@@ -53,6 +53,10 @@
             <form id="bank-withdraw-form" class="bank-form">
               <label><span>Find in bank</span><input id="bank-query" type="search" placeholder="Search bank items"></label>
               <label class="bank-item-field"><span id="bank-count">Bank items</span><select id="bank-item" required></select></label>
+              <section id="bank-details" class="bank-details" aria-live="polite">
+                <h3>Bank item details</h3>
+                <div id="bank-details-content">Select a bank item to view its properties.</div>
+              </section>
               <label><span>Destination</span><select id="bank-destination" required></select></label>
               <label><span>Page or container</span><select id="bank-container" required></select></label>
               <label><span>Column (from 0)</span><input id="bank-column" type="number" min="0" max="15" value="0" required></label>

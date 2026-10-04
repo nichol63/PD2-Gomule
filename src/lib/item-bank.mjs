@@ -5,7 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { getFixtureLibraryDir, getWorkspaceRoot } from './workspace-paths.mjs';
 import { loadPd2Tables, getPd2TableProvenance } from './pd2-data.mjs';
-import { assertItemIdentityTablesCurrent } from './item-identity.mjs';
+import { assertItemIdentityTablesCurrent, enrichParsedSave } from './item-identity.mjs';
+import { parseLegacyItemList } from './legacy-item-parser.mjs';
 import { extractStashItem, removeStashItem, insertStashItem, inspectTransferSupport, sha256, TRANSFER_STATUS } from './safe-serialization.mjs';
 import { extractCharacterItem, removeCharacterItem, insertCharacterItem, inspectCharacterTransferSupport } from './character-serialization.mjs';
 
@@ -99,6 +100,61 @@ export function listBank(bankPath, options = {}) {
   const { bytes, bank } = readBank(file);
   assertExpectedHash(options, 'expectedBankSha256', bytes, 'Bank');
   return { ...bank, items: bank.items.map(({ bytesBase64, ...item }) => item) };
+}
+
+// Unlike transfers, inspection decodes the retained tree in place, without
+// constructing a save file or changing its original container coordinates.
+export function inspectBankItem(bankPath, itemId, options = {}) {
+  if (typeof itemId !== 'string' || !itemId.trim()) throw new Error('Choose a bank item ID');
+  const pd2Tables = options.pd2Tables ?? loadPd2Tables();
+  assertItemIdentityTablesCurrent(pd2Tables);
+  const file = resolvedPath(bankPath);
+  guardMetadata(file);
+  ensureNoPending(file);
+  if (fs.existsSync(file + '.lock')) throw new Error('Bank is locked by another operation');
+  const { bytes: bankBytes, bank } = readBank(file);
+  const metadata = bank.items.find(item => item.id === itemId);
+  if (!metadata) throw new Error('Bank item not found');
+  if (metadata.tableFingerprint !== tableFingerprint(pd2Tables)) throw new Error('Bank item table profile differs from the active PD2 tables; inspection refused');
+  const bytes = Buffer.from(metadata.bytesBase64, 'base64');
+  let parsed;
+  try {
+    parsed = parseLegacyItemList(bytes, 0, 1, bytes.length, pd2Tables);
+    const root = parsed.topLevelItems[0];
+    const invalid = () => { throw new Error('Unsupported or inconsistent physical records'); };
+    if (parsed.parsedRootCount !== 1 || parsed.unparsedItemCount !== 0 || parsed.missingSocketChildCount !== 0 ||
+        parsed.topLevelItems.length !== 1 || parsed.items.length !== metadata.nodeCount ||
+        parsed.nextOffset !== bytes.length || !root || root !== parsed.items[0] || root.location === 6 ||
+        root.children.length !== parsed.items.length - 1 || root.children.length !== root.socketsFilled) invalid();
+    let cursor = 0;
+    for (const [index, node] of parsed.items.entries()) {
+      const end = parsed.items[index + 1]?.byteOffset ?? bytes.length;
+      if (node.byteOffset !== cursor || node.nextOffset !== end || node.sourceSpan?.startOffset !== cursor ||
+          node.sourceSpan?.endOffset !== end || node.sourceSpan?.length !== end - cursor ||
+          !Number.isInteger(node.coreBitLength) || node.coreBitLength <= 0 || Math.ceil(node.coreBitLength / 8) !== end - cursor ||
+          !node.itemInfo || node.isEar || node.propertiesComplete !== true || node.coreParseError || node.propertyParseError || node.parseRecovery ||
+          ![100, 101].includes(node.version) || (node.propertyLists ?? []).some(list => list.complete !== true) ||
+          index > 0 && (root.children[index - 1] !== node || node.parentOffset !== root.byteOffset || node.location !== 6 || node.children.length || node.socketsFilled)) invalid();
+      // The parser infers socket capacity for display. Validate the declared
+      // capacity too, using the property-list boundary it already decoded.
+      if (!node.isSimple && (node.flags & 0x800)) {
+        const offset = node.propertyLists[0]?.startBitOffset - (node.quality === 5 ? 5 : 0) - 4;
+        if (!Number.isInteger(offset) || offset < cursor * 8 || offset + 4 > end * 8) invalid();
+        let capacity = 0;
+        for (let bit = 0; bit < 4; bit += 1) capacity |= ((bytes[Math.floor((offset + bit) / 8)] >>> ((offset + bit) % 8)) & 1) << bit;
+        if (capacity < node.socketsFilled) invalid();
+      } else if (node.socketsFilled || node.children.length) invalid();
+      cursor = end;
+    }
+    if (cursor !== bytes.length) invalid();
+  } catch (error) { throw new Error(`Invalid bank item tree: ${error.message}`); }
+  enrichParsedSave(parsed, pd2Tables);
+  assertItemIdentityTablesCurrent(pd2Tables);
+  guardMetadata(file);
+  ensureNoPending(file);
+  if (fs.existsSync(file + '.lock') || hashOrNull(readBytes(file)) !== hashOrNull(bankBytes)) throw new Error('Bank changed during item inspection; refresh and try again');
+  const { bytesBase64, ...safeMetadata } = metadata;
+  return { metadata: safeMetadata, item: parsed.topLevelItems[0] };
 }
 
 function durableWrite(file, bytes, exclusive = false) {

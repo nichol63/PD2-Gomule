@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { depositItem, withdrawItem, listBank, recoverBank } from './item-bank.mjs';
+import { depositItem, withdrawItem, listBank, recoverBank, inspectBankItem } from './item-bank.mjs';
+import { buildBankItemDetails } from './bank-detail-model.mjs';
 import { collectBrowseEntries } from './browser-index.mjs';
 import { getItemKey, loadInspectorWorkspace } from './inspector-model.mjs';
 import { sha256 } from './safe-serialization.mjs';
@@ -164,5 +165,10 @@ export function createMuleService(workspace, options = {}) {
     return result;
   }
 
-  return { status, preview, commit, refresh, sessionToken };
+  function itemDetails(itemId) {
+    if (!bankPath) throw new Error('No bank is configured. Start with --bank <bank.json>.');
+    return buildBankItemDetails(inspectBankItem(bankPath, itemId, { pd2Tables: workspace.pd2Tables }), workspace.pd2Tables);
+  }
+
+  return { status, preview, commit, refresh, itemDetails, sessionToken };
 }

@@ -5,6 +5,47 @@ export function createBankUi(state, reload) {
   let status;
   let busy = false;
   let preview = null;
+  let detailsGeneration = 0;
+
+  function clearDetails(text = 'Select a bank item to view its properties.') {
+    detailsGeneration += 1;
+    el('details-content').textContent = text;
+  }
+
+  function propertyGroups(item) {
+    return (item.propertyLists ?? []).map(list => {
+      const label = list.kind === 'runeword' ? 'Runeword properties' : list.kind === 'set' ? 'Set properties' : 'Properties';
+      return `<div class="detail-group"><strong>${escapeHtml(label)}</strong><ul class="detail-list">${(list.displayLines ?? []).map(line => `<li>${escapeHtml(line.text)}</li>`).join('')}</ul></div>`;
+    }).join('');
+  }
+
+  function renderDetails(item) {
+    const facts = [item.qualityLabel, item.code, item.dimensions,
+      item.itemLevel === null || item.itemLevel === undefined ? null : `Item level ${item.itemLevel}`,
+      item.defense === null || item.defense === undefined ? null : `Defense ${item.defense}`,
+      item.durability ? `Durability ${item.durability}` : null,
+      item.stackSize === null || item.stackSize === undefined ? null : `Stack ${item.stackSize}`,
+      item.totalSockets ? `Sockets ${item.socketsFilled}/${item.totalSockets}` : null, ...(item.flags ?? [])].filter(Boolean);
+    const source = item.source ? [item.source.fileName, item.source.characterName, item.source.pageName].filter(Boolean).join(' · ') : '';
+    const children = (item.children ?? []).map(child => `<div class="detail-group detail-group--nested"><strong>${escapeHtml(child.displayName)} [${escapeHtml(child.code)}]</strong>${child.baseName !== child.displayName ? `<p>${escapeHtml(child.baseName)}</p>` : ''}${propertyGroups(child)}</div>`).join('');
+    el('details-content').innerHTML = `<h4>${escapeHtml(item.displayName)}</h4>${item.baseName !== item.displayName ? `<p>${escapeHtml(item.baseName)}</p>` : ''}<p class="muted-copy">${escapeHtml(facts.join(' · '))}</p>${propertyGroups(item)}${children ? `<div class="detail-socket-children"><strong>Socket contents</strong>${children}</div>` : ''}${source ? `<p class="muted-copy">Source: ${escapeHtml(source)}</p>` : ''}${item.depositedAt ? `<p class="muted-copy">Deposited: ${escapeHtml(item.depositedAt)}</p>` : ''}`;
+  }
+
+  async function loadDetails() {
+    const itemId = el('item').value;
+    clearDetails(itemId ? 'Loading item details…' : undefined);
+    if (!itemId || !status?.configured) return;
+    const generation = detailsGeneration;
+    try {
+      const { item } = await request(`/api/bank/item?itemId=${encodeURIComponent(itemId)}`);
+      if (generation !== detailsGeneration || el('item').value !== itemId) return;
+      if (!item || item.itemId !== itemId) throw new Error('Unexpected bank item details response');
+      renderDetails(item);
+    } catch {
+      if (generation !== detailsGeneration || el('item').value !== itemId) return;
+      clearDetails('Unable to load item details.');
+    }
+  }
 
   async function request(route, input) {
     const response = await fetch(route, input === undefined ? {} : {
@@ -43,6 +84,7 @@ export function createBankUi(state, reload) {
   }
 
   function showItems() {
+    clearDetails();
     const selected = el('item').value;
     const terms = el('query').value.toLowerCase().split(/\s+/).filter(Boolean);
     const items = (status.bank.items ?? []).filter(item => terms.every(term =>
@@ -51,6 +93,7 @@ export function createBankUi(state, reload) {
     el('item').innerHTML = items.length ? items.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.displayName ?? item.baseName ?? item.code)} [${escapeHtml(item.code)}] · ${escapeHtml(item.source?.fileName)}</option>`).join('') : '<option value="">Bank is empty</option>';
     if (items.some(item => item.id === selected)) el('item').value = selected;
     el('withdraw').disabled = !items.length || busy;
+    void loadDetails();
   }
 
   function showContainers() {
@@ -80,7 +123,9 @@ export function createBankUi(state, reload) {
   }
 
   async function load() {
-    status = await request('/api/bank');
+    clearDetails();
+    try { status = await request('/api/bank'); }
+    catch (error) { clearDetails('Unable to load item details.'); throw error; }
     el('panel').hidden = !status.configured;
     if (!status.configured) return;
     el('mode').textContent = status.enabled ? 'Copy transfers' : 'Preview only';
@@ -128,7 +173,8 @@ export function createBankUi(state, reload) {
   };
   el('destination').onchange = () => { invalidatePreview(); showContainers(); };
   el('query').oninput = () => { invalidatePreview(); showItems(); };
-  for (const id of ['item', 'container', 'column', 'row', 'auto']) el(id).onchange = invalidatePreview;
+  el('item').onchange = () => { invalidatePreview(); void loadDetails(); };
+  for (const id of ['container', 'column', 'row', 'auto']) el(id).onchange = invalidatePreview;
   el('refresh').onclick = () => perform(async () => {
     invalidatePreview(); await request('/api/bank/refresh', {}); await reload(); await load(); message('Library refreshed.');
   });

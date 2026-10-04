@@ -103,6 +103,11 @@ function createRequestHandler(workspace, mule, options) {
       return;
     }
 
+    if (url.pathname === '/api/bank/item') {
+      writeJson(response, 200, { item: mule.itemDetails(url.searchParams.get('itemId')) });
+      return;
+    }
+
     if (url.pathname === '/api/catalog') {
       writeJson(response, 200, getInspectorCatalog(workspace));
       return;

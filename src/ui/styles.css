@@ -24,6 +24,10 @@
 .bank-form label { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; color: var(--muted); font-size: 0.85rem; }
 .bank-form input, .bank-form select { width: 100%; min-width: 0; padding: 0.6rem; border: 1px solid var(--panel-border); background: #231916; color: var(--text); border-radius: 0.4rem; }
 .bank-item-field { grid-column: 1 / -1; }
+.bank-details { grid-column: 1 / -1; min-width: 0; padding: 0.8rem; border: 1px solid var(--panel-border); border-radius: 0.4rem; overflow-wrap: anywhere; }
+.bank-details h3, .bank-details h4 { margin: 0 0 0.5rem; }
+.bank-details p { margin: 0.4rem 0; }
+.bank-details .detail-list { padding-left: 1.2rem; }
 .bank-preview { margin-top: 0.8rem; padding: 1rem; border: 1px solid #87b476; border-radius: 0.5rem; }
 .bank-preview button + button { margin-left: 0.5rem; }
 .bank-message { margin-top: 0.75rem; overflow-wrap: anywhere; color: #b4dba4; }
