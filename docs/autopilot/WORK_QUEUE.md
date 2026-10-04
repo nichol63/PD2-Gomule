@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 245 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 253 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -57,11 +57,13 @@ Outcome: fixed in the inspector model and UI. All seven duplicate class-page pai
 
 Compare a retained prepared pack against independent post-game save copies. Validate manifest/table provenance, protected relative paths, checksums, sizes, counts, placement, identities, properties, and socket children; emit a diagnostic JSON report without modifying inputs. Distinguish structural verification from observed game acceptance: neither matching bytes nor changed file hashes prove the game was used. Keep the game gate pending until actual load/save/reload observations and evidence review. Provide a CLI command and tests using disposable real-fixture cases and targeted corruptions.
 
-Outcome: read-only API and JSON CLI implemented with 15 checks per scenario. Independent real-fixture tests cover unchanged copies, valid timestamp/checksum rewrites, counts/placement/stack/property/socket/tree corruption, malformed stash signatures/versions, provenance, unsafe paths, aliases and CLI exit status. All 11 targeted tests and the full 245-test suite pass. Retained pack comparison on independent copies passes with no observed rewrite and still reports game acceptance unverified. Independent review is clean. Supplied stale table objects will be rejected in the immediately following BANK-002 shared-provenance batch.
+Outcome: read-only API and JSON CLI implemented with 15 checks per scenario. Independent real-fixture tests cover unchanged copies, valid timestamp/checksum rewrites, counts/placement/stack/property/socket/tree corruption, malformed stash signatures/versions, provenance, unsafe paths, aliases and CLI exit status. All 11 targeted tests and the full 245-test suite pass. Retained pack comparison on independent copies passes with no observed rewrite and still reports game acceptance unverified. Independent review is clean. BANK-002 now rejects supplied stale core-table objects in bank and acceptance callers.
 
-### [ready] BANK-002 - Bind transfer profiles to loaded table bytes
+### [done] BANK-002 - Bind transfer profiles to loaded table bytes
 
 A disposable fixture reproduction loaded `ci3` with width 2, changed only a copied `armor.txt` row to width 3, and then committed a deposit using the old table object. The bank stored width 2 with the new disk-table fingerprint. Capture provenance from the bytes actually used by `loadPd2Tables` and refuse transfers when current tables differ from those loaded definitions. Preserve existing bank format and fingerprint compatibility deliberately. Test stale loads, changes after preview, and normal deposits/withdrawals on copies. Never modify canonical tables to reproduce this defect.
+
+Outcome: six-core-file provenance is captured from actual parsed buffers and privately bound to each loaded table object. Bank preview/commit, acceptance preparation, and verification reject stale objects; late transaction rejection preserves recoverable journal/backups. Exact old four-file fingerprints and schema-version-1 banks remain compatible. Eight new real-fixture tests and 40 focused tests pass; full suite: 253 passing, zero failures/skips. Canonical hashes unchanged; independent review is clean. See [table provenance evidence](../table-provenance-2026-10-04.md). Optional identity cache provenance remains IDENTITY-002 research.
 
 ### [ready] BROWSE-002 - Keep the latest browser request selected
 
@@ -70,6 +72,10 @@ A controlled execution of the shipped app requested page 31, then page 118, and 
 ### [ready] DISCOVER-001 - Deduplicate filesystem aliases and avoid cycles
 
 A temporary directory self-symlink caused discovery to fail with `ELOOP`; an explicit save plus a symlink alias loaded the same physical save twice. Track visited real directories and deduplicate real file identities, retaining useful display paths and deterministic ordering. Validate temporary directory/file aliases and cycles, overlapping inputs, and the unchanged canonical 134-file discovery result. Do not expand transfer support for linked targets.
+
+### [needs-research] IDENTITY-002 - Bind optional naming-cache provenance
+
+On independent copied tables, parsing the real socketed Grand Matron Bow (fingerprint 70879556) cached the runeword name `Edge`. Changing only the copied `Runes.txt` name to `Edge Test Rename` left the cached object displaying `Edge`, while a freshly loaded table object displayed the new name. The six-core-table provenance guard remained current, as intended for BANK-002. Trace the lazy identity cache and define a bounded policy for optional UniqueItems/SetItems/Runes/ItemTypes bytes, including absent files. Before implementation, prove a user-visible stale bank-label or mixed-load case and choose consistent loaded snapshots or explicit reload rejection. Preserve optional read-only loading and the existing bank fingerprint format; do not claim optional identity data is pinned by the core-table fix.
 
 ## Historical recovery result (2026-09-05)
 

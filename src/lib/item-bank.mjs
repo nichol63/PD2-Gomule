@@ -4,7 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { getFixtureLibraryDir, getWorkspaceRoot } from './workspace-paths.mjs';
-import { loadPd2Tables } from './pd2-data.mjs';
+import { loadPd2Tables, getPd2TableProvenance, assertPd2TablesCurrent } from './pd2-data.mjs';
 import { extractStashItem, removeStashItem, insertStashItem, inspectTransferSupport, sha256, TRANSFER_STATUS } from './safe-serialization.mjs';
 import { extractCharacterItem, removeCharacterItem, insertCharacterItem, inspectCharacterTransferSupport } from './character-serialization.mjs';
 
@@ -32,7 +32,8 @@ function assertExpectedRecoveryFiles(expectedFiles) {
 
 function tableFingerprint(tables) {
   const files = ['ItemStatCost.txt', 'Misc.txt', 'armor.txt', 'weapons.txt'];
-  return sha256(Buffer.from(JSON.stringify(files.map(file => ({ file, sha256: sha256(fs.readFileSync(path.join(tables.dataDir, file))) })))));
+  const hashes = new Map(getPd2TableProvenance(tables).map(entry => [entry.fileName, entry.sha256]));
+  return sha256(Buffer.from(JSON.stringify(files.map(file => ({ file, sha256: hashes.get(file) })))));
 }
 
 function resolvedPath(file) {
@@ -160,7 +161,8 @@ function verifyResult(bytes, extension, pageIndex, expectedCount, tables) {
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 }
 
-function transact(bankPath, stashPath, bankBefore, bankAfter, stashBefore, stashAfter, result) {
+function transact(bankPath, stashPath, bankBefore, bankAfter, stashBefore, stashAfter, result, pd2Tables) {
+  assertPd2TablesCurrent(pd2Tables);
   if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankBefore) || hashOrNull(readBytes(stashPath)) !== sha256(stashBefore)) throw new Error('Bank or stash changed during planning');
   const transactionId = randomUUID();
   const directory = path.join(bankPath + '.transactions', transactionId);
@@ -177,9 +179,11 @@ function transact(bankPath, stashPath, bankBefore, bankAfter, stashBefore, stash
   });
   const journalPath = bankPath + '.journal.json';
   const journal = { schemaVersion: 1, transactionId, bankPath, entries, status: 'prepared' };
+  assertPd2TablesCurrent(pd2Tables);
   durableWrite(journalPath, JSON.stringify(journal, null, 2), true);
   // Flush backup and journal contents before mutation. Directory and power-loss durability are unverified.
   if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankBefore) || hashOrNull(readBytes(stashPath)) !== sha256(stashBefore)) throw new Error('Bank or stash changed before transaction commit');
+  assertPd2TablesCurrent(pd2Tables);
   replaceFile(stashPath, stashAfter);
   if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankBefore) || hashOrNull(readBytes(stashPath)) !== sha256(stashAfter)) throw new Error('Bank or stash changed during transaction commit; recovery is required');
   replaceFile(bankPath, bankAfter);
@@ -191,6 +195,7 @@ function transact(bankPath, stashPath, bankBefore, bankAfter, stashBefore, stash
 
 function operation(options, type) {
   const { dryRun = true, pd2Tables = loadPd2Tables() } = options;
+  assertPd2TablesCurrent(pd2Tables);
   const bankPath = guardPath(options.bankPath);
   const stashPath = guardPath(type === 'deposit' ? options.sourcePath : options.destinationPath);
   guardMetadata(bankPath);
@@ -230,13 +235,13 @@ function operation(options, type) {
     // Both save formats count roots; socket children travel with their root.
     const expectedCount = page.itemCount + (type === 'deposit' ? -1 : 1);
     verifyResult(changed.buffer, path.extname(stashPath), options.pageIndex, expectedCount, pd2Tables);
-    if (tableFingerprint(pd2Tables) !== tablesHash) throw new Error('PD2 tables changed during planning');
+    assertPd2TablesCurrent(pd2Tables);
     const result = { dryRun, operation: type, itemId, saveKind: save.kind, bankItemCountBefore: bank.items.length, bankItemCountAfter: nextBank.items.length, stashItemCountBefore: page.topLevelItems.length, stashItemCountAfter: page.topLevelItems.length + (type === 'deposit' ? -1 : 1), status: TRANSFER_STATUS };
     if (dryRun) {
       if (hashOrNull(readBytes(bankPath)) !== hashOrNull(bankBefore) || hashOrNull(readBytes(stashPath)) !== sha256(stashBefore)) throw new Error('Bank or stash changed during preview');
       return result;
     }
-    return transact(bankPath, stashPath, bankBefore, Buffer.from(JSON.stringify(nextBank, null, 2) + '\n'), stashBefore, changed.buffer, result);
+    return transact(bankPath, stashPath, bankBefore, Buffer.from(JSON.stringify(nextBank, null, 2) + '\n'), stashBefore, changed.buffer, result, pd2Tables);
   } finally { unlock?.(); }
 }
 

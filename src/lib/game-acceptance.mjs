@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { getFixtureLibraryDir, getWorkspaceRoot } from './workspace-paths.mjs';
-import { loadPd2Tables } from './pd2-data.mjs';
+import { loadPd2Tables, assertPd2TablesCurrent } from './pd2-data.mjs';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { extractCharacterItem } from './character-serialization.mjs';
 import { extractStashItem, patchItemLocation, sha256 } from './safe-serialization.mjs';
@@ -165,6 +165,7 @@ function checklist(manifest) {
 }
 
 export function prepareGameAcceptance({ outputDir, fixtureDir = getFixtureLibraryDir(), pd2Tables = loadPd2Tables() } = {}) {
+  assertPd2TablesCurrent(pd2Tables);
   const fixturesRoot = fs.realpathSync.native(path.resolve(fixtureDir));
   const root = outputPath(outputDir, fixturesRoot, pd2Tables.dataDir);
   const fixturePaths = [...new Set(['Bases.d2x', ...CASES.map(spec => spec.fixture)])];
@@ -173,12 +174,15 @@ export function prepareGameAcceptance({ outputDir, fixtureDir = getFixtureLibrar
   assert.ok(tables.length > 0, 'No PD2 table files found');
   // All subsequent writes are exclusive copies or journaled edits inside this
   // newly created directory. Failures deliberately retain partial evidence.
+  assertPd2TablesCurrent(pd2Tables);
   fs.mkdirSync(path.dirname(root), { recursive: true });
   try { fs.mkdirSync(root); } catch (error) { if (error.code === 'EEXIST') throw new Error('Output directory already exists'); throw error; }
   const scenarios = CASES.map(spec => prepareCase(root, spec, fixturesRoot, pd2Tables));
   for (const fixture of fixtures) assert.equal(hashFile(path.join(fixturesRoot, fixture.relativePath)), fixture.sha256, 'Canonical fixture changed during preparation');
+  assertPd2TablesCurrent(pd2Tables);
   assert.deepEqual(tableHashes(pd2Tables.dataDir), tables, 'PD2 tables changed during preparation');
   const manifest = { schemaVersion: 1, status: STATUS, createdAt: new Date().toISOString(), fixtures, tables, scenarios };
+  assertPd2TablesCurrent(pd2Tables);
   fs.writeFileSync(path.join(root, 'CHECKLIST.md'), checklist(manifest), { flag: 'wx' });
   fs.writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
   return manifest;

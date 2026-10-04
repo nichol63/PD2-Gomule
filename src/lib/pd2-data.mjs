@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 import { getDefaultPd2DataDir } from './workspace-paths.mjs';
 
@@ -11,6 +12,33 @@ const ITEM_TABLE_FILES = [
 const ITEM_STAT_COST_FILE = 'ItemStatCost.txt';
 const SKILLS_FILE = 'Skills.txt';
 const MONSTER_TABLE_FILE = 'MonStats.txt';
+const LOADED_PROVENANCE = new WeakMap();
+const hashBytes = bytes => createHash('sha256').update(bytes).digest('hex');
+
+export function getPd2TableProvenance(tables) {
+  const captured = LOADED_PROVENANCE.get(tables);
+  if (!captured) throw new Error('PD2 tables have no loaded provenance; reload PD2 tables before continuing');
+  return captured.files;
+}
+
+export function assertPd2TablesCurrent(tables) {
+  const files = getPd2TableProvenance(tables);
+  const captured = LOADED_PROVENANCE.get(tables);
+  try {
+    if (path.resolve(tables.dataDir) !== captured.requestedRoot || fs.realpathSync.native(captured.requestedRoot) !== captured.realRoot) {
+      throw new Error('Table directory changed');
+    }
+    for (const entry of files) {
+      const file = path.join(captured.requestedRoot, entry.fileName);
+      if (fs.realpathSync.native(file) !== captured.targets.get(entry.fileName) || hashBytes(fs.readFileSync(file)) !== entry.sha256) {
+        throw new Error('Table contents or target changed');
+      }
+    }
+  } catch {
+    throw new Error('PD2 tables changed or became inaccessible; reload PD2 tables before continuing');
+  }
+  return files;
+}
 
 const CODE_COLUMNS_BY_TABLE = {
   // Upgrade columns describe related bases, not aliases for this row. Indexing
@@ -37,11 +65,6 @@ function parseTsv(text) {
 
     return row;
   });
-}
-
-function loadTableRows(tablePath) {
-  const text = fs.readFileSync(tablePath, 'utf8');
-  return parseTsv(text);
 }
 
 function buildItemRecord(row, tableFile, codeColumn) {
@@ -127,14 +150,25 @@ function buildMonsterRecord(row) {
 }
 
 export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
+  const requestedRoot = path.resolve(dataDir);
+  const realRoot = fs.realpathSync.native(requestedRoot);
+  const provenance = [];
+  const targets = new Map();
+  const loadRows = fileName => {
+    const tablePath = path.join(requestedRoot, fileName);
+    targets.set(fileName, fs.realpathSync.native(tablePath));
+    const bytes = fs.readFileSync(tablePath);
+    provenance.push(Object.freeze({ fileName, sha256: hashBytes(bytes) }));
+    // Hash and decode the same read, so the evidence describes loaded records.
+    return parseTsv(bytes.toString('utf8'));
+  };
   const itemsByCode = new Map();
   const itemStatsById = new Map();
   const skillsById = new Map();
   const monstersById = new Map();
 
   for (const tableFile of ITEM_TABLE_FILES) {
-    const tablePath = path.join(dataDir, tableFile);
-    const rows = loadTableRows(tablePath);
+    const rows = loadRows(tableFile);
     const codeColumns = CODE_COLUMNS_BY_TABLE[tableFile] ?? ['code'];
 
     for (const row of rows) {
@@ -149,7 +183,7 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     }
   }
 
-  const itemStatRows = loadTableRows(path.join(dataDir, ITEM_STAT_COST_FILE));
+  const itemStatRows = loadRows(ITEM_STAT_COST_FILE);
   for (const row of itemStatRows) {
     const statRecord = buildItemStatRecord(row);
     if (statRecord.id === null || !statRecord.stat) {
@@ -159,7 +193,7 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     itemStatsById.set(statRecord.id, statRecord);
   }
 
-  const skillRows = loadTableRows(path.join(dataDir, SKILLS_FILE));
+  const skillRows = loadRows(SKILLS_FILE);
   for (const row of skillRows) {
     const skillRecord = buildSkillRecord(row);
     if (skillRecord.id === null || !skillRecord.name) {
@@ -169,7 +203,7 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     skillsById.set(skillRecord.id, skillRecord);
   }
 
-  const monsterRows = loadTableRows(path.join(dataDir, MONSTER_TABLE_FILE));
+  const monsterRows = loadRows(MONSTER_TABLE_FILE);
   for (const row of monsterRows) {
     const monsterRecord = buildMonsterRecord(row);
     if (monsterRecord.id === null) {
@@ -179,7 +213,7 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
     monstersById.set(monsterRecord.id, monsterRecord);
   }
 
-  return {
+  const tables = {
     dataDir,
     itemsByCode,
     itemStatsById,
@@ -198,4 +232,6 @@ export function loadPd2Tables(dataDir = getDefaultPd2DataDir()) {
       return monstersById.get(id) ?? null;
     }
   };
+  LOADED_PROVENANCE.set(tables, { files: Object.freeze(provenance), requestedRoot, realRoot, targets });
+  return tables;
 }
