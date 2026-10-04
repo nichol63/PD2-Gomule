@@ -474,10 +474,11 @@ export function getInspectorCatalog(workspace) {
 }
 
 function buildWorkspaceInspectorView(workspace, options = {}) {
+  const completeOnly = normalizeCompleteOnly(options.completeOnly);
   const hasActiveFilters = Boolean(
     (options.query && `${options.query}`.trim())
     || (options.quality && `${options.quality}`.trim())
-    || normalizeCompleteOnly(options.completeOnly)
+    || completeOnly
     || (options.socketFilter && `${options.socketFilter}`.trim())
   );
 
@@ -490,7 +491,7 @@ function buildWorkspaceInspectorView(workspace, options = {}) {
         query: options.query ?? '',
         quality: options.quality ?? '',
         sort: options.sort ?? 'name',
-        completeOnly: normalizeCompleteOnly(options.completeOnly)
+        completeOnly
       },
       pages: [],
       panels: [],
@@ -500,7 +501,7 @@ function buildWorkspaceInspectorView(workspace, options = {}) {
   }
 
   const allEntries = workspace.sources.flatMap((source) => collectBrowseEntries(source.summary));
-  const filteredEntries = filterBrowseEntries(allEntries, options);
+  const filteredEntries = filterBrowseEntries(allEntries, { ...options, completeOnly });
   const sortedEntries = sortBrowseEntries(filteredEntries, options.sort ?? 'name');
   const selectedEntry = sortedEntries.find((entry) => getItemKey(entry) === options.selectedItemKey)
     ?? sortedEntries[0]
@@ -515,7 +516,7 @@ function buildWorkspaceInspectorView(workspace, options = {}) {
       query: options.query ?? '',
       quality: options.quality ?? '',
       sort: options.sort ?? 'name',
-      completeOnly: normalizeCompleteOnly(options.completeOnly)
+      completeOnly
     },
     pages: [],
     panels: [],

@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 288 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 293 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -94,9 +94,15 @@ Bounded policy after source review: capture private immutable provenance from th
 
 Outcome: lazy naming-cache provenance records seven actual decoded-buffer hashes, including absent optional files. Combined core/identity guards reject stale cached labels at all bank/acceptance boundaries; first-load core reread mismatches fail before caching. Read-only mocks and missing-optional fallbacks remain; legacy fingerprints/schema-version-1 banks stay compatible. Ten independent tests and 42 focused tests pass. Review corrected the mixed-read regression to exercise the identity decoder; isolated mutation proof confirms its effectiveness. Full suite: 288 passing, zero failures/skips; final review clean; canonical hashes unchanged. See [identity provenance evidence](../identity-provenance-2026-10-04.md).
 
-### [ready] BROWSE-004 - Apply normalized workspace completeness filters
+### [done] BROWSE-004 - Apply normalized workspace completeness filters
 
 The HTTP route supplies `completeOnly` as the string `true`. The model normalizes it for reported filters and source-specific browsing, but forwards raw options to workspace filtering, which requires boolean true. On a real parsed Bases workspace with one root marked incomplete in memory, workspace string `true` returns 2,586 items including that root while reporting the filter enabled; boolean true correctly returns 2,585, excluding it. Normalize once and use the same filter options in workspace and source browsing. Add independent model and HTTP tests with controlled parsed partial records; retain canonical fixture bytes and existing default behavior. The canonical corpus currently has no incomplete records, so pristine fixtures alone cannot exercise this defect.
+
+Outcome: workspace filtering uses one normalized completeness flag for activation, results and reported state. Exact existing true/string true/string 1 semantics remain. Five independent real-fixture model/HTTP tests and 30 focused tests pass, including excluded partial selections, combined filters and empty filtered results. Full suite: 293 passing, zero failures/skips; review clean; fixture bytes unchanged. Recursive socket-child filtering semantics were not established and are unchanged.
+
+### [ready] WRITE-005 - Check selected absence in all character item sections
+
+Read-only verifier audit on disposable results found that `source-absence` scans only primary character roots. Adding the selected prepared Grand Matron Bow (fingerprint 70879556, Tir/Tal/Amn children) to the socketed result's validated mercenary section still passes all 15 checks while its destination copy remains. A same-root-count substitution also passes: six mercenary roots remain, with the selected bow replacing a book. Extend absence checks to all validated primary, mercenary and golem item records. Reuse existing bounded section evidence; do not enable new writing or transfer paths. Add real disposable duplicate-section regressions, retain existing game-unverified status and untouched inputs, and refuse to claim absence when section parsing cannot be established.
 
 ## Historical recovery result (2026-09-05)
 
