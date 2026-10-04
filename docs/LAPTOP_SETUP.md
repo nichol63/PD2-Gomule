@@ -41,6 +41,23 @@ The `gomule-d2r` directory is just the expected table location for runtime and t
 
 ## Verify and launch
 
+On macOS or Linux, the same sibling layout applies. From the workspace directory:
+
+```sh
+git clone https://github.com/BetweenWalls/PD2-Singleplayer.git PD2-Singleplayer
+git -C PD2-Singleplayer checkout --detach 1e2fb4a7c44bdbd8f971e80cc3ff67a2da17af89
+mkdir -p gomule-d2r/gomule/pd2
+table_source='PD2-Singleplayer/Diablo II/ProjectD2/data/global/excel/modpacks/official'
+table_destination='gomule-d2r/gomule/pd2'
+cp "$table_source/Armor.txt" "$table_destination/armor.txt"
+cp "$table_source/Weapons.txt" "$table_destination/weapons.txt"
+for table_name in Misc.txt ItemStatCost.txt Skills.txt MonStats.txt UniqueItems.txt SetItems.txt Runes.txt ItemTypes.txt; do
+  cp "$table_source/$table_name" "$table_destination/$table_name"
+done
+```
+
+Use this copying step only for a new table directory. Preserve an existing dependency setup and compare hashes before replacing it. The explicit lowercase destination names for armor and weapons also work on case-sensitive filesystems. October 4 laptop validation passed on macOS with Node 26.3.0; Node 22 remains the documented desktop reference runtime.
+
 ```powershell
 Set-Location .\pd2-mule
 node .\scripts\session-snapshot.mjs
@@ -49,7 +66,7 @@ npm run coverage -- --format markdown
 node .\src\cli.mjs ui "..\PD2-Singleplayer\Diablo II\Save\Library" --port 4175
 ```
 
-Open http://127.0.0.1:4175. Expected baseline: 224 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
+Open http://127.0.0.1:4175. Expected baseline: 229 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
 
 For transfer development, prepare disposable copies outside any game Save directory and run:
 
@@ -58,6 +75,18 @@ node .\src\cli.mjs ui "..\save-copies" --bank "..\save-copies\bank.json" --exper
 ```
 
 Never use original saves for write validation. In-game acceptance is still pending and requires a separately installed, compatible PD2/PlugY setup. The desktop's disposable validation installation and active bank are not part of this repository.
+
+## Prepare portable game acceptance copies
+
+From the repository, create a new acceptance pack:
+
+```sh
+npm run prepare:acceptance -- --output .game-acceptance/2026-10-04
+```
+
+The command refuses an existing output directory and keeps canonical sources unchanged. It uses the existing bank engine to move a Town Portal Book and a socketed bow in two independent scenarios. Each has a character, a matching personal stash filename, retained bank transaction backups, and pre-game evidence in `manifest.json`. Follow the generated `CHECKLIST.md` in a separate compatible PD2/PlugY installation. The pack does not install or launch the game, and preparation does not satisfy game acceptance. Keep the two scenario save directories separate.
+
+The `.game-acceptance/` directory is ignored by Git. Copy the pack to the desktop for game validation if necessary, preserving the manifest and backups. After saving, exiting, and reloading in PD2, reparse the game-saved files and record the results in the [acceptance record](game-acceptance-2026-10-03.md). Multi-item development remains gated on that evidence.
 
 ## Resume development
 

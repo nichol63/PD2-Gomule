@@ -53,6 +53,8 @@ const queueItems = parseQueueItems(queueText);
 const readyItems = queueItems.filter((item) => item.status === 'ready');
 const blockedItems = queueItems.filter((item) => item.status === 'blocked');
 const needsResearchItems = queueItems.filter((item) => item.status === 'needs-research');
+const acceptanceItems = queueItems.filter((item) => item.status.includes('acceptance pending'));
+const nextItems = queueItems.filter((item) => item.status === 'next');
 const baseline = bootstrapText.match(/Latest known full test baseline: `([^`]+)` passing, `([^`]+)` failing/)?.slice(1, 3);
 
 console.log('# PD2 Mule Session Snapshot');
@@ -73,6 +75,14 @@ printSection(
     ? readyItems.map((item, index) => `${index + 1}. ${item.id} - ${item.title}`).join('\n')
     : '(none)'
 );
+
+if (acceptanceItems.length || nextItems.length) {
+  printSection(
+    'Acceptance Gates And Next Milestones',
+    [...acceptanceItems, ...nextItems]
+      .map((item) => `[${item.status}] ${item.id} - ${item.title}`).join('\n')
+  );
+}
 
 if (blockedItems.length || needsResearchItems.length) {
   printSection(

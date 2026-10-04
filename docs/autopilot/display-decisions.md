@@ -1,8 +1,10 @@
 # Display Decisions
 
-## Current recovery result (2026-09-05)
+## Current recovery result (2026-10-04)
 
-The historical missing-string conclusions below are superseded by [installed archive evidence](mpq-string-proof.json). [STAT-007 proof](stat-007-proof.md) documents the shipped Deep Wounds label and historical Eaglehorn [500] sentence, the archive/reference metadata mismatch, and the retained fallbacks. Blood Warp and scaling payloads are now available for a separate row/version and fixture validation batch; no corresponding formatter changes have shipped. Historical uncommitted fixture counts were preserved and not re-swept during recovery.
+The historical missing-string conclusions below are superseded by [installed archive evidence](mpq-string-proof.json). [STAT-007 proof](stat-007-proof.md) documents the shipped Deep Wounds label and historical Eaglehorn [500] sentence. The October 3 recovery also shipped bounded Blood Warp, Energy, ethereal-item, life-steal cap, splash scaling, and tier displays, with real-fixture tests. Other rolls retain fallbacks.
+
+The October 4 corrected-parser sweep checked all 134 canonical files and 22,072 physical records: zero bytime properties, zero `item_dmgpercent_permissinghppercent` properties, and zero suffix-456/457 or packed-target proof. STAT-006 and the remaining portion of STAT-010 stay blocked on actual fixture evidence. [Continuation evidence](../continuation-2026-10-04.md) records the reproducible checks. Older research counts and supposed clean bytime samples below came from the inverted flag parser and must not support implementation.
 
 This file records current presentation decisions that future sessions should not re-derive.
 
@@ -33,12 +35,15 @@ Latest fixture sanity: 134 Library save files checked, 3,000 raw `extra_holybolt
 
 ## Current Open Display Questions
 
-- `map_mon_splash`: audit and presentation guard shipped. Keep true map items value-suppressed as `Monsters Melee Splash`; do not show `100%`, skill id, or level. The real property is encoded as `[22913,100]`, where `22913 = (358 << 6) | 1`, matching `Properties.txt` fixed `proc_SplashDamage` skill id 358, level 1, chance 100. A recursive Library sweep found 156 raw occurrences: 45 canonical occurrences, all on map-like item codes, and 111 noncanonical occurrences, all on non-map items such as potions, runes, and armor. The formatter now renders only canonical `[22913,100]` and hides noncanonical values.
-- `item_*_bytime`: audit complete and currently blocked on fixture proof. The packed layout is proven as one 22-bit value split into `center period` plus two 10-bit value slots, and affix data shows the min/max slots can be signed, but the Library still has no exact `of Dawn` / `of Sunlight` `item_armor_bytime` proof. `qualityData` now preserves magic affix ids, yet full Library sweeps still found `0` hits for suffix ids `456` / `457`, `0` magic `item_armor_bytime` examples, and `0` target packed-value hits for `1038396` / `3156008`. Parsed display names also keep only the base item name, so we still need a real affix-linked fixture, equivalent raw-byte proof, or authoritative tooltip evidence before changing formatter semantics.
-- Remaining PD2 scaling stats such as `item_mindamage_energy`, `item_dmgpercent_pereth`, `item_dmgpercent_permissinghppercent`, `inc_splash_radius_permissinghp`, `lifedrain_percentcap`, and `uber_difficulty` need fixture-backed wording and scaling proof before implementation. The desc keys themselves are present in local `ItemStatCost.txt` mirrors, and clean fixture examples exist for most of the group, but the missing piece is the final tooltip payload in local string stores.
-- Remaining single-value candidates: triage complete. `deep_wounds`, `eaglehorn_raven`, and `blood_warp_life_reduction` have real item evidence, and their desc keys are present in local `ItemStatCost.txt` mirrors, but the final string payloads are still absent from local `.tbl` stores, mirrored PD2 data, and checked DLL strings. Clout stats and `immune_stat` are now intentionally hidden as internal/noise leaks.
+- `map_mon_splash`: retain canonical `[22913,100]` as `Monsters Melee Splash`; the guard suppresses other values. Historical pre-correction noise counts below are superseded.
+- `item_*_bytime`: the packed layout and signed source affix rows are known, but the corrected canonical corpus contains no bytime properties. Do not change signed-slot presentation without a clean source-backed item, equivalent raw-byte proof, or authoritative tooltip capture.
+- `item_dmgpercent_permissinghppercent`: archive helper strings are available, but there is no canonical fixture occurrence or source item in the pinned unique/set/runeword/affix tables. Retain its fallback.
+- Blood Warp and scaling: supported single saved values render `Bloodwarp Costs 2% Less Health` (`2`), `Gains +60% Enhanced Damage per equipped ethereal item` (`60`), `+0.5 to Minimum Damage per Energy` (`4`), `You cannot life steal when above 35% maximum life` (`35`), `+1% Increased Splash Radius per 1% missing life` (`1`), and `Tier: 1` / `Tier: 2`. Other values/shapes retain fallbacks. These are bounded displays, not computed character bonuses or full tooltip parity.
+- Deep Wounds renders `+N Open Wounds Damage Per Second` from archive wording. Historical Eaglehorn `[500]` renders `Your Ravens deal an additional 500 Cold Damage`; other values retain fallbacks. Internal clout, immunity, and monster-cooldown stats remain hidden.
 
-## Research Notes
+## Historical Research Notes
+
+These notes preserve the earlier investigation. Current outcomes above and the work queue take precedence; pre-correction counts and missing-string conclusions are not current evidence.
 
 ### map_mon_splash
 

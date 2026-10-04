@@ -2,7 +2,9 @@
 
 This is the portable continuation entry point. Start with [laptop setup](LAPTOP_SETUP.md) on a fresh machine, then read [the work queue](autopilot/WORK_QUEUE.md) and [the development workflow](DEVELOPMENT_WORKFLOW.md).
 
-Latest known full test baseline: `224` passing, `0` failing.
+Latest known full test baseline: `229` passing, `0` failing.
+
+October 4 laptop continuation restored the pinned fixtures/tables and added portable acceptance preparation. The prepared pack contains independent Town Portal Book and socketed-bow transfers, retained backups, and a game checklist. See [continuation evidence](continuation-2026-10-04.md); regenerate with `npm run prepare:acceptance -- --output <new-directory>`. In-game acceptance remains pending.
 
 Verified October 3, 2026: all 134 canonical files parse, with 19,778 roots, 22,072 physical records, and zero incomplete records. All 131 characters support bounded stored-item edits on disposable copies. Sixteen historical-profile items remain read-only for transfers. An undeclared-key source-partition anomaly remains blocked.
 

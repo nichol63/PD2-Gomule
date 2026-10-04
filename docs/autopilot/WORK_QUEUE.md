@@ -1,6 +1,10 @@
 # PD2 Mule Work Queue
 
-## Current development state (2026-10-03)
+## Current development state (2026-10-04)
+
+Laptop continuation restored the pinned fixture checkout and all ten matching parser tables. All 134 fixture hashes and ten table hashes match the committed coverage report; 229 tests pass on macOS with Node 26.3.0, including five new acceptance preparation tests. See [laptop continuation and acceptance preparation](../continuation-2026-10-04.md). In-game acceptance remains pending and still gates MULE-003.
+
+The corrected-parser display audit found zero bytime properties and zero `item_dmgpercent_permissinghppercent` properties across all 22,072 physical records. Historical bytime/noise samples below are superseded. Blood Warp and five bounded scaling/tier displays already shipped in the October 3 recovery; missing strings are no longer their blocker.
 
 Character and browser bank transfers now support disposable copies. See [character transfer evidence](../character-transfers-2026-10-03.md): 131 supported characters, 224 tests passing, 10 timing/recovery regressions, and unchanged canonical hashes. GPT-6.1 Sol high workers replace GPT-6 Sol. Game acceptance remains a separate gate; the isolated test installation is `../pd2-game-validation-2026-10-03` from the workspace root's `pd2-mule` checkout.
 
@@ -33,11 +37,15 @@ Fixed all 33 baseline failures: consume stat-98 payloads, support proven histori
 
 Character primary edits now prove stats/skills and empty corpse boundaries, preserve exact mercenary and populated golem trees, recalculate size/checksum, and reject unsupported selections. All 131 fixture characters pass disposable remove/reinsert checks. Browser and CLI transfers use the same bank engine. Nonempty corpses, selected historical profiles, equipment/belt/panel-six/ear transfers, and live installed-save writes remain unsupported. In-game acceptance is pending isolated game validation.
 
+### [done] WRITE-003 - Portable acceptance preparation
+
+`npm run prepare:acceptance -- --output <new-directory>` prepares two independent disposable character/stash scenarios through the existing bank engine: the Amazon's Town Portal Book and a socketed Grand Matron Bow with Tir/Tal/Amn children. It retains backups and writes a hash/count/item manifest plus a game checklist. Existing output and protected fixture/reference/save directories are rejected before writes. Preparation preserves originals and does not satisfy game acceptance. See [continuation evidence](../continuation-2026-10-04.md).
+
 ### [next] MULE-003 - Multi-item transfers
 
 After game acceptance, add multi-selection with complete placement preview and a single recoverable batch transaction. Do not implement a loop of separately committed deposits as an atomic batch.
 
-## Current recovery result (2026-09-05)
+## Historical recovery result (2026-09-05)
 
 - STAT-007 is complete for Deep Wounds and the proven single-value Eaglehorn [500] case. See [the proof and limitations](stat-007-proof.md). Other Eaglehorn values retain their fallback.
 - STAT-009 and STAT-010 now need row/version comparison and fixture validation: their formerly missing strings were recovered from installed pd2data.mpq. The historical outcomes below describe the earlier loose-table searches and are superseded on string availability by [archive evidence](mpq-string-proof.json).
@@ -151,6 +159,8 @@ Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 22-bit p
 
 ### [blocked] STAT-006 - Bytime signed-slot formatter proof
 
+Current evidence (October 4, 2026): the corrected parser finds zero `_bytime` properties across all 134 canonical files / 22,072 physical records. It also finds zero magic/rare suffix-456/457 matches and zero target packed values. Historical supposed clean bytime items below came from the inverted flag parser and cannot support formatter changes. The remaining blocker is real fixture or equivalent authoritative proof, not parser provenance.
+
 Goal: find or create fixture-backed proof before changing `item_*_bytime` min/max display to signed 10-bit subslots.
 
 Candidate expected strings once fixture evidence exists:
@@ -187,6 +197,8 @@ Outcome: audit documented in `docs/autopilot/display-decisions.md`. The 288-row 
 
 ### [done] STAT-007 - Deep Wounds and Eaglehorn Raven exact display strings
 
+Current outcome: archive-backed Deep Wounds wording and the historical Eaglehorn `[500]` sentence shipped; see [STAT-007 proof](stat-007-proof.md). The missing-string investigation below is historical and superseded.
+
 Goal: prove exact user-facing wording for `deep_wounds` and `eaglehorn_raven` before replacing the generic fallback lines.
 
 Evidence already found:
@@ -214,6 +226,8 @@ Outcome: the item split cleanly. Clout stats (`dclone_clout`, `maxlevel_clout`, 
 `blood_warp_life_reduction` stays blocked. Clean unique `9wn` fixture hits now confirm real Suicide Branch samples in `_LOD_SharedStashSave.sss` and `war_cryb.d2s`, but the `bloodwarplifereduction` desc key is absent from local PD2 `.tbl` files, so exact wording remains unproven.
 
 ### [done] STAT-009 - Blood Warp exact display string
+
+Current outcome: the source-backed saved value `[2]` renders exactly `Bloodwarp Costs 2% Less Health`, with real Suicide Branch fixture coverage. Other rolls/shapes retain fallbacks. Archive strings and the October 3 implementation supersede the historical blocker below.
 
 Goal: prove exact user-facing wording for `blood_warp_life_reduction` before replacing the generic fallback line on Suicide Branch.
 
@@ -252,7 +266,11 @@ Outcome: the candidate set split cleanly. `mon_cooldown1/2/3` are now hidden in 
 
 The remaining scaling stats stay blocked. Real fixture evidence exists for several of them, but local PD2 `.tbl` files do not contain the PD2-specific desc helper keys needed to prove exact wording or scaling presentation.
 
-### [needs-research] STAT-010 - Remaining scaling stat wording proof
+### [blocked] STAT-010 - Remaining scaling stat fixture proof
+
+Current outcome (October 4, 2026): bounded displays already ship for `item_mindamage_energy=[4]`, `item_dmgpercent_pereth=[60]`, `inc_splash_radius_permissinghp=[1]`, `lifedrain_percentcap=[35]`, and `uber_difficulty=[1]` / `[2]`. Their exact outputs and real-fixture tests are in `test/property-display.test.mjs`; other rolls retain fallbacks. Archive strings are available in `mpq-string-proof.json`.
+
+The remaining `item_dmgpercent_permissinghppercent` has **zero** properties in the corrected 134-file canonical sweep, and no source item was found in the pinned unique/set/runeword/affix tables. Keep its fallback until a real source-backed item or equivalent authoritative evidence proves the saved coefficient and presentation. The older missing-string notes below are historical research, superseded by the archive and October 3 implementation.
 
 Goal: prove exact user-facing wording and scaling semantics for the remaining scaling stats before replacing their generic fallback lines.
 

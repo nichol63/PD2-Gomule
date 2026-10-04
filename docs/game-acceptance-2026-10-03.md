@@ -2,6 +2,8 @@
 
 Status: prepared and launched, but **no character has been loaded and game acceptance is unverified**.
 
+October 4 laptop continuation: the user confirmed the desktop game checks have not been performed. A portable acceptance pack can now be generated with `npm run prepare:acceptance -- --output .game-acceptance/2026-10-04`. Its `CHECKLIST.md` covers both the Town Portal Book and a three-rune socketed Grand Matron Bow in independent save directories. Its manifest records prepared hashes, counts, properties, and bank backups. See [continuation evidence](continuation-2026-10-04.md). The desktop installation and staged files described below are historical; the portable pack must be copied separately to an isolated compatible installation. In-game acceptance remains unverified.
+
 The browser successfully moved the Town Portal Book from a disposable level-30 Amazon into the item bank, then into the landing page of a disposable Bases stash. The original fixtures are unchanged. The browser displayed the transferred book in `Bases.d2x / Landing Page` at column 0, row 0, with stack size 20 and fingerprint 28610618. See [the saved interface](character-bank-transfer-2026-10-03.png).
 
 ## Prepared installation
