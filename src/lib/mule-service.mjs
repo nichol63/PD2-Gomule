@@ -48,6 +48,11 @@ export function createMuleService(workspace, options = {}) {
   const sessionToken = randomUUID();
   const previews = new Map();
   const sourcePaths = workspace.sources.map(source => source.summary.filePath);
+  // Requested alias paths remain distinct identities. Reserve IDs even while
+  // discovery temporarily deduplicates a path out of the refreshed workspace.
+  const sourceIds = new Map(workspace.sources.map(source => [source.summary.filePath, source.id]));
+  const reservedSourceIds = new Set(sourceIds.values());
+  let nextSourceNumber = 1;
   if (options.experimentalWrite && !bankPath) throw new Error('Transfer mode requires --bank <bank.json>.');
   if (bankPath && sourcePaths.some(file => path.resolve(file).toLowerCase() === bankPath.toLowerCase())) {
     throw new Error('The bank must be separate from loaded save files.');
@@ -55,6 +60,16 @@ export function createMuleService(workspace, options = {}) {
 
   function refresh() {
     const current = loadInspectorWorkspace(sourcePaths, { pd2Tables: workspace.pd2Tables });
+    for (const source of current.sources) {
+      const filePath = source.summary.filePath;
+      if (!sourceIds.has(filePath)) {
+        let id;
+        do { id = `source-${nextSourceNumber++}`; } while (reservedSourceIds.has(id));
+        sourceIds.set(filePath, id);
+        reservedSourceIds.add(id);
+      }
+      source.id = sourceIds.get(filePath);
+    }
     Object.assign(workspace, current);
     previews.clear();
     return status();
