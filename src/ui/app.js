@@ -100,6 +100,8 @@ async function loadCatalog() {
 
 let viewRequestGeneration = 0;
 let activeViewRequest = null;
+let workspaceRefreshRequired = false;
+const SAVED_REFRESH_REQUIRED = 'Transfer saved. Refresh the library to show updated items.';
 
 function clearView(message) {
   state.view = null;
@@ -116,6 +118,11 @@ function clearView(message) {
 
 async function loadView(preservedParams) {
   const generation = ++viewRequestGeneration;
+  if (workspaceRefreshRequired) {
+    activeViewRequest = null;
+    clearView(SAVED_REFRESH_REQUIRED);
+    return 'failed';
+  }
   // Preserve the requested item key before clearing controls for the old view.
   const params = new URLSearchParams(preservedParams ?? createSearchParams());
   activeViewRequest = { generation, params };
@@ -123,7 +130,7 @@ async function loadView(preservedParams) {
 
   try {
     const view = await fetchJson(`/api/view?${params.toString()}`);
-    if (generation !== viewRequestGeneration) return;
+    if (generation !== viewRequestGeneration) return 'obsolete';
     state.view = view;
     state.sourceId = view.source?.id ?? state.sourceId;
 
@@ -131,9 +138,11 @@ async function loadView(preservedParams) {
     state.page = selectedPage ? String(selectedPage.index + 1) : null;
     state.selectedItemKey = view.selectedItem?.itemKey ?? null;
     render();
+    return 'success';
   } catch {
-    if (generation !== viewRequestGeneration) return;
+    if (generation !== viewRequestGeneration) return 'obsolete';
     clearView('Unable to load items. Try again.');
+    return 'failed';
   } finally {
     if (activeViewRequest?.generation === generation) activeViewRequest = null;
   }
@@ -586,10 +595,27 @@ function bindEvents() {
   });
 }
 
-const bankUi = createBankUi(state, async () => {
+const bankUi = createBankUi(state, async ({ refreshError } = {}) => {
+  if (refreshError) {
+    workspaceRefreshRequired = true;
+    viewRequestGeneration += 1;
+    activeViewRequest = null;
+    clearView(SAVED_REFRESH_REQUIRED);
+    return 'failed';
+  }
+  const wasBlocked = workspaceRefreshRequired;
   const generationBeforeCatalog = viewRequestGeneration;
-  const sourceFallback = await loadCatalog();
-  if (!sourceFallback && viewRequestGeneration !== generationBeforeCatalog) return;
+  let sourceFallback;
+  try { sourceFallback = await loadCatalog(); }
+  catch (error) {
+    if (!wasBlocked && viewRequestGeneration !== generationBeforeCatalog) return 'obsolete';
+    viewRequestGeneration += 1;
+    activeViewRequest = null;
+    clearView(wasBlocked ? SAVED_REFRESH_REQUIRED : 'Unable to load items. Try again.');
+    throw error;
+  }
+  if (!wasBlocked && !sourceFallback && viewRequestGeneration !== generationBeforeCatalog) return 'obsolete';
+  workspaceRefreshRequired = false;
 
   let params = createSearchParams();
   if (!sourceFallback && activeViewRequest?.generation === viewRequestGeneration) {
@@ -599,7 +625,13 @@ const bankUi = createBankUi(state, async () => {
     currentIntent.delete('selectedItemKey');
     if (pendingIntent.toString() === currentIntent.toString()) params = activeViewRequest.params;
   }
-  await loadView(params);
+  const expectedGeneration = viewRequestGeneration + 1;
+  const outcome = await loadView(params);
+  if (outcome === 'failed' && expectedGeneration === viewRequestGeneration) {
+    workspaceRefreshRequired = wasBlocked;
+    throw new Error('Unable to load items. Try again.');
+  }
+  return outcome === 'failed' ? 'obsolete' : outcome;
 });
 
 async function main() {

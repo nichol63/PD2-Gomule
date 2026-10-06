@@ -181,7 +181,9 @@ export function createMuleService(workspace, options = {}) {
       throw new Error('The bank or save changed after preview. Refresh and preview again.');
     }
     const result = plan.run({ ...plan.request, dryRun: false });
-    refresh();
+    previews.clear();
+    try { refresh(); }
+    catch (error) { return { ...result, refreshError: error.message ?? String(error) }; }
     return result;
   }
 

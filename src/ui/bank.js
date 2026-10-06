@@ -10,6 +10,9 @@ export function createBankUi(state, reload) {
   let preview = null;
   let detailsGeneration = 0;
   let containerSource = null;
+  let bankAvailable = false;
+  let libraryRefreshRequired = false;
+  let savedNotice = null;
 
   function clearDetails(text = 'Select a bank item to view its properties.') {
     detailsGeneration += 1;
@@ -38,7 +41,7 @@ export function createBankUi(state, reload) {
   async function loadDetails() {
     const itemId = el('item').value;
     clearDetails(itemId ? 'Loading item details…' : undefined);
-    if (!itemId || !status?.configured) return;
+    if (!itemId || !status?.configured || !bankAvailable) return;
     const generation = detailsGeneration;
     try {
       const { item } = await request(`/api/bank/item?itemId=${encodeURIComponent(itemId)}`);
@@ -65,6 +68,31 @@ export function createBankUi(state, reload) {
     el('message').className = error ? 'bank-message is-error' : 'bank-message';
   }
 
+  function showSavedNotice(warning = savedNotice?.warning) {
+    if (!savedNotice) return;
+    message(`${savedNotice.text}${warning ? ` Library refresh failed: ${warning}` : ''}`, Boolean(warning));
+  }
+
+  function updateActions() {
+    const ready = status?.configured && bankAvailable && !libraryRefreshRequired;
+    el('deposit').disabled = busy || !ready || !state.view?.selectedItem;
+    el('withdraw').disabled = busy || !ready || !el('item').value;
+    for (const id of ['item', 'query', 'sort']) el(id).disabled = busy || !bankAvailable;
+    for (const id of ['refresh', 'recover']) el(id).disabled = busy || !status?.configured || !status.sessionToken;
+  }
+
+  function bankUnavailable(error) {
+    bankAvailable = false;
+    invalidatePreview();
+    clearDetails('Unable to load item details.');
+    el('item').innerHTML = '<option value="">Bank unavailable</option>';
+    el('count').textContent = 'Bank items unavailable';
+    el('description').textContent = 'Unable to load the bank. Refresh the library to try again.';
+    updateActions();
+    if (savedNotice) showSavedNotice(savedNotice.warning ?? error.message);
+    else message(error.message, true);
+  }
+
   function invalidatePreview() {
     preview = null;
     el('preview').hidden = true;
@@ -77,24 +105,25 @@ export function createBankUi(state, reload) {
     el('panel').setAttribute('aria-busy', 'true');
     for (const control of el('panel').querySelectorAll('button, input, select')) control.disabled = true;
     try { await action(); }
-    catch (error) { invalidatePreview(); message(error.message, true); }
+    catch (error) { invalidatePreview(); if (savedNotice) showSavedNotice(error.message); else message(error.message, true); }
     finally {
       busy = false;
       el('panel').removeAttribute('aria-busy');
       for (const control of el('panel').querySelectorAll('button, input, select')) control.disabled = false;
       selectionChanged();
-      el('withdraw').disabled = !el('item').value;
+      updateActions();
     }
   }
 
   function showItems() {
+    if (!bankAvailable) return;
     clearDetails();
     const selected = el('item').value;
     const items = sortBankItems(filterBankItems(status.bank.items ?? [], el('query').value), el('sort').value);
     el('count').textContent = `Bank items (${items.length} of ${status.bank.items.length})`;
     el('item').innerHTML = items.length ? items.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.displayName ?? item.baseName ?? item.code)} [${escapeHtml(item.code)}] · ${escapeHtml(item.source?.fileName)}</option>`).join('') : `<option value="">${status.bank.items.length ? 'No matching bank items' : 'Bank is empty'}</option>`;
     if (items.some(item => item.id === selected)) el('item').value = selected;
-    el('withdraw').disabled = !items.length || busy;
+    updateActions();
     void loadDetails();
   }
 
@@ -122,31 +151,38 @@ export function createBankUi(state, reload) {
   }
 
   function selectionChanged() {
-    if (!status?.configured) return;
+    if (!status?.configured) { updateActions(); return; }
     const item = state.view?.selectedItem;
     if (preview?.action === 'deposit' && preview.itemKey !== item?.itemKey) {
       invalidatePreview();
       message('Selection changed. Preview the new item before committing.');
     }
-    el('deposit').disabled = busy || !item;
+    updateActions();
     el('selection').textContent = item ? `Selected: ${item.displayName} in ${item.sourceLabel}` : 'Select an item in the browser to deposit it.';
   }
 
   async function load() {
     clearDetails();
-    try { status = await request('/api/bank'); }
-    catch (error) { clearDetails('Unable to load item details.'); throw error; }
+    let current;
+    try {
+      current = await request('/api/bank');
+      if (!current || typeof current.configured !== 'boolean' || current.configured && !Array.isArray(current.bank?.items)) throw new Error('Invalid bank status response');
+    } catch (error) { bankUnavailable(error); throw error; }
+    status = current;
     el('panel').hidden = !status.configured;
-    if (!status.configured) return;
+    bankAvailable = status.configured && !status.error;
+    if (!status.configured) { updateActions(); return true; }
+    if (status.error) { bankUnavailable(new Error(status.error)); return false; }
     el('mode').textContent = status.enabled ? 'Copy transfers' : 'Preview only';
     el('description').textContent = `${status.bankName} · ${status.bank.items.length} items. ${status.enabled ? 'Moves save immediately after you review and commit. Backups are kept for every move. Game loading is not yet verified.' : 'Previews leave the bank and saves unchanged.'}`;
     showItems();
     showSources();
     selectionChanged();
-    if (status.error) message(status.error, true);
+    return true;
   }
 
   async function makePreview(input) {
+    savedNotice = null;
     invalidatePreview();
     message('Checking item placement and save contents...');
     preview = { ...await request('/api/bank/preview', input), action: input.action, itemKey: input.itemKey };
@@ -161,9 +197,21 @@ export function createBankUi(state, reload) {
       const ticket = preview.ticket;
       invalidatePreview();
       const result = await request('/api/bank/commit', { ticket });
-      await reload();
-      await load();
-      message(`Transfer saved. ${result.backupPaths?.length ?? 0} backups retained.${result.transactionId ? ` Transaction ${result.transactionId}.` : ''}`);
+      savedNotice = { text: `Transfer saved. ${result.backupPaths?.length ?? 0} backups retained.${result.transactionId ? ` Transaction ${result.transactionId}.` : ''}`, warning: null };
+      const warnings = [];
+      libraryRefreshRequired = Boolean(result.refreshError);
+      if (result.refreshError) {
+        warnings.push(result.refreshError);
+        try { await reload({ refreshError: result.refreshError }); }
+        catch (error) { warnings.push(error.message); }
+      } else {
+        try { if (await reload() === 'failed') throw new Error('Unable to load items. Try again.'); }
+        catch (error) { libraryRefreshRequired = true; warnings.push(error.message); }
+      }
+      try { if (await load() === false) throw new Error(status.error); }
+      catch (error) { warnings.push(error.message); }
+      savedNotice.warning = warnings.join(' ');
+      showSavedNotice();
     });
     message('Preview ready. No files changed.');
   }
@@ -187,7 +235,15 @@ export function createBankUi(state, reload) {
   el('item').onchange = () => { invalidatePreview(); void loadDetails(); };
   for (const id of ['container', 'column', 'row', 'auto']) el(id).onchange = invalidatePreview;
   el('refresh').onclick = () => perform(async () => {
-    invalidatePreview(); await request('/api/bank/refresh', {}); await reload(); await load(); message('Library refreshed.');
+    invalidatePreview();
+    try {
+      await request('/api/bank/refresh', {});
+      if (await reload() === 'failed') throw new Error('Unable to load items. Try again.');
+      if (await load() === false) throw new Error(status.error);
+      libraryRefreshRequired = false;
+      savedNotice = null;
+      message('Library refreshed.');
+    } catch (error) { libraryRefreshRequired = true; throw error; }
   });
   el('recover').onclick = () => perform(() => makePreview({ action: 'recover' }));
   return { load, selectionChanged };

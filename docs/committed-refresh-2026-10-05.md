@@ -1,0 +1,13 @@
+# Committed transfers and refresh failures: October 5, 2026
+
+A real disposable-copy reproduction loaded Bases and Legacy, previewed a Bases `ci3` deposit, then removed only the unrelated Legacy copy. The transfer completed: Bases changed from 2,586 to 2,585 roots, the bank gained one item and backups were retained. The subsequent library refresh threw a missing-Legacy error, so the caller saw failure after a successful mutation. The browser could similarly lose its saved acknowledgement when a later reload failed.
+
+The service now separates these outcomes. Once the journaled operation returns successfully, all preview tickets expire. A failed workspace refresh leaves the cached workspace intact and returns the original committed result with an optional `refreshError`. Actual operation, lock and hash failures still throw. Successful refresh responses retain their previous shape.
+
+The browser retains `Transfer saved.`, the backup count and transaction ID after a successful commit. Refresh failures add `Library refresh failed:` without retrying the commit. When the service could not refresh, the app invalidates pending view generations, clears stale items/details/selection and suspends cached workspace requests. Source, page and filter intent remain available for a successful explicit refresh. Current view failures become visible refresh outcomes; obsolete requests cannot replace newer navigation. If only the bank status fails after a fresh workspace reload, browsing remains healthy while stale bank items/details/actions become unavailable. The existing session token remains usable for refresh retry.
+
+Parent independently verified the corrected `ci3` case on fresh copies: committed result plus refresh warning, Bases 2,585 roots, bank one item, exact source before-image retained, both preview tickets expired and stale-source preview refused. Restoring Legacy and explicitly refreshing resumes the correct 2,585-root workspace.
+
+Five independent backend/HTTP tests and seven tests executing the actual service, app and bank UI prove deposit/withdrawal/recovery results, exact backups, all-ticket expiration, HTTP success, genuine operation failures, server/local refresh errors, stale-response rejection, preserved navigation and explicit retry. All 75 focused tests pass, including existing UI regressions. Independent final review is clean. All 380 full-suite tests pass with zero failures or skips. Canonical coverage remains 134 files, 19,778 roots, 22,072 physical records and zero incomplete records. All canonical save/table hashes and 15 retained QA file hashes are unchanged.
+
+This changes result reporting and refresh state. The journaled writer, bank schema, supported save profiles and in-game acceptance gate remain unchanged.
