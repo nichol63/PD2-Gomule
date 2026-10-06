@@ -1,4 +1,5 @@
 import { filterBankItems } from './bank-search.mjs';
+import { sortBankItems } from './bank-sort.mjs';
 
 const escapeHtml = value => `${value ?? ''}`.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 
@@ -89,7 +90,7 @@ export function createBankUi(state, reload) {
   function showItems() {
     clearDetails();
     const selected = el('item').value;
-    const items = filterBankItems(status.bank.items ?? [], el('query').value);
+    const items = sortBankItems(filterBankItems(status.bank.items ?? [], el('query').value), el('sort').value);
     el('count').textContent = `Bank items (${items.length} of ${status.bank.items.length})`;
     el('item').innerHTML = items.length ? items.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.displayName ?? item.baseName ?? item.code)} [${escapeHtml(item.code)}] · ${escapeHtml(item.source?.fileName)}</option>`).join('') : `<option value="">${status.bank.items.length ? 'No matching bank items' : 'Bank is empty'}</option>`;
     if (items.some(item => item.id === selected)) el('item').value = selected;
@@ -182,6 +183,7 @@ export function createBankUi(state, reload) {
   };
   el('destination').onchange = () => { invalidatePreview(); showContainers(); };
   el('query').oninput = () => { invalidatePreview(); showItems(); };
+  el('sort').onchange = () => { invalidatePreview(); showItems(); };
   el('item').onchange = () => { invalidatePreview(); void loadDetails(); };
   for (const id of ['container', 'column', 'row', 'auto']) el(id).onchange = invalidatePreview;
   el('refresh').onclick = () => perform(async () => {

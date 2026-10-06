@@ -1,9 +1,10 @@
 import { filterBankItems } from './lib/bank-search.mjs';
+import { sortBankItems } from './lib/bank-sort.mjs';
 
-const VALUE_OPTIONS = new Set(['bank', 'source', 'destination', 'page', 'panel', 'item', 'item-id', 'column', 'row', 'query']);
+const VALUE_OPTIONS = new Set(['bank', 'source', 'destination', 'page', 'panel', 'item', 'item-id', 'column', 'row', 'query', 'sort']);
 const ACTIONS = new Set(['list', 'deposit', 'withdraw', 'recover']);
 const ALLOWED_OPTIONS = {
-  list: new Set(['bank', 'query']),
+  list: new Set(['bank', 'query', 'sort']),
   deposit: new Set(['bank', 'source', 'page', 'item', 'experimental-write', 'dry-run']),
   withdraw: new Set(['bank', 'destination', 'page', 'panel', 'item-id', 'column', 'row', 'experimental-write', 'dry-run']),
   recover: new Set(['bank', 'source', 'experimental-write', 'dry-run'])
@@ -58,16 +59,18 @@ export function parseBankArguments(args) {
     request.row = integer(options, 'row', 0);
   }
   if (action === 'recover' && options.source !== undefined) request.sourcePath = options.source;
-  return { action, request, query: options.query ?? '' };
+  const sort = options.sort ?? 'stored';
+  if (!['stored', 'name', 'source'].includes(sort)) throw new Error(`Unknown bank sort: ${sort}`);
+  return { action, request, query: options.query ?? '', sort };
 }
 
 export async function runBankCli(args, pd2Tables) {
-  const { action, request, query } = parseBankArguments(args);
+  const { action, request, query, sort } = parseBankArguments(args);
   const bank = await import('./lib/item-bank.mjs');
   let result;
   if (action === 'list') {
     result = bank.listBank(request.bankPath);
-    result = { ...result, items: filterBankItems(result.items, query) };
+    result = { ...result, items: sortBankItems(filterBankItems(result.items, query), sort) };
   } else if (action === 'deposit') {
     result = bank.depositItem({ ...request, pd2Tables });
   } else if (action === 'withdraw') {

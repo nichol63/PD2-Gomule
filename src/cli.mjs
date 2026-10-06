@@ -178,7 +178,7 @@ function printUsage() {
   console.error('  node ./src/cli.mjs items <save file> [--page <name|index>] [--query <text>] [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs search <save files...> --query <text> [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs ui [save files or directories...] [--host <addr>] [--port <n>] [--bank <bank.json>] [--experimental-write]');
-  console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>]');
+  console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>] [--sort <stored|name|source>]');
   console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <save> [--page <1-based stash page>] --item <1-based item> [--experimental-write] [--dry-run]');
   console.error('  node ./src/cli.mjs bank withdraw --bank <bank.json> --item-id <id> --destination <save> [--page <1-based stash page> | --panel <inventory|cube|stash>] --column <0-based column> --row <0-based row> [--experimental-write] [--dry-run]');
   console.error('  node ./src/cli.mjs bank recover --bank <bank.json> [--source <disposable save>] [--experimental-write] [--dry-run]');

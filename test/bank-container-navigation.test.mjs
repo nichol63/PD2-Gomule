@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { filterBankItems } from '../src/lib/bank-search.mjs';
+import { sortBankItems } from '../src/lib/bank-sort.mjs';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { buildInspectorView, getInspectorCatalog, loadInspectorWorkspace } from '../src/lib/inspector-model.mjs';
@@ -104,13 +105,14 @@ async function harness() {
     element.disabled = /\bdisabled\b/.test(attributes); element.hidden = /\bhidden\b/.test(attributes);
     document.ids.set(id, element);
   }
+  document.getElementById('bank-sort').innerHTML = shell.match(/<select id="bank-sort">([\s\S]*?)<\/select>/)[1];
   const panel = document.getElementById('bank-panel');
   panel.children = [...document.ids.values()].filter(element => element.id.startsWith('bank-') && element !== panel);
   let initialCatalog = true, heldStatus = null;
   const requests = [], catalogs = [];
   const status = { configured: true, enabled: true, sessionToken: 'token', bankName: 'test-bank.json',
     bank: { items: [{ id: 'bank-item', displayName: 'Diadem', code: 'ci3', quality: 'normal' }] } };
-  const context = vm.createContext({ document, URLSearchParams, filterBankItems,
+  const context = vm.createContext({ document, URLSearchParams, filterBankItems, sortBankItems,
     window: { innerWidth: 1280, innerHeight: 800, setTimeout() {}, clearTimeout() {} },
     async fetch(url, options) {
       requests.push({ url, options });
@@ -142,7 +144,7 @@ async function harness() {
       return { ok: true, async json() { return { backupPaths: [] }; } };
     }
   });
-  const bank = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace("import { filterBankItems } from './bank-search.mjs';", '').replace('export function createBankUi', 'function createBankUi');
+  const bank = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace("import { filterBankItems } from './bank-search.mjs';", '').replace("import { sortBankItems } from './bank-sort.mjs';", '').replace('export function createBankUi', 'function createBankUi');
   vm.runInContext('globalThis.createBankUi = (() => { ' + bank + '\nreturn createBankUi; })();', context);
   const app = fs.readFileSync(path.join(REPO, 'src/ui/app.js'), 'utf8').replace(/^import \{ createBankUi \} from '\/bank\.js';\s*/, '');
   vm.runInContext(app, context, { filename: 'app.js' }); await tick();

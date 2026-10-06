@@ -66,7 +66,7 @@ npm run coverage -- --format markdown
 node .\src\cli.mjs ui "..\PD2-Singleplayer\Diablo II\Save\Library" --port 4175
 ```
 
-Open http://127.0.0.1:4175. Expected baseline: 361 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
+Open http://127.0.0.1:4175. Expected baseline: 368 tests passing, 134 parsed files, 19,778 root items, 22,072 physical records, and zero incomplete records. The 16 historical-profile items remain transfer-blocked; one undeclared-key anomaly is reported separately.
 
 For transfer development, prepare disposable copies outside any game Save directory and run:
 
