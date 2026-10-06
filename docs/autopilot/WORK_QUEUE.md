@@ -166,9 +166,11 @@ Executing the actual app with a healthy real shared-stash page 31 view and selec
 
 Outcome: workspace and optional bank startup now have separate failure boundaries. Healthy browsing survives unavailable banks, unknown-token guidance offers page reload and known-token refresh retry remains usable. Missing catalog/source/container state cannot enable transfers. Six actual-module/real-shared-stash cases and 55 related UI checks pass. Full suite: 386 passing, zero failures/skips; final review clean. Canonical coverage and all save/table hashes remain unchanged. See [bank startup evidence](../bank-startup-2026-10-05.md).
 
-### [ready] TEST-001 - Share identical bank UI DOM test boundaries
+### [done] TEST-001 - Share identical bank UI DOM test boundaries
 
 The details, search and sorting tests contain a byte-identical 61-line `Element` class, including child/ID removal and select-value behavior. Extract this unchanged class and its decoding dependencies into a test-only helper; use it in those three files. Keep each test's fixture setup, actual production-helper injection, fetch sequencing and assertions intact. This reduces repeated maintenance when UI controls change. Do not generalize the other differing app harnesses or add tests that mirror the helper. Independent validation should run the existing meaningful real-fixture suites and confirm unchanged case counts, behavior and input hashes. Production files remain untouched.
+
+Outcome: the three bank suites import one test-only Element/decoding helper. Independent comparison proves exact class/dependency and complete assertion-tail bytes unchanged; case counts remain 7/6/7. All 20 existing focused tests and the full 386-test suite pass, zero failures/skips; final review clean. Fixture/table hashes and metadata remain unchanged, as does full canonical coverage.
 
 ## Historical recovery result (2026-09-05)
 

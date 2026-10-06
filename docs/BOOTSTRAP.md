@@ -38,4 +38,4 @@ Bank listings now support stored, item-name and source order in both UI and CLI.
 
 Completed transfers now remain reported as saved when later library refresh fails. Refresh diagnostics expire all previews and clear stale browser state; see [committed transfer evidence](committed-refresh-2026-10-05.md).
 
-CLI page listings report the full filtered match count before limiting rendered rows; see [page count evidence](page-match-count-2026-10-05.md). [Optional bank startup failures](bank-startup-2026-10-05.md) now stay local while healthy workspace browsing remains available. Shared bank test-harness maintenance is the next bounded task.
+CLI page listings report the full filtered match count before limiting rendered rows; see [page count evidence](page-match-count-2026-10-05.md). [Optional bank startup failures](bank-startup-2026-10-05.md) now stay local while healthy workspace browsing remains available. The details/search/sort tests now share an unchanged test-only DOM helper, retaining every assertion and the 386-test baseline.
