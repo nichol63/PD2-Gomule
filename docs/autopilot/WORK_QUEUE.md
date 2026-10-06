@@ -1,6 +1,6 @@
 # PD2 Mule Work Queue
 
-## Current development state (2026-10-04)
+## Current development state (2026-10-05)
 
 Laptop continuation restored the pinned fixture checkout and all ten matching parser tables. All 134 fixture hashes and ten table hashes match the committed coverage report; 229 tests pass on macOS with Node 26.3.0, including five new acceptance preparation tests. See [laptop continuation and acceptance preparation](../continuation-2026-10-04.md). In-game acceptance remains pending and still gates MULE-003.
 
@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 380 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 386 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -160,9 +160,15 @@ The real shared stash has two Amazon pages, but `pages <shared.sss> --query Amaz
 
 Outcome: full filtered match counts are retained before output limits. Six manual real-fixture checks prove duplicate Amazon 2/1 and unlimited 2/2, no-match 0/0 and blank/default 144/25 versus unlimited 144/144. Rendered rows and fixture bytes remain unchanged. Independent review is clean; the full 380-test suite also passes on this code. See [page count evidence](../page-match-count-2026-10-05.md).
 
-### [ready] BROWSE-007 - Keep healthy workspace browsing when bank startup fails
+### [done] BROWSE-007 - Keep healthy workspace browsing when bank startup fails
 
 Executing the actual app with a healthy real shared-stash page 31 view and selected Bloodraven item, then failing only the initial bank GET, replaces the grid with `Failed to load inspector data: Bank status unavailable` while old item details remain. Keep optional bank startup errors local to the bank panel instead of overwriting healthy workspace browsing. Failed workspace loads must still clear stale workspace state. Validate the actual app failure ordering, selected-item/deposit state and continued read-only browsing. This follows the committed-transfer reporting fix and CLI page-count correction.
+
+Outcome: workspace and optional bank startup now have separate failure boundaries. Healthy browsing survives unavailable banks, unknown-token guidance offers page reload and known-token refresh retry remains usable. Missing catalog/source/container state cannot enable transfers. Six actual-module/real-shared-stash cases and 55 related UI checks pass. Full suite: 386 passing, zero failures/skips; final review clean. Canonical coverage and all save/table hashes remain unchanged. See [bank startup evidence](../bank-startup-2026-10-05.md).
+
+### [ready] TEST-001 - Share identical bank UI DOM test boundaries
+
+The details, search and sorting tests contain a byte-identical 61-line `Element` class, including child/ID removal and select-value behavior. Extract this unchanged class and its decoding dependencies into a test-only helper; use it in those three files. Keep each test's fixture setup, actual production-helper injection, fetch sequencing and assertions intact. This reduces repeated maintenance when UI controls change. Do not generalize the other differing app harnesses or add tests that mirror the helper. Independent validation should run the existing meaningful real-fixture suites and confirm unchanged case counts, behavior and input hashes. Production files remain untouched.
 
 ## Historical recovery result (2026-09-05)
 

@@ -639,13 +639,19 @@ async function main() {
   setupTooltip();
   setLoading('Loading inspector...');
 
+  const generationBeforeCatalog = viewRequestGeneration;
   try {
-    await loadCatalog();
-    await loadView();
-    await bankUi.load();
+    const sourceFallback = await loadCatalog();
+    if (sourceFallback || viewRequestGeneration === generationBeforeCatalog) await loadView();
   } catch (error) {
-    elements.gridPanels.innerHTML = `<div class="panel-block empty-state">Failed to load inspector data: ${escapeHtml(error.message)}</div>`;
+    if (viewRequestGeneration === generationBeforeCatalog) {
+      viewRequestGeneration += 1;
+      activeViewRequest = null;
+      clearView(`Failed to load inspector data: ${error.message}`);
+    }
   }
+  try { await bankUi.load(); }
+  catch { /* The optional bank load presents its own unavailable state. */ }
 }
 
 main();

@@ -2,7 +2,7 @@
 
 This is the portable continuation entry point. Start with [laptop setup](LAPTOP_SETUP.md) on a fresh machine, then read [the work queue](autopilot/WORK_QUEUE.md) and [the development workflow](DEVELOPMENT_WORKFLOW.md).
 
-Latest known full test baseline: `380` passing, `0` failing.
+Latest known full test baseline: `386` passing, `0` failing.
 
 The user started an autonomous development run, continued with a new 3,000,000-token goal on October 4. [The run record](autonomous-run-2026-10-04.md) tracks ungated batches and evidence. Duplicate stash page labels now retain their exact numeric identity in the inspector and UI; all seven repeated class-page pairs and real UI navigation are tested. Read-only post-game comparison is available with `npm run verify:acceptance -- --pack <retained-pack> --results <post-game-results>`; every report retains unverified game acceptance. In-game acceptance still gates multi-item transfers.
 
@@ -38,4 +38,4 @@ Bank listings now support stored, item-name and source order in both UI and CLI.
 
 Completed transfers now remain reported as saved when later library refresh fails. Refresh diagnostics expire all previews and clear stale browser state; see [committed transfer evidence](committed-refresh-2026-10-05.md).
 
-CLI page listings report the full filtered match count before limiting rendered rows; see [page count evidence](page-match-count-2026-10-05.md). Optional bank startup failure isolation is the next reproduced browsing task.
+CLI page listings report the full filtered match count before limiting rendered rows; see [page count evidence](page-match-count-2026-10-05.md). [Optional bank startup failures](bank-startup-2026-10-05.md) now stay local while healthy workspace browsing remains available. Shared bank test-harness maintenance is the next bounded task.

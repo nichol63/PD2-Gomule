@@ -75,8 +75,9 @@ export function createBankUi(state, reload) {
 
   function updateActions() {
     const ready = status?.configured && bankAvailable && !libraryRefreshRequired;
-    el('deposit').disabled = busy || !ready || !state.view?.selectedItem;
-    el('withdraw').disabled = busy || !ready || !el('item').value;
+    const sources = state.catalog?.sources ?? [];
+    el('deposit').disabled = busy || !ready || !state.view?.selectedItem || !sources.some(source => source.filePath === state.view.selectedItem.filePath);
+    el('withdraw').disabled = busy || !ready || !el('item').value || !sources.some(source => source.id === el('destination').value) || !el('container').value;
     for (const id of ['item', 'query', 'sort']) el(id).disabled = busy || !bankAvailable;
     for (const id of ['refresh', 'recover']) el(id).disabled = busy || !status?.configured || !status.sessionToken;
   }
@@ -87,7 +88,11 @@ export function createBankUi(state, reload) {
     clearDetails('Unable to load item details.');
     el('item').innerHTML = '<option value="">Bank unavailable</option>';
     el('count').textContent = 'Bank items unavailable';
-    el('description').textContent = 'Unable to load the bank. Refresh the library to try again.';
+    el('panel').hidden = false;
+    el('mode').textContent = 'Bank unavailable';
+    el('description').textContent = status?.configured && status.sessionToken
+      ? 'Unable to load the bank. Refresh the library to try again.'
+      : 'Unable to load the bank. Reload the page to try again.';
     updateActions();
     if (savedNotice) showSavedNotice(savedNotice.warning ?? error.message);
     else message(error.message, true);
@@ -130,7 +135,7 @@ export function createBankUi(state, reload) {
   function showContainers() {
     const destinationId = el('destination').value;
     const selectedContainer = el('container').value;
-    const source = state.catalog.sources.find(source => source.id === destinationId);
+    const source = state.catalog?.sources.find(source => source.id === destinationId);
     el('container').innerHTML = source?.kind === 'character'
       ? '<option value="inventory">Inventory</option><option value="cube">Cube</option><option value="stash">Personal stash</option>'
       : (source?.pages ?? []).map(page => `<option value="${page.index}">${page.index + 1}. ${escapeHtml(page.name)}</option>`).join('');
@@ -144,7 +149,7 @@ export function createBankUi(state, reload) {
 
   function showSources() {
     const selected = el('destination').value;
-    const sources = state.catalog.sources.filter(source => source.kind !== 'workspace-library');
+    const sources = (state.catalog?.sources ?? []).filter(source => source.kind !== 'workspace-library');
     el('destination').innerHTML = sources.map(source => `<option value="${escapeHtml(source.id)}">${escapeHtml(source.label)} (${escapeHtml(source.fileName)})</option>`).join('');
     if (sources.some(source => source.id === selected)) el('destination').value = selected;
     showContainers();
