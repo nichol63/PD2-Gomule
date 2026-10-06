@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 355 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 361 passing.
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -136,9 +136,11 @@ A disposable real-service/actual-UI reproduction starts with A, alias B and C as
 
 Outcome: exact-path lifetime IDs preserve surviving C at source 3 and restore alias B at source 2 when it reappears. New child paths receive unreserved IDs; standalone model IDs remain indexed and failed reloads leave the workspace unchanged. Seven independent real service/actual-UI tests and 61 focused tests pass, covering selection/container retention, removed-source fallback, tickets and hash/link guards. Full suite: 355 passing, zero failures/skips; final review clean. Canonical coverage/hashes remain unchanged. See [source identity evidence](../source-identity-2026-10-04.md).
 
-### [ready] BANK-007 - Search bank items by visible source metadata
+### [done] BANK-007 - Search bank items by visible source metadata
 
 Read-only UI/CLI checks find both real Wolf Heads for `Wolf Head` but zero for their visible source filename `Bases.d2x`. Extend metadata search to source filenames, character names and page names alongside existing name/base/code/quality fields. Use one shared pure predicate across UI and CLI, retaining whitespace token-AND matching, blank-query behavior, input order and selected IDs. Preserve detail/preview invalidation and read-only behavior. This is a usability extension; decoded-property search and sorting are separate scope. Test the real Wolf Heads, Edge and tome plus legacy quality metadata and actual UI/CLI parity.
+
+Outcome: one pure metadata helper now powers UI and CLI search by name/base/code/quality and source filename, character and page labels. Six independent real-fixture/helper/CLI/actual-UI/HTTP tests pass, with existing VM harnesses using the shipped helper. Selection and detail generations remain correct; no-match and truly empty states have distinct labels. Bank/save/backup metadata and bytes are unchanged. All 48 focused and 361 full-suite tests pass, zero failures/skips; independent final review is clean. Canonical coverage and all save/table hashes remain unchanged. See [bank search evidence](../bank-search-2026-10-05.md).
 
 ## Historical recovery result (2026-09-05)
 

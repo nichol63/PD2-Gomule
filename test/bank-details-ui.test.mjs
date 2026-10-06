@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { filterBankItems } from '../src/lib/bank-search.mjs';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { loadPd2Tables } from '../src/lib/pd2-data.mjs';
@@ -143,7 +144,7 @@ async function harness({ items, configured = true } = {}) {
     bank: { items: items ?? defaultItems } }, heldStatus = null;
   const requests = [], details = [];
   let reloadCount = 0;
-  const context = vm.createContext({ document, URLSearchParams, async fetch(url, options) {
+  const context = vm.createContext({ document, URLSearchParams, filterBankItems, async fetch(url, options) {
     requests.push({ url, options });
     if (url === '/api/bank') {
       if (heldStatus) { const held = heldStatus; heldStatus = null; return held.promise; }
@@ -156,7 +157,7 @@ async function harness({ items, configured = true } = {}) {
     }; } };
     assert.fail('unexpected route: ' + url);
   } });
-  const source = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace('export function createBankUi', 'function createBankUi');
+  const source = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace("import { filterBankItems } from './bank-search.mjs';", '').replace('export function createBankUi', 'function createBankUi');
   vm.runInContext(source + '\nglobalThis.create = createBankUi;', context, { filename: 'bank.js' });
   const ui = context.create(state, async () => { reloadCount += 1; });
   await ui.load();

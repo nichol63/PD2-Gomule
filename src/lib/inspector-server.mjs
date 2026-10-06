@@ -19,6 +19,7 @@ const STATIC_FILES = {
   '/index.html': { filePath: path.join(UI_DIR, 'index.html'), contentType: 'text/html; charset=utf-8' },
   '/app.js': { filePath: path.join(UI_DIR, 'app.js'), contentType: 'text/javascript; charset=utf-8' },
   '/bank.js': { filePath: path.join(UI_DIR, 'bank.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/bank-search.mjs': { filePath: path.join(LIB_DIR, 'bank-search.mjs'), contentType: 'text/javascript; charset=utf-8' },
   '/styles.css': { filePath: path.join(UI_DIR, 'styles.css'), contentType: 'text/css; charset=utf-8' }
 };
 

@@ -109,6 +109,8 @@ node .\src\cli.mjs ui "C:\path\save-copies" --bank "C:\path\bank.json" --experim
 
 Select an item in the browser, choose **Preview deposit**, review it, then **Commit transfer**. To withdraw, choose a bank item and destination. Automatic placement finds available space; turn it off to choose a position. Each move saves immediately and retains backups. A preview expires after five minutes and is refused if its files change. The server binds to loopback and accepts transfers only for loaded sources. Omit `--experimental-write` to preview only.
 
+Bank search matches item names, codes, quality and source filenames, character names or page names. All space-separated terms must match. UI and CLI use the same metadata filter; see [bank search evidence](docs/bank-search-2026-10-05.md).
+
 Selecting a bank item also shows its decoded properties, socket contents and stack count. This inspection works with `--bank` alone and leaves the bank and saves unchanged. See [bank details evidence](docs/bank-details-2026-10-04.md).
 
 Characters use the same bank commands without `--page`; withdrawals specify a container:

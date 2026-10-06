@@ -1,3 +1,5 @@
+import { filterBankItems } from './bank-search.mjs';
+
 const escapeHtml = value => `${value ?? ''}`.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 
 export function createBankUi(state, reload) {
@@ -87,11 +89,9 @@ export function createBankUi(state, reload) {
   function showItems() {
     clearDetails();
     const selected = el('item').value;
-    const terms = el('query').value.toLowerCase().split(/\s+/).filter(Boolean);
-    const items = (status.bank.items ?? []).filter(item => terms.every(term =>
-      [item.displayName, item.baseName, item.code, item.quality].join(' ').toLowerCase().includes(term)));
+    const items = filterBankItems(status.bank.items ?? [], el('query').value);
     el('count').textContent = `Bank items (${items.length} of ${status.bank.items.length})`;
-    el('item').innerHTML = items.length ? items.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.displayName ?? item.baseName ?? item.code)} [${escapeHtml(item.code)}] · ${escapeHtml(item.source?.fileName)}</option>`).join('') : '<option value="">Bank is empty</option>';
+    el('item').innerHTML = items.length ? items.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.displayName ?? item.baseName ?? item.code)} [${escapeHtml(item.code)}] · ${escapeHtml(item.source?.fileName)}</option>`).join('') : `<option value="">${status.bank.items.length ? 'No matching bank items' : 'Bank is empty'}</option>`;
     if (items.some(item => item.id === selected)) el('item').value = selected;
     el('withdraw').disabled = !items.length || busy;
     void loadDetails();

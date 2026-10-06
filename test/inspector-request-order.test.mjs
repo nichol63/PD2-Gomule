@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { filterBankItems } from '../src/lib/bank-search.mjs';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { buildInspectorView, getInspectorCatalog, loadInspectorWorkspace } from '../src/lib/inspector-model.mjs';
@@ -110,7 +111,7 @@ async function harness() {
   const pending = [], previews = [], requests = [], timers = new Map();
   let initial = true, holdPreview = false, timerId = 0;
   const catalog = { ...getInspectorCatalog(workspace), defaultSourceId: stash.id };
-  const context = vm.createContext({ document, URLSearchParams,
+  const context = vm.createContext({ document, URLSearchParams, filterBankItems,
     window: { innerWidth: 1280, innerHeight: 800,
       clearTimeout: id => timers.delete(id), setTimeout: callback => { timers.set(++timerId, callback); return timerId; } },
     async fetch(url, options) {
@@ -136,7 +137,7 @@ async function harness() {
     return { ok: true, async json() { return { ticket: 'old-preview', canCommit: true, label: `Deposit ${input.itemKey}`,
       result: { bankItemCountBefore: 0, bankItemCountAfter: 1, stashItemCountBefore: 15, stashItemCountAfter: 14 } }; } };
   }
-  const bankScript = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace('export function createBankUi', 'function createBankUi');
+  const bankScript = fs.readFileSync(path.join(REPO, 'src/ui/bank.js'), 'utf8').replace("import { filterBankItems } from './bank-search.mjs';", '').replace('export function createBankUi', 'function createBankUi');
   vm.runInContext(`globalThis.createBankUi = (() => { ${bankScript}\nreturn createBankUi; })();`, context);
   const app = fs.readFileSync(path.join(REPO, 'src/ui/app.js'), 'utf8').replace(/^import \{ createBankUi \} from '\/bank\.js';\s*/, '');
   vm.runInContext(app, context, { filename: 'app.js' });

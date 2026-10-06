@@ -1,3 +1,5 @@
+import { filterBankItems } from './lib/bank-search.mjs';
+
 const VALUE_OPTIONS = new Set(['bank', 'source', 'destination', 'page', 'panel', 'item', 'item-id', 'column', 'row', 'query']);
 const ACTIONS = new Set(['list', 'deposit', 'withdraw', 'recover']);
 const ALLOWED_OPTIONS = {
@@ -65,13 +67,7 @@ export async function runBankCli(args, pd2Tables) {
   let result;
   if (action === 'list') {
     result = bank.listBank(request.bankPath);
-    if (query) {
-      const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-      result = { ...result, items: result.items.filter(item => {
-        const text = [item.displayName, item.baseName, item.code, item.qualityLabel ?? item.quality].filter(Boolean).join(' ').toLowerCase();
-        return terms.every(term => text.includes(term));
-      }) };
-    }
+    result = { ...result, items: filterBankItems(result.items, query) };
   } else if (action === 'deposit') {
     result = bank.depositItem({ ...request, pd2Tables });
   } else if (action === 'withdraw') {
