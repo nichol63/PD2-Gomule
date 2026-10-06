@@ -154,9 +154,11 @@ A disposable Bases/Legacy service reproduction removes the unrelated Legacy copy
 
 Outcome: successful operations return their original result with an optional refresh error; all preview tickets expire before the reload. UI saved acknowledgements survive server/local refresh failures, stale cached views are suspended, and unavailable banks retain explicit retry credentials. Five backend/HTTP and seven actual-service/app/bank tests pass, plus existing UI regressions. Full suite: 380 passing, zero failures/skips; all 75 focused tests pass and final review is clean. Parent independently proved exact before-images, single mutation, consumed tickets, stale-source guards and resumed counts after repair. Canonical coverage and all save/table hashes remain unchanged. See [committed refresh evidence](../committed-refresh-2026-10-05.md).
 
-### [ready] BROWSE-006 - Count page matches before limiting displayed rows
+### [done] BROWSE-006 - Count page matches before limiting displayed rows
 
 The real shared stash has two Amazon pages, but `pages <shared.sss> --query Amazon --limit 1` prints `MATCHED 1`; unlimited output prints `MATCHED 2`. Retain the full filtered match count and limit only displayed page rows, consistent with item/search summaries. Verify duplicate Amazon pages, unmatched filters and unlimited output against the real shared stash. This is a small read-only CLI reporting correction, following BANK-009.
+
+Outcome: full filtered match counts are retained before output limits. Six manual real-fixture checks prove duplicate Amazon 2/1 and unlimited 2/2, no-match 0/0 and blank/default 144/25 versus unlimited 144/144. Rendered rows and fixture bytes remain unchanged. Independent review is clean; the full 380-test suite also passes on this code. See [page count evidence](../page-match-count-2026-10-05.md).
 
 ### [ready] BROWSE-007 - Keep healthy workspace browsing when bank startup fails
 

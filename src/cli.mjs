@@ -209,13 +209,14 @@ function runPages(fileArgs, options, pd2Tables) {
   }
 
   const summary = inspectSaveFile(fileArgs[0], { pd2Tables });
-  const pages = limitBrowseEntries(listPages(summary, options), options.limit);
+  const matchedPages = listPages(summary, options);
+  const pages = limitBrowseEntries(matchedPages, options.limit);
 
   printBanner(pd2Tables);
   console.log(`FILE       ${summary.filePath}`);
   console.log(`TYPE       ${summary.kind}`);
   console.log(`PAGES      ${summary.pageCount ?? 0}`);
-  console.log(`MATCHED    ${pages.length}`);
+  console.log(`MATCHED    ${matchedPages.length}`);
 
   for (const page of pages) {
     const sampleItems = (page.topLevelItems ?? page.items ?? [])

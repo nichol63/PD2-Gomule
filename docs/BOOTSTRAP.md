@@ -37,3 +37,5 @@ The bank now shows read-only decoded item properties, socket contents and stack 
 Bank listings now support stored, item-name and source order in both UI and CLI. Sorting preserves selected IDs and stable ties without changing persisted item order; see [bank sorting evidence](bank-sort-2026-10-05.md).
 
 Completed transfers now remain reported as saved when later library refresh fails. Refresh diagnostics expire all previews and clear stale browser state; see [committed transfer evidence](committed-refresh-2026-10-05.md).
+
+CLI page listings report the full filtered match count before limiting rendered rows; see [page count evidence](page-match-count-2026-10-05.md). Optional bank startup failure isolation is the next reproduced browsing task.
