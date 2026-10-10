@@ -3,7 +3,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { getFixtureLibraryDir, getWorkspaceRoot } from './workspace-paths.mjs';
 import { loadPd2Tables } from './pd2-data.mjs';
-import { assertItemIdentityTablesCurrent } from './item-identity.mjs';
+import { assertItemIdentityTablesCurrent, getLoadedTableHashes } from './item-identity.mjs';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { extractCharacterItem } from './character-serialization.mjs';
 import { extractStashItem, patchItemLocation, sha256 } from './safe-serialization.mjs';
@@ -56,11 +56,6 @@ function outputPath(outputDir, fixtureDir, tablesDir) {
 const hashFile = file => sha256(fs.readFileSync(file));
 const relativeFile = (root, file) => path.relative(root, file).split(path.sep).join('/');
 const inspect = (file, pd2Tables) => inspectSaveFile(file, { pd2Tables });
-
-function tableHashes(dataDir) {
-  return fs.readdirSync(dataDir).filter(name => name.toLowerCase().endsWith('.txt') && fs.statSync(path.join(dataDir, name)).isFile())
-    .sort().map(fileName => ({ fileName, sha256: hashFile(path.join(dataDir, fileName)) }));
-}
 
 function snapshot(characterFile, stashFile, character, stash) {
   return {
@@ -171,7 +166,7 @@ export function prepareGameAcceptance({ outputDir, fixtureDir = getFixtureLibrar
   const root = outputPath(outputDir, fixturesRoot, pd2Tables.dataDir);
   const fixturePaths = [...new Set(['Bases.d2x', ...CASES.map(spec => spec.fixture)])];
   const fixtures = fixturePaths.map(relativePath => ({ relativePath, sha256: hashFile(path.join(fixturesRoot, relativePath)) }));
-  const tables = tableHashes(pd2Tables.dataDir);
+  const tables = getLoadedTableHashes(pd2Tables);
   assert.ok(tables.length > 0, 'No PD2 table files found');
   // All subsequent writes are exclusive copies or journaled edits inside this
   // newly created directory. Failures deliberately retain partial evidence.
@@ -181,7 +176,7 @@ export function prepareGameAcceptance({ outputDir, fixtureDir = getFixtureLibrar
   const scenarios = CASES.map(spec => prepareCase(root, spec, fixturesRoot, pd2Tables));
   for (const fixture of fixtures) assert.equal(hashFile(path.join(fixturesRoot, fixture.relativePath)), fixture.sha256, 'Canonical fixture changed during preparation');
   assertItemIdentityTablesCurrent(pd2Tables);
-  assert.deepEqual(tableHashes(pd2Tables.dataDir), tables, 'PD2 tables changed during preparation');
+  assert.deepEqual(getLoadedTableHashes(pd2Tables), tables, 'PD2 tables changed during preparation');
   const manifest = { schemaVersion: 1, status: STATUS, createdAt: new Date().toISOString(), fixtures, tables, scenarios };
   assertItemIdentityTablesCurrent(pd2Tables);
   fs.writeFileSync(path.join(root, 'CHECKLIST.md'), checklist(manifest), { flag: 'wx' });

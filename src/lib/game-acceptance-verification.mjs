@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { loadPd2Tables } from './pd2-data.mjs';
-import { assertItemIdentityTablesCurrent } from './item-identity.mjs';
+import { assertItemIdentityTablesCurrent, getLoadedTableHashes } from './item-identity.mjs';
 import { inspectSaveFile } from './save-parsers.mjs';
 import { calculateCharacterChecksum, inspectCharacterTransferSupport } from './character-serialization.mjs';
 import { extractStashItem, sha256 } from './safe-serialization.mjs';
@@ -197,7 +197,8 @@ export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2T
   const inputs = [];
   const read = target => {
     const bytes = fs.readFileSync(target.real);
-    const stat = fs.statSync(target.real);
+    // BigInt keeps 64-bit NTFS file IDs exact; Number inodes can collide.
+    const stat = fs.statSync(target.real, { bigint: true });
     const entry = { ...target, bytes, sha256: sha256(bytes), identity: `${stat.dev}:${stat.ino}` };
     inputs.push(entry);
     return entry;
@@ -208,9 +209,9 @@ export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2T
   catch (error) { throw new Error(`Invalid acceptance manifest JSON: ${error.message}`); }
   validateManifest(manifest);
   const tablesRoot = directory(pd2Tables.dataDir, 'Tables');
-  const diskTableNames = () => fs.readdirSync(tablesRoot).filter(name => name.toLowerCase().endsWith('.txt') && fs.statSync(path.join(tablesRoot, name)).isFile()).sort();
+  const loadedTableNames = () => getLoadedTableHashes(pd2Tables).map(table => table.fileName);
   const tableNames = manifest.tables.map(table => table.fileName).sort();
-  demand(isDeepStrictEqual(tableNames, diskTableNames()), 'Table provenance differs from the current table directory');
+  demand(isDeepStrictEqual(tableNames, loadedTableNames()), 'Table provenance differs from the tables loaded by the parser');
   for (const table of manifest.tables) {
     const input = read(artifact(tablesRoot, table.fileName, 'PD2 table'));
     demand(input.sha256 === table.sha256, `PD2 table provenance hash mismatch: ${table.fileName}`);
@@ -244,11 +245,11 @@ export function verifyGameAcceptance({ packDir, resultsDir, pd2Tables = loadPd2T
     return compareScenario(scenario, original, result, pd2Tables);
   });
   for (const input of inputs) {
-    const stat = fs.statSync(input.real);
+    const stat = fs.statSync(input.real, { bigint: true });
     demand(fs.realpathSync.native(input.file) === input.real && `${stat.dev}:${stat.ino}` === input.identity
       && sha256(fs.readFileSync(input.real)) === input.sha256, 'An input changed during verification; retry with stable copies');
   }
-  demand(isDeepStrictEqual(diskTableNames(), tableNames), 'PD2 tables changed during verification');
+  demand(isDeepStrictEqual(loadedTableNames(), tableNames), 'PD2 tables changed during verification');
   assertItemIdentityTablesCurrent(pd2Tables);
   const structuralPassed = scenarios.every(scenario => scenario.checks.every(check => check.passed));
   return { schemaVersion: 1,

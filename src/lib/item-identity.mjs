@@ -107,6 +107,19 @@ export function assertItemIdentityTablesCurrent(pd2Tables) {
   return files;
 }
 
+/**
+ * Returns name-sorted hashes of every table file the parser and identity
+ * loaders actually decoded, after confirming each is still current. Unrelated
+ * files in the table directory are excluded, so provenance is portable.
+ */
+export function getLoadedTableHashes(pd2Tables) {
+  const loaded = new Map();
+  for (const entry of [...assertPd2TablesCurrent(pd2Tables), ...assertItemIdentityTablesCurrent(pd2Tables)]) {
+    if (entry.sha256 !== null) loaded.set(entry.fileName, { fileName: entry.fileName, sha256: entry.sha256 });
+  }
+  return [...loaded.values()].sort((a, b) => (a.fileName < b.fileName ? -1 : a.fileName > b.fileName ? 1 : 0));
+}
+
 function compatibleCode(actual, expected, tables) {
   return actual === expected || tables.families.get(actual)?.has(expected) || tables.families.get(expected)?.has(actual);
 }

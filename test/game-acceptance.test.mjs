@@ -18,6 +18,8 @@ const FIXTURES = getFixtureLibraryDir();
 const TABLES = loadPd2Tables();
 const SCRIPT = path.join(REPO, 'scripts', 'prepare-game-acceptance.mjs');
 const STATUS = 'prepared; in-game acceptance pending';
+const LOADED_TABLE_NAMES = ['ItemStatCost.txt', 'ItemTypes.txt', 'Misc.txt', 'MonStats.txt', 'Runes.txt',
+  'SetItems.txt', 'Skills.txt', 'UniqueItems.txt', 'armor.txt', 'weapons.txt'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
 function filesIn(directory) {
@@ -176,6 +178,19 @@ test('prepares real tome and socketed transfers with intact item trees and pendi
     assert.deepEqual(JSON.parse(fs.readFileSync(saved, 'utf8')), manifest);
   });
   assert.deepEqual(fixtureHashes(), beforeHashes, 'all canonical fixtures must remain untouched');
+});
+
+test('manifest table provenance lists only loaded tables, ignoring unrelated files in the table directory', () => {
+  withWorkspace(directory => {
+    const tableDir = path.join(directory, 'tables');
+    fs.mkdirSync(tableDir);
+    for (const table of LOADED_TABLE_NAMES) fs.copyFileSync(path.join(getDefaultPd2DataDir(), table), path.join(tableDir, table));
+    fs.writeFileSync(path.join(tableDir, 'Properties (copy).txt'), 'unrelated\n');
+    fs.writeFileSync(path.join(tableDir, 'Sets.txt'), 'unrelated\n');
+    const manifest = prepareGameAcceptance({ outputDir: path.join(directory, 'prepared'), pd2Tables: loadPd2Tables(tableDir) });
+    assert.deepEqual(manifest.tables.map(table => table.fileName), LOADED_TABLE_NAMES);
+    for (const table of manifest.tables) assert.equal(table.sha256, hash(fs.readFileSync(path.join(tableDir, table.fileName))));
+  });
 });
 
 test('existing directories, files, and symlinks are rejected without changing their contents', () => {

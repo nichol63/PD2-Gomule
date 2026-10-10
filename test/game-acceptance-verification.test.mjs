@@ -319,6 +319,17 @@ test('mismatched tables and missing result inputs cannot claim structural accept
   });
 });
 
+test('unrelated files in the table directory do not affect table provenance checks', () => {
+  withResults(resultsDir => {
+    const tableDir = fs.mkdtempSync(path.join(directory, 'extra-tables-'));
+    try {
+      for (const table of manifest.tables) fs.copyFileSync(path.join(getDefaultPd2DataDir(), table.fileName), path.join(tableDir, table.fileName));
+      fs.writeFileSync(path.join(tableDir, 'Properties (copy).txt'), 'unrelated\n');
+      assertReport(readOnlyVerify(resultsDir, { pd2Tables: loadPd2Tables(tableDir) }), true);
+    } finally { fs.rmSync(tableDir, { recursive: true, force: true }); }
+  });
+});
+
 test('same roots, symlink aliases, hardlinked saves, and symlinked result ancestors are refused', () => {
   assert.throws(() => readOnlyVerify(packDir), /independent|same|alias|different/i);
   const alias = path.join(directory, 'pack-alias');

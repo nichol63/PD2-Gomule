@@ -209,7 +209,8 @@ function ensureNoPending(file) {
 function checkDifferentFiles(first, second) {
   if (first.toLowerCase() === second.toLowerCase()) throw new Error('Bank and stash must be different files');
   if (fs.existsSync(first) && fs.existsSync(second)) {
-    const a = fs.statSync(first); const b = fs.statSync(second);
+    // BigInt keeps 64-bit NTFS file IDs exact; Number inodes can collide.
+    const a = fs.statSync(first, { bigint: true }); const b = fs.statSync(second, { bigint: true });
     if (a.dev === b.dev && a.ino === b.ino) throw new Error('Bank and stash must not be aliases of the same file');
   }
 }
