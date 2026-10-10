@@ -106,6 +106,7 @@ function createBrowseEntry(item, context, itemIndex) {
     bodyPosition: item.bodyPosition ?? null,
     row: item.row ?? null,
     column: item.column ?? null,
+    owner: context.owner ?? null,
     searchText: buildSearchText(item, context)
   };
 }
@@ -168,6 +169,26 @@ export function collectBrowseEntries(summary, options = {}) {
   }
 
   return visibleItems.map((item, itemIndex) => createBrowseEntry(item, context, itemIndex));
+}
+
+/**
+ * Browse entries for a character's mercenary equipment, marked with
+ * owner "mercenary". Kept separate from collectBrowseEntries, whose primary
+ * item indexes select items for transfers; mercenary items are read-only.
+ */
+export function collectMercenaryBrowseEntries(summary) {
+  const mercenary = summary.auxiliaryRegions?.find((region) => region.id === 'mercenary');
+  if (summary.kind !== 'character' || !mercenary) return [];
+  const context = {
+    filePath: summary.filePath,
+    fileName: summary.fileName,
+    sourceKind: summary.kind,
+    characterName: summary.name,
+    pageIndex: null,
+    pageName: null,
+    owner: 'mercenary'
+  };
+  return mercenary.topLevelItems.map((item, itemIndex) => createBrowseEntry(item, context, itemIndex));
 }
 
 export function filterBrowseEntries(entries, options = {}) {

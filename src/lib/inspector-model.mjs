@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {
   collectBrowseEntries,
+  collectMercenaryBrowseEntries,
   filterBrowseEntries,
   resolvePage,
   sortBrowseEntries
@@ -18,8 +19,16 @@ const PANEL_DETAILS = {
   '0/1': { label: 'Inventory', columns: 10, rows: 8, order: 20 },
   '0/4': { label: 'Cube', columns: 4, rows: 4, order: 30 },
   '0/5': { label: 'Stash', columns: 10, rows: 15, order: 40 },
-  '2/0': { label: 'Belt', columns: 4, rows: 4, order: 50 }
+  '2/0': { label: 'Belt', columns: 4, rows: 4, order: 50 },
+  'mercenary/1/0': { label: 'Mercenary', columns: 10, rows: 4, order: 15 }
 };
+
+// Mercenary entries get their own panel and an owner-prefixed key, so they can
+// never collide with primary item keys, which deposits resolve by index.
+function getPanelKey(entry) {
+  const key = `${entry.location}/${entry.panel}`;
+  return entry.owner ? `${entry.owner}/${key}` : key;
+}
 const KIND_LABELS = {
   character: 'Character',
   'plugy-personal-stash': 'Personal Stash',
@@ -126,6 +135,7 @@ function getEntrySourceLabel(entry) {
 
 export function getItemKey(entry) {
   return [
+    ...(entry.owner ? [entry.owner] : []),
     entry.filePath,
     entry.pageIndex ?? 'root',
     entry.itemIndex,
@@ -138,7 +148,7 @@ export function getItemKey(entry) {
 }
 
 function describeLocation(entry) {
-  const panelDetails = PANEL_DETAILS[`${entry.location}/${entry.panel}`];
+  const panelDetails = PANEL_DETAILS[getPanelKey(entry)];
   const panelLabel = panelDetails?.label ?? `Panel ${entry.panel ?? '?'}`;
   return `${panelLabel} (${entry.column ?? '?'}:${entry.row ?? '?'})`;
 }
@@ -241,7 +251,7 @@ function createMatchEntry(entry, selectedItemKey) {
 }
 
 function createPanelItem(entry, selectedItemKey) {
-  const panelKey = `${entry.location}/${entry.panel}`;
+  const panelKey = getPanelKey(entry);
   const itemKey = getItemKey(entry);
   return {
     itemKey,
@@ -275,7 +285,7 @@ function createPanels(entries, selectedItemKey) {
   const panelsByKey = new Map();
 
   for (const entry of entries) {
-    const key = `${entry.location}/${entry.panel}`;
+    const key = getPanelKey(entry);
     const panelDetails = PANEL_DETAILS[key] ?? {};
     if (!panelsByKey.has(key)) {
       panelsByKey.set(key, {
@@ -320,6 +330,7 @@ function createSelectedItem(entry, pd2Tables) {
     filePath: entry.filePath,
     pageIndex: entry.pageIndex ?? null,
     itemIndex: entry.itemIndex,
+    transferable: !entry.owner,
     displayName: entry.displayName,
     baseName: entry.baseName ?? item.baseName ?? item.itemInfo?.name ?? entry.displayName,
     code: entry.code,
@@ -357,8 +368,16 @@ function createSelectedItem(entry, pd2Tables) {
   };
 }
 
+// A mercenary section that failed strict decoding is shown as a notice rather
+// than looking like a mercenary without equipment.
+function getSummaryNotice(summary) {
+  const error = summary.auxiliaryRegions?.find((region) => region.id === 'mercenary')?.parseError;
+  return error ? `Mercenary equipment could not be decoded and is not shown: ${error}` : null;
+}
+
 function createSummaryCard(summary, visibleItemCount, matchedItemCount, selectedPage) {
   return {
+    notice: getSummaryNotice(summary),
     kind: summary.kind,
     kindLabel: KIND_LABELS[summary.kind] ?? summary.kind,
     filePath: summary.filePath,
@@ -554,7 +573,10 @@ export function buildInspectorView(workspace, options = {}) {
     completeOnly: normalizeCompleteOnly(options.completeOnly),
     socketFilter: options.socketFilter ?? ''
   };
-  const visibleEntries = collectBrowseEntries(summary, { page: browseOptions.page });
+  const visibleEntries = [
+    ...collectBrowseEntries(summary, { page: browseOptions.page }),
+    ...collectMercenaryBrowseEntries(summary)
+  ];
   const filteredEntries = filterBrowseEntries(visibleEntries, browseOptions);
   const sortedEntries = sortBrowseEntries(filteredEntries, browseOptions.sort);
   const hasActiveFilters = browseOptions.query || browseOptions.quality || browseOptions.completeOnly || browseOptions.socketFilter;
@@ -563,11 +585,12 @@ export function buildInspectorView(workspace, options = {}) {
     ?? (hasActiveFilters ? null : visibleEntries[0] ?? null);
   const selectedItemKey = selectedEntry ? getItemKey(selectedEntry) : null;
   const visibleItems = getVisibleItems(summary, selectedPage);
+  const mercenaryEntryCount = visibleEntries.filter((entry) => entry.owner === 'mercenary').length;
   const itemsToRender = hasActiveFilters ? filteredEntries : visibleEntries;
 
   return {
     source: createSourceDescriptor(source),
-    summary: createSummaryCard(summary, visibleItems.length, filteredEntries.length, selectedPage),
+    summary: createSummaryCard(summary, visibleItems.length + mercenaryEntryCount, filteredEntries.length, selectedPage),
     filters: browseOptions,
     pages: createPages(summary, selectedPage),
     panels: createPanels(itemsToRender, selectedItemKey),

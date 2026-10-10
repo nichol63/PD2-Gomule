@@ -76,7 +76,8 @@ export function createBankUi(state, reload) {
   function updateActions() {
     const ready = status?.configured && bankAvailable && !libraryRefreshRequired;
     const sources = state.catalog?.sources ?? [];
-    el('deposit').disabled = busy || !ready || !state.view?.selectedItem || !sources.some(source => source.filePath === state.view.selectedItem.filePath);
+    el('deposit').disabled = busy || !ready || !state.view?.selectedItem || state.view.selectedItem.transferable === false
+      || !sources.some(source => source.filePath === state.view.selectedItem.filePath);
     el('withdraw').disabled = busy || !ready || !el('item').value || !sources.some(source => source.id === el('destination').value) || !el('container').value;
     for (const id of ['item', 'query', 'sort']) el(id).disabled = busy || !bankAvailable;
     for (const id of ['refresh', 'recover']) el(id).disabled = busy || !status?.configured || !status.sessionToken;

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { depositItem, withdrawItem, listBank, recoverBank, inspectBankItem } from './item-bank.mjs';
 import { buildBankItemDetails } from './bank-detail-model.mjs';
-import { collectBrowseEntries } from './browser-index.mjs';
+import { collectBrowseEntries, collectMercenaryBrowseEntries } from './browser-index.mjs';
 import { getItemKey, loadInspectorWorkspace } from './inspector-model.mjs';
 import { sha256 } from './safe-serialization.mjs';
 
@@ -110,6 +110,9 @@ export function createMuleService(workspace, options = {}) {
       }
     } else if (action === 'deposit') {
       const selected = source(input.sourceId);
+      if (collectMercenaryBrowseEntries(selected.summary).some(entry => getItemKey(entry) === input.itemKey)) {
+        throw new Error('Mercenary equipment is read-only and cannot be deposited.');
+      }
       const entry = collectBrowseEntries(selected.summary).find(entry => getItemKey(entry) === input.itemKey);
       if (!entry) throw new Error('The selected item is no longer in this source. Refresh and select it again.');
       savePath = selected.summary.filePath;

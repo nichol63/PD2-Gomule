@@ -291,6 +291,7 @@ function renderSummaryCard() {
       ${sourceCount}
       ${selectedPage}
     </div>
+    ${summary.notice ? `<p class="muted-copy">${escapeHtml(summary.notice)}</p>` : ''}
   `;
 
   elements.matchCount.textContent = `${summary.matchedItemCount}`;
