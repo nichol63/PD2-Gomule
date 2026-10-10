@@ -90,7 +90,7 @@ node .\src\cli.mjs collection `
   --missing
 ```
 
-The summary shows per-category and per-set progress. `--owned` lists owned entries with total/character/stash/ethereal/socketed counts, `--missing` lists what is not yet found, and `--format json` emits the full report with each copy's location. Socketed jewels count as owned; mercenary and golem items are not counted yet. Disabled table rows that are still owned are listed separately, and unique/set items without a catalogue row are reported rather than guessed.
+The summary shows per-category and per-set progress. `--owned` lists owned entries with total/character/stash/ethereal/socketed counts, `--missing` lists what is not yet found, and `--format json` emits the full report with each copy's location. Socketed jewels and mercenary equipment count as owned; consumed iron golem items do not. Disabled table rows that are still owned are listed separately, and unique/set items without a catalogue row are reported rather than guessed.
 
 The inspector UI shows the same report in its Collection panel, with Missing/Owned/All filters, set completion and each owned copy's location.
 

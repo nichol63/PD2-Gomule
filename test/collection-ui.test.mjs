@@ -45,6 +45,8 @@ test('copy locations distinguish equipment slots, stored positions, sockets and 
   assert.ok(locations('rainbow facet').every(text => /^freezing-arrow\.d2s \(freezing-arrow\) - socketed in M'avina's /.test(text)));
   assert.deepEqual(locations('mindrend'), ['Legacy.d2x, page 8: Season 6 Weapons - column 0, row 12',
     'Legacy.d2x, page 8: Season 6 Weapons - column 2, row 12, ethereal']);
+  assert.deepEqual(collectionRows(REPORT, { category: 'runewords', show: 'owned', query: 'faith' })[0].copies.map(describeCopyLocation),
+    ['freezing-arrow.d2s (freezing-arrow) - mercenary: right hand']);
   const callToArms = collectionRows(REPORT, { category: 'runewords', show: 'owned', query: 'call to arms' })[0].copies[0];
   assert.equal(describeCopyLocation(callToArms), 'freezing-arrow.d2s (freezing-arrow) - equipped: switch right hand');
   assert.equal(describeCopyLocation({ ...callToArms, location: 7 }), `freezing-arrow.d2s (freezing-arrow) - byte offset ${callToArms.byteOffset}`);
@@ -55,7 +57,7 @@ test('collection API and browser modules are served read-only from the loaded wo
   try {
     const before = fs.readFileSync(FREEZING_ARROW);
     const report = await (await fetch(url + '/api/collection')).json();
-    assert.deepEqual([report.sourceCount, report.uniques.found, report.sets.found, report.runewords.found], [1, 9, 5, 2]);
+    assert.deepEqual([report.sourceCount, report.uniques.found, report.sets.found, report.runewords.found], [1, 13, 6, 3]);
     for (const [route, file] of [['/collection-view.mjs', 'src/lib/collection-view.mjs'], ['/collection.js', 'src/ui/collection.js'],
       ['/collection-main.js', 'src/ui/collection-main.js']]) {
       const response = await fetch(url + route);
@@ -96,9 +98,9 @@ test('actual collection UI renders progress, filters lists, and escapes table te
   const { ui, element, requests } = createHarness(() => ok(hostile));
   await ui.load();
   assert.deepEqual(requests, ['/api/collection']);
-  assert.match(element('progress').innerHTML, /<strong>Uniques<\/strong> 73\/418 \(17\.5%\)/);
-  assert.match(element('progress').innerHTML, /Set items<\/strong> 17\/128 \(13\.3%\), 2\/32 complete sets/);
-  assert.equal(element('count').textContent, '345');
+  assert.match(element('progress').innerHTML, /<strong>Uniques<\/strong> 76\/418 \(18\.2%\)/);
+  assert.match(element('progress').innerHTML, /Set items<\/strong> 18\/128 \(14\.1%\), 2\/32 complete sets/);
+  assert.equal(element('count').textContent, '342');
   assert.match(element('status').textContent, /disabled table rows/);
 
   element('category').value = 'runewords'; element('show').value = 'owned';

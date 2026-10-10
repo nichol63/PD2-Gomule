@@ -49,7 +49,8 @@ export function collectionRows(report, { category = 'uniques', show = 'missing',
 
 function describePosition(copy) {
   if (copy.location === LOCATION_SOCKETED && copy.socketParent) return `socketed in ${copy.socketParent.displayName}`;
-  if (copy.location === LOCATION_EQUIPPED && BODY_POSITIONS[copy.bodyPosition]) return `equipped: ${BODY_POSITIONS[copy.bodyPosition]}`;
+  const wearer = copy.section === 'mercenary' ? 'mercenary' : 'equipped';
+  if (copy.location === LOCATION_EQUIPPED && BODY_POSITIONS[copy.bodyPosition]) return `${wearer}: ${BODY_POSITIONS[copy.bodyPosition]}`;
   if (copy.location === LOCATION_BELT) return `belt slot ${copy.column + 1}`;
   const panel = copy.sourceKind === 'character' ? STORED_PANELS[copy.panel] : null;
   if (copy.location === LOCATION_STORED && Number.isInteger(copy.column) && Number.isInteger(copy.row)) {

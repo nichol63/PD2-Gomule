@@ -32,12 +32,16 @@ test('catalogue tracks enabled uniques, set items grouped by set, and runewords 
   assert.equal(catalogue.uniques.filter(entry => entry.name === 'Rainbow Facet').length, 8, 'same-name rows stay distinct');
 });
 
-test('character summary counts equipped, stored and socketed records', () => {
+test('character summary counts equipped, stored, socketed and mercenary records', () => {
   const report = summarizeCollection(inspect([FREEZING_ARROW]), TABLES);
   assert.equal(report.sourceCount, 1);
-  assert.deepEqual([report.uniques.found, report.sets.found, report.runewords.found], [9, 5, 2]);
-  assert.deepEqual(ownedLabels(report.runewords.entries), ['Call to Arms', 'Edge']);
-  assert.equal(report.uniques.percent, 2.2);
+  assert.deepEqual([report.uniques.found, report.sets.found, report.runewords.found], [13, 6, 3]);
+  assert.deepEqual(ownedLabels(report.runewords.entries), ['Call to Arms', 'Faith', 'Edge']);
+  assert.equal(report.uniques.percent, 3.1);
+  const mercenaryCopies = [...report.uniques.entries, ...report.sets.entries, ...report.runewords.entries]
+    .flatMap(entry => entry.copies.filter(copy => copy.section === 'mercenary').map(copy => [entry.label, copy.bodyPosition]));
+  assert.deepEqual(mercenaryCopies.sort(), [["Andariel's Visage", 1], ['Faith', 4], ['Goldwrap', 8], ["Magnus' Skin", 10],
+    ["Templar's Might", 3], ['Wartraveler', 9]], 'mercenary equipment counts as owned and is labelled');
   const mavina = report.sets.groups.find(group => group.name === "M'avina's Battle Hymn");
   assert.deepEqual([mavina.found, mavina.total, mavina.complete], [5, 5, true]);
   assert.equal(report.sets.completeSets, 1);
@@ -78,16 +82,16 @@ test('full library completes the catalogue and reports items without a catalogue
 test('CLI prints collection progress, owned and missing entries, and JSON', () => {
   const text = runCli([FREEZING_ARROW, '--owned', '--missing']);
   assert.equal(text.status, 0, text.stderr);
-  assert.match(text.stdout, /^UNIQUES    9\/418 \(2\.2%\)$/m);
-  assert.match(text.stdout, /^SETS       5\/128 items \(3\.9%\), 1\/32 complete sets$/m);
-  assert.match(text.stdout, /^RUNEWORDS  2\/94 \(2\.1%\)$/m);
+  assert.match(text.stdout, /^UNIQUES    13\/418 \(3\.1%\)$/m);
+  assert.match(text.stdout, /^SETS       6\/128 items \(4\.7%\), 1\/32 complete sets$/m);
+  assert.match(text.stdout, /^RUNEWORDS  3\/94 \(3\.2%\)$/m);
   assert.match(text.stdout, /^SET        M'avina's Battle Hymn\t5\/5\tcomplete$/m);
   assert.match(text.stdout, /^OWNED      runeword\tEdge\ttotal=1 char=1 stash=0 eth=0 socketed=0$/m);
   assert.match(text.stdout, /^MISSING    unique\tThe Gnasher\tHand Axe$/m);
 
   const json = runCli([FREEZING_ARROW, '--format', 'json']);
   assert.equal(json.status, 0, json.stderr);
-  assert.equal(JSON.parse(json.stdout).runewords.found, 2);
+  assert.equal(JSON.parse(json.stdout).runewords.found, 3);
 });
 
 test('CLI rejects missing paths, non-save files, directories without saves, and unknown formats', () => {

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { loadPd2Tables } from './pd2-data.mjs';
 import { buildLegacyTopLevelItems, parseLegacyItemList } from './legacy-item-parser.mjs';
 import { enrichParsedSave } from './item-identity.mjs';
+import { validatePreservedItemRegion } from './bounded-item-region.mjs';
 import {
   findAscii,
   isPrintableAscii,
@@ -503,6 +504,32 @@ function inspectCharacterSections(buffer, itemRegion) {
   };
 }
 
+// Decodes one auxiliary item section read-only with the same strict checks
+// transfers use to preserve it: every record fully decoded, bit lengths and
+// padding filling exact spans, and no unparsed bytes. Any failure is reported
+// as parseError with no items, so partial or undecoded data is never exposed.
+function parseAuxiliaryRegion(buffer, id, name, region, rootCount, pd2Tables) {
+  const result = { id, name, itemCount: rootCount, items: [], topLevelItems: [], parseError: null };
+  try {
+    if (rootCount === 0) {
+      if (region.endOffset !== region.startOffset) throw new Error(`Empty ${name} section has extra bytes`);
+      return result;
+    }
+    const parsed = validatePreservedItemRegion(buffer, region.startOffset, region.endOffset, rootCount, pd2Tables, name);
+    return { ...result, items: parsed.items, topLevelItems: parsed.topLevelItems };
+  } catch (error) {
+    return { ...result, parseError: error.message };
+  }
+}
+
+function parseAuxiliaryRegions(buffer, sections, pd2Tables) {
+  if (!sections) return [];
+  return [
+    parseAuxiliaryRegion(buffer, 'mercenary', 'Mercenary', sections.mercenary.itemRegion, sections.mercenary.itemCount, pd2Tables),
+    parseAuxiliaryRegion(buffer, 'golem', 'Iron Golem', sections.golem.itemRegion, sections.golem.present ? 1 : 0, pd2Tables)
+  ];
+}
+
 export function parseCharacterFile(filePath, options = {}) {
   const buffer = readFileBuffer(filePath);
   const pd2Tables = getPd2Tables(options);
@@ -550,6 +577,8 @@ export function parseCharacterFile(filePath, options = {}) {
     itemCount,
     itemRegion: parsedItems.sourceSpan ?? null,
     characterSections,
+    // Read-only mercenary and iron golem items; transfers never use these.
+    auxiliaryRegions: parseAuxiliaryRegions(buffer, characterSections, pd2Tables),
     items: parsedItems.items,
     topLevelItems: parsedItems.topLevelItems,
     parsedItemCount: parsedItems.topLevelItems?.length ?? 0,

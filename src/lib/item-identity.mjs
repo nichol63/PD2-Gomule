@@ -176,5 +176,6 @@ export function enrichParsedSave(save, pd2Tables) {
   };
   for (const item of save.items ?? []) visit(item);
   for (const page of save.pages ?? []) for (const item of page.items ?? []) visit(item);
+  for (const region of save.auxiliaryRegions ?? []) for (const item of region.items) visit(item);
   return save;
 }

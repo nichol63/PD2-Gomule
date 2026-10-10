@@ -18,14 +18,15 @@ const TABLES = loadPd2Tables();
 const inspect = file => inspectSaveFile(file, { pd2Tables: TABLES });
 const runCli = args => spawnSync(process.execPath, [CLI, 'dupes', ...args], { encoding: 'utf8' });
 
-test('a single real character has no shared fingerprints; simple items are not compared', () => {
+test('a single real character, including its mercenary, has no shared fingerprints; simple items are not compared', () => {
   const report = findSharedFingerprints([inspect(FREEZING_ARROW)]);
-  assert.deepEqual([report.scannedRecords, report.simpleRecords, report.groupCount, report.sharedRecordCount], [81, 24, 0, 0]);
+  assert.deepEqual([report.scannedRecords, report.simpleRecords, report.groupCount, report.sharedRecordCount], [93, 30, 0, 0],
+    '81 primary and 12 mercenary records');
 });
 
 test('every non-simple record loaded twice forms an identical group with both locations', () => {
   const report = findSharedFingerprints([inspect(FREEZING_ARROW), inspect(FREEZING_ARROW)]);
-  assert.equal(report.groupCount, 81 - 24);
+  assert.equal(report.groupCount, 93 - 30);
   assert.equal(report.identicalGroupCount, report.groupCount);
   assert.ok(report.groups.every(group => group.copies.length === 2 && group.copies.every(copy => copy.fileName === 'freezing-arrow.d2s')));
   assert.ok(report.groups.every(group => !('signature' in group.copies[0])), 'internal comparison keys are not reported');
@@ -61,8 +62,8 @@ test('copies with incompletely decoded data or missing socket records are never 
 
 test('full fixture library reports shared seeds as evidence, separating identical from differing copies', () => {
   const report = findSharedFingerprints(discoverSaveFiles([LIBRARY]).map(inspect));
-  assert.deepEqual([report.sourceCount, report.scannedRecords, report.simpleRecords], [134, 22072, 4675]);
-  assert.deepEqual([report.groupCount, report.sharedRecordCount, report.identicalGroupCount], [1004, 3173, 391]);
+  assert.deepEqual([report.sourceCount, report.scannedRecords, report.simpleRecords], [134, 23345, 5223], '22,072 primary/stash plus 1,273 mercenary records');
+  assert.deepEqual([report.groupCount, report.sharedRecordCount, report.identicalGroupCount], [1009, 3183, 396]);
   const [largest] = report.groups;
   assert.deepEqual([largest.fingerprint, largest.copies.length, largest.identical, largest.displayNames], [1974299169, 105, false, ['Charm Large']]);
   const cube = report.groups.find(group => group.fingerprint === 334429822);
