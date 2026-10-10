@@ -13,7 +13,7 @@ Character and browser bank transfers now support disposable copies. See [charact
 The user authorized the expanded Astra/Sol workflow in [DEVELOPMENT_WORKFLOW.md](../DEVELOPMENT_WORKFLOW.md), including bounded copy-based writes. The inspector remains read-only and installed saves/canonical fixtures are protected.
 
 - Inverted item flags and root-versus-socket-child counts were corrected. Higher-tier aliases no longer overwrite base item rows.
-- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 386 passing.
+- The canonical corpus now exposes 19,778 root items and 22,072 physical records. All 134 files open with zero incomplete records after the [33-record fix](../incomplete-records-2026-10-03.md). Current coverage is in `docs/parser-coverage-2026-10-03-current.md`; 16 historical-profile items remain ineligible for transfers. Current test baseline is 405 passing (2026-10-10).
 - Older broad bytime/noise fixture counts below were produced by the inverted flag parser and are superseded. Do not use those historical counts as proof for a formatter change.
 - Unique/set/runeword naming, exact source-backed Blood Warp wording, and bounded scaling displays have landed.
 - Explicit bank deposit/withdraw commands default to previews and reject unsupported pages. Serialization preserves opaque bytes and patches supported location/count fields; it is not a general field-backed item writer.
@@ -171,6 +171,38 @@ Outcome: workspace and optional bank startup now have separate failure boundarie
 The details, search and sorting tests contain a byte-identical 61-line `Element` class, including child/ID removal and select-value behavior. Extract this unchanged class and its decoding dependencies into a test-only helper; use it in those three files. Keep each test's fixture setup, actual production-helper injection, fetch sequencing and assertions intact. This reduces repeated maintenance when UI controls change. Do not generalize the other differing app harnesses or add tests that mirror the helper. Independent validation should run the existing meaningful real-fixture suites and confirm unchanged case counts, behavior and input hashes. Production files remain untouched.
 
 Outcome: the three bank suites import one test-only Element/decoding helper. Independent comparison proves exact class/dependency and complete assertion-tail bytes unchanged; case counts remain 7/6/7. All 20 existing focused tests and the full 386-test suite pass, zero failures/skips; final review clean. Fixture/table hashes and metadata remain unchanged, as does full canonical coverage.
+
+### [done] ACCEPT-001 - Portable acceptance table provenance
+
+On the Windows desktop the table directory holds 28 `.txt` files (including stray `Properties (copy).txt` and `SkillDesc (copy).txt`), and acceptance preparation/verification hashed every one, failing nine tests with `28 !== 10`. The ten tables the parser loads matched the pinned hashes byte for byte.
+
+Outcome: `getLoadedTableHashes` returns the freshness-checked hashes of the tables the core and identity loaders actually decoded; preparation and verification both use it instead of a directory listing. Laptop manifests (exactly those ten tables) remain compatible. Two regression tests add unrelated table-directory files and fail without the fix. Full suite: 388 passing; Codex review clean. A desktop pack was generated at `.game-acceptance/2026-10-10` (ten manifest tables). In-game acceptance is still pending.
+
+### [done] COLLECT-001 - Read-only collection tracker CLI
+
+GoMule's Flavie report tracked owned uniques, sets and runewords. `src/lib/collection-tracker.mjs` builds the catalogue from the identity tables (418 enabled uniques keyed by row, 128 set items in 32 sets, 94 runewords keyed by name since variant rows share names) and counts every physical record, including socketed children, as total/character/stash/ethereal/socketed with source locations. Disabled rows that are still owned (old Magefist rows, trophies) are listed separately and excluded from totals; unique/set records without a catalogue row are reported, never guessed. `node src/cli.mjs collection <saves or directories> [--owned] [--missing] [--format json]`.
+
+Outcome: six real-fixture tests cover catalogue counts, freezing-arrow (9/5/2, complete M'avina, socketed Rainbow Facets), character/stash/ethereal buckets (Wisp 2+1, ethereal Mindrend), the full 134-file library (418/128/94, 32 complete sets, nine unresolved) and CLI output/errors. Mercenary and golem items are not exposed by the save read model and are not counted. Haiku independently recomputed 418/128/32/94 from raw tables and cross-checked owned entries against `items`; the fixture hash was unchanged. Codex review found that non-save inputs produced a successful empty report and that copies were not individually locatable; both are fixed (explicit rejection, byte offset/position/socket parent per copy) with regression tests.
+
+### [done] PORT-001 - Exact file identity on Windows drives
+
+On the desktop's NTFS-backed `/mnt/c`, file IDs reach about 5×10^17, beyond 2^53. Number `stat.ino` values collided for 4 of 300 fresh files, so acceptance verification intermittently refused independent files as aliases (two section/verification tests failed in one full run). Directory discovery already used BigInt identities. Verification input identity/stability checks and the bank/stash alias guard now use `statSync(..., { bigint: true })`. Precision loss only produced false refusals; real aliases still compared equal. The affected suites pass three consecutive runs. A deterministic regression needs a colliding inode pair, which only NTFS-like filesystems produce.
+
+### [done] COLLECT-002 - Collection tab in the inspector
+
+Add a read-only `/api/collection` route over the loaded workspace and a Collection view: per-category progress, per-set completion, owned/missing filters and copy locations. Reuse `summarizeCollection`; keep the inspector read-only.
+
+Outcome: GET `/api/collection` summarizes the current (refreshable) workspace. Pure, import-free `src/lib/collection-view.mjs` helpers (progress, missing/owned/all rows with multi-term name/base/set search, copy location text) are served unchanged beside `src/ui/collection.js`, which renders progress, set headings, ownership counts and escaped copy locations, keeps only the latest response and shows its own unavailable state. A separate `collection-main.js` entry loads it at startup and from its Refresh button, leaving `app.js` and its browser/bank race tests untouched. Five tests cover helpers, served modules/read-only API and the actual UI module in the fake DOM (hostile-name escaping, filters, out-of-order responses, failures). Checked in headless Chrome against freezing-arrow plus Legacy.d2x (73/418, 17/128 with 2 complete sets, 15/94). The pre-existing details-pane overlap at ~1400px widths also clips the Browser filters and is unchanged.
+
+### [done] DUPE-001 - Read-only duplicate item report
+
+GoMule could find dupes. Report items sharing a fingerprint (or identical item bytes) across loaded saves, reusing the collection aggregation's per-copy locations. Read-only; deletion stays out of scope until game acceptance.
+
+Outcome: `src/lib/duplicate-report.mjs` groups non-simple physical records by fingerprint and marks a group identical when code, quality, ethereal/runeword flags, decoded properties and socket contents all match. Raw bytes are not compared because they encode each copy's position. The per-copy iteration and location description moved to shared `src/lib/item-copies.mjs`, used by both reports. `node src/cli.mjs dupes <saves or directories> [--limit n] [--format json]` prints groups with each copy's precise location. The canonical library shows why a shared seed is evidence, not proof: 1,004 shared fingerprints across 3,173 records, only 391 identical; the largest group is 105 large charms with one seed but different affixes, and 32 identical Horadric Cubes come from cloned fixture characters. A single real character and the 14-character Amazon showcase folder have none. Five tests cover these fixture facts, a doubled save (57 identical groups), in-memory property/ethereal/socket edits that must mark differences, and CLI limit/JSON/rejections. Codex review found that socket-child properties and incomplete decoding were ignored; children are now compared recursively and copies with undecoded data are never identical (`incompleteCopies`, CLI label `incomplete`), with regression tests. Deletion and a UI view remain future work after game acceptance.
+
+### [needs-research] IDENTITY-003 - Unique rings pointing at blank-code row 352
+
+Six unique rings on `_LOD_SharedStashSave.sss / Rings & Amulets` carry unique ID 352, whose `UniqueItems.txt` row (`Nethercrow`) has no item code, so identity correctly refuses to name them. Determine from their properties and PD2 history which ring they are and whether a row/version mapping is provable. Three quest items (Gidbinn, Horadric Malus, a small charm) use ID 4095 and are expected to stay unnamed.
 
 ## Historical recovery result (2026-09-05)
 

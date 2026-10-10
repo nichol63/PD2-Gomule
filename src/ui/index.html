@@ -68,6 +68,18 @@
             <div id="bank-message" role="status" aria-live="polite"></div>
             <div id="bank-preview" class="bank-preview" hidden></div>
           </section>
+          <section id="collection-panel" class="panel-block collection-panel">
+            <div class="section-header"><h2>Collection</h2><span id="collection-count" class="section-pill">0</span></div>
+            <p class="muted-copy collection-hint">Owned uniques, set items and runewords across loaded saves. Refresh after a library refresh or transfer. <button id="collection-refresh" type="button" class="clear-filters-btn">Refresh</button></p>
+            <ul id="collection-progress" class="collection-progress"></ul>
+            <form id="collection-form" class="filters-form">
+              <label><span>Category</span><select id="collection-category"><option value="uniques">Uniques</option><option value="sets">Set items</option><option value="runewords">Runewords</option></select></label>
+              <label><span>Show</span><select id="collection-show"><option value="missing">Missing</option><option value="owned">Owned</option><option value="all">All</option></select></label>
+              <label><span>Find</span><input id="collection-query" type="search" placeholder="Name, base, or set"></label>
+            </form>
+            <p id="collection-status" class="muted-copy" role="status" aria-live="polite"></p>
+            <ul id="collection-list" class="collection-list"></ul>
+          </section>
           <section class="panel-block filters-block">
             <div class="section-header">
               <h2>Browser</h2>
@@ -147,5 +159,6 @@
 
     <div id="item-tooltip"></div>
     <script type="module" src="/app.js"></script>
+    <script type="module" src="/collection-main.js"></script>
   </body>
 </html>

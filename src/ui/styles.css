@@ -555,3 +555,56 @@ select {
     grid-template-rows: repeat(var(--grid-rows), 2.2rem);
   }
 }
+
+.collection-progress,
+.collection-list,
+.collection-copies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.collection-progress,
+.collection-list,
+.collection-hint,
+#collection-status {
+  padding: 0 1.1rem;
+}
+
+.collection-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  padding-top: 1rem;
+}
+
+.collection-list {
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
+.collection-row {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+}
+
+.collection-row.missing strong {
+  opacity: 0.7;
+}
+
+.collection-owned {
+  display: block;
+  font-size: 0.85rem;
+}
+
+.collection-copies {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  padding-left: 1rem;
+}
+
+.collection-set-heading {
+  font-weight: 600;
+  margin-top: 0.75rem;
+}

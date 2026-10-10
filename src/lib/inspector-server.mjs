@@ -3,6 +3,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMuleService } from './mule-service.mjs';
+import { summarizeCollection } from './collection-tracker.mjs';
 
 import {
   buildInspectorView,
@@ -21,6 +22,9 @@ const STATIC_FILES = {
   '/bank.js': { filePath: path.join(UI_DIR, 'bank.js'), contentType: 'text/javascript; charset=utf-8' },
   '/bank-search.mjs': { filePath: path.join(LIB_DIR, 'bank-search.mjs'), contentType: 'text/javascript; charset=utf-8' },
   '/bank-sort.mjs': { filePath: path.join(LIB_DIR, 'bank-sort.mjs'), contentType: 'text/javascript; charset=utf-8' },
+  '/collection.js': { filePath: path.join(UI_DIR, 'collection.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/collection-main.js': { filePath: path.join(UI_DIR, 'collection-main.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/collection-view.mjs': { filePath: path.join(LIB_DIR, 'collection-view.mjs'), contentType: 'text/javascript; charset=utf-8' },
   '/styles.css': { filePath: path.join(UI_DIR, 'styles.css'), contentType: 'text/css; charset=utf-8' }
 };
 
@@ -107,6 +111,11 @@ function createRequestHandler(workspace, mule, options) {
 
     if (url.pathname === '/api/bank/item') {
       writeJson(response, 200, { item: mule.itemDetails(url.searchParams.get('itemId')) });
+      return;
+    }
+
+    if (url.pathname === '/api/collection') {
+      writeJson(response, 200, summarizeCollection(workspace.sources.map((source) => source.summary), workspace.pd2Tables));
       return;
     }
 

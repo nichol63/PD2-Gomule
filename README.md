@@ -82,6 +82,26 @@ node .\src\cli.mjs search `
   --query "horadric cube"
 ```
 
+Track which uniques, set items and runewords you own across save files or whole directories (read-only):
+
+```powershell
+node .\src\cli.mjs collection `
+  "C:\Codex\GoMuleR4.3.2_1.13\PD2-Singleplayer\Diablo II\Save\Library" `
+  --missing
+```
+
+The summary shows per-category and per-set progress. `--owned` lists owned entries with total/character/stash/ethereal/socketed counts, `--missing` lists what is not yet found, and `--format json` emits the full report with each copy's location. Socketed jewels count as owned; mercenary and golem items are not counted yet. Disabled table rows that are still owned are listed separately, and unique/set items without a catalogue row are reported rather than guessed.
+
+The inspector UI shows the same report in its Collection panel, with Missing/Owned/All filters, set completion and each owned copy's location.
+
+List items that share a fingerprint (the item's random seed, which GoMule used to spot dupes) across save files or directories (read-only):
+
+```powershell
+node .\src\cli.mjs dupes "C:\path\to\Save" --limit 10
+```
+
+Each group shows every copy's location and whether the copies are identical (same code, quality, ethereal state, properties and socket contents). A shared fingerprint is evidence, not proof: save editors and cloned characters also produce it. Simple items such as runes and gems have no fingerprint and are not compared.
+
 Launch the read-only inspector UI against the local fixture pack:
 
 ```powershell

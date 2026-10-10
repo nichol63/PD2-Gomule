@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { runBankCli } from './bank-cli.mjs';
 
@@ -10,6 +11,10 @@ import {
   searchSummaries,
   sortBrowseEntries
 } from './lib/browser-index.mjs';
+import { summarizeCollection } from './lib/collection-tracker.mjs';
+import { describeCopyLocation } from './lib/collection-view.mjs';
+import { findSharedFingerprints } from './lib/duplicate-report.mjs';
+import { discoverSaveFiles } from './lib/inspector-model.mjs';
 import { startInspectorServer } from './lib/inspector-server.mjs';
 import { loadPd2Tables } from './lib/pd2-data.mjs';
 import { inspectSaveFile } from './lib/save-parsers.mjs';
@@ -162,6 +167,16 @@ function parseCliArguments(args) {
       case '--complete-only':
         options.completeOnly = true;
         break;
+      case '--missing':
+        options.missing = true;
+        break;
+      case '--owned':
+        options.owned = true;
+        break;
+      case '--format':
+        options.format = args[index + 1] ?? '';
+        index += 1;
+        break;
       default:
         fileArgs.push(arg);
         break;
@@ -177,6 +192,8 @@ function printUsage() {
   console.error('  node ./src/cli.mjs pages <stash file> [--query <text>] [--limit <n>]');
   console.error('  node ./src/cli.mjs items <save file> [--page <name|index>] [--query <text>] [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
   console.error('  node ./src/cli.mjs search <save files...> --query <text> [--quality <label>] [--sort <name|quality|props|sockets|source|position>] [--limit <n>] [--complete-only]');
+  console.error('  node ./src/cli.mjs collection <save files or directories...> [--owned] [--missing] [--format <text|json>]');
+  console.error('  node ./src/cli.mjs dupes <save files or directories...> [--limit <n>] [--format <text|json>]');
   console.error('  node ./src/cli.mjs ui [save files or directories...] [--host <addr>] [--port <n>] [--bank <bank.json>] [--experimental-write]');
   console.error('  node ./src/cli.mjs bank list --bank <bank.json> [--query <text>] [--sort <stored|name|source>]');
   console.error('  node ./src/cli.mjs bank deposit --bank <bank.json> --source <save> [--page <1-based stash page>] --item <1-based item> [--experimental-write] [--dry-run]');
@@ -292,6 +309,92 @@ function runSearch(fileArgs, options, pd2Tables) {
   }
 }
 
+const REPORT_SAVE_EXTENSIONS = new Set(['.d2s', '.d2x', '.sss']);
+
+function formatOwnership(owned) {
+  return `total=${owned.total} char=${owned.character} stash=${owned.stash} eth=${owned.ethereal} socketed=${owned.socketed}`;
+}
+
+function printCollectionEntries(label, entries, options) {
+  for (const entry of entries) {
+    const owned = entry.owned.total > 0;
+    if (options.owned && owned) console.log(`OWNED      ${label}\t${entry.label}\t${formatOwnership(entry.owned)}`);
+    if (options.missing && !owned) console.log(`MISSING    ${label}\t${entry.label}${entry.baseName ? `\t${entry.baseName}` : ''}`);
+  }
+}
+
+function loadReportSaves(fileArgs, pd2Tables) {
+  const unsupported = fileArgs.find((filePath) => fs.existsSync(filePath) && fs.statSync(filePath).isFile()
+    && !REPORT_SAVE_EXTENSIONS.has(path.extname(filePath).toLowerCase()));
+  if (unsupported) {
+    throw new Error(`Not a .d2s, .d2x, or .sss save file: ${unsupported}`);
+  }
+  const filePaths = discoverSaveFiles(fileArgs);
+  if (filePaths.length === 0) {
+    throw new Error(`No .d2s, .d2x, or .sss save files found in: ${fileArgs.join(', ')}`);
+  }
+  return filePaths.map((filePath) => inspectSaveFile(filePath, { pd2Tables }));
+}
+
+function hasReportArguments(fileArgs, options) {
+  if (fileArgs.length > 0 && ['text', 'json', undefined].includes(options.format)) return true;
+  printUsage();
+  process.exitCode = 1;
+  return false;
+}
+
+function runCollection(fileArgs, options, pd2Tables) {
+  if (!hasReportArguments(fileArgs, options)) return;
+
+  const report = summarizeCollection(loadReportSaves(fileArgs, pd2Tables), pd2Tables);
+  if (options.format === 'json') {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  const { uniques, sets, runewords } = report;
+  printBanner(pd2Tables);
+  console.log(`FILES      ${report.sourceCount}`);
+  console.log(`UNIQUES    ${uniques.found}/${uniques.total} (${uniques.percent}%)`);
+  console.log(`SETS       ${sets.found}/${sets.total} items (${sets.percent}%), ${sets.completeSets}/${sets.setCount} complete sets`);
+  console.log(`RUNEWORDS  ${runewords.found}/${runewords.total} (${runewords.percent}%)`);
+  for (const group of sets.groups.filter((entry) => entry.found > 0)) {
+    console.log(`SET        ${group.name}\t${group.found}/${group.total}${group.complete ? '\tcomplete' : ''}`);
+  }
+  printCollectionEntries('unique', uniques.entries, options);
+  printCollectionEntries('set', sets.entries, options);
+  printCollectionEntries('runeword', runewords.entries, options);
+  for (const entry of report.unavailableOwned) {
+    console.log(`DISABLED   unique\t${entry.label}\t${formatOwnership(entry.owned)}`);
+  }
+  if (report.unresolved.length > 0) {
+    console.log(`UNRESOLVED ${report.unresolved.length} unique/set records have no catalogue row`);
+  }
+}
+
+function runDupes(fileArgs, options, pd2Tables) {
+  if (!hasReportArguments(fileArgs, options)) return;
+
+  const report = findSharedFingerprints(loadReportSaves(fileArgs, pd2Tables));
+  if (options.format === 'json') {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  printBanner(pd2Tables);
+  console.log(`FILES      ${report.sourceCount}`);
+  console.log(`SCANNED    ${report.scannedRecords} records (${report.simpleRecords} simple records have no fingerprint)`);
+  console.log(`SHARED     ${report.groupCount} fingerprints across ${report.sharedRecordCount} records; ${report.identicalGroupCount} groups have identical copies`);
+  const shown = limitBrowseEntries(report.groups, options.limit);
+  for (const [index, group] of shown.entries()) {
+    console.log(`GROUP      ${index + 1}\t${group.fingerprint}\tx${group.copies.length}\t${group.identical ? 'identical' : group.incompleteCopies > 0 ? 'incomplete' : 'differs'}\t${group.displayNames.join(' / ')}`);
+    for (const copy of group.copies) console.log(`COPY       ${copy.displayName}\t${describeCopyLocation(copy)}`);
+  }
+  if (report.groups.length > shown.length) {
+    console.log(`GROUP      ...\t${report.groups.length - shown.length} more`);
+  }
+}
+
 async function runUi(fileArgs, options, pd2Tables) {
   const inputPaths = fileArgs.length > 0 ? fileArgs : [getFixtureLibraryDir()];
   const { workspace, url } = await startInspectorServer(inputPaths, {
@@ -338,6 +441,16 @@ async function main(argv) {
 
   if (command === 'search') {
     runSearch(parsed.fileArgs, parsed.options, pd2Tables);
+    return;
+  }
+
+  if (command === 'dupes') {
+    runDupes(parsed.fileArgs, parsed.options, pd2Tables);
+    return;
+  }
+
+  if (command === 'collection') {
+    runCollection(parsed.fileArgs, parsed.options, pd2Tables);
     return;
   }
 
