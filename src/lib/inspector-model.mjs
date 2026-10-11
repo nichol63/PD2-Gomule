@@ -15,12 +15,30 @@ import { getFixtureLibraryDir } from './workspace-paths.mjs';
 
 const SAVE_FILE_EXTENSIONS = new Set(['.d2s', '.d2x', '.sss']);
 const PANEL_DETAILS = {
-  '1/0': { label: 'Equipped', columns: 10, rows: 4, order: 10 },
+  '1/0': { label: 'Equipped', columns: 15, rows: 7, order: 10 },
   '0/1': { label: 'Inventory', columns: 10, rows: 8, order: 20 },
   '0/4': { label: 'Cube', columns: 4, rows: 4, order: 30 },
   '0/5': { label: 'Stash', columns: 10, rows: 15, order: 40 },
   '2/0': { label: 'Belt', columns: 4, rows: 4, order: 50 },
-  'mercenary/1/0': { label: 'Mercenary', columns: 10, rows: 4, order: 15 }
+  'mercenary/1/0': { label: 'Mercenary', columns: 15, rows: 7, order: 15 }
+};
+const EQUIPPED_PANEL_KEYS = new Set(['1/0', 'mercenary/1/0']);
+// Equipped items store their body slot number in the column field, so they are
+// drawn on a fixed paper doll (grid cells, D2 inventory layout) instead; one
+// gap column separates the weapon-switch slots on the right.
+const BODY_SLOT_CELLS = {
+  1: { column: 4, row: 0, width: 2, height: 2 }, // head
+  2: { column: 6, row: 1, width: 1, height: 1 }, // amulet
+  3: { column: 4, row: 2, width: 2, height: 3 }, // body armor
+  4: { column: 0, row: 0, width: 2, height: 4 }, // right hand
+  5: { column: 8, row: 0, width: 2, height: 4 }, // left hand
+  6: { column: 3, row: 5, width: 1, height: 1 }, // right ring
+  7: { column: 6, row: 5, width: 1, height: 1 }, // left ring
+  8: { column: 4, row: 5, width: 2, height: 1 }, // belt
+  9: { column: 8, row: 5, width: 2, height: 2 }, // feet
+  10: { column: 0, row: 5, width: 2, height: 2 }, // gloves
+  11: { column: 11, row: 0, width: 2, height: 4 }, // switch right hand
+  12: { column: 13, row: 0, width: 2, height: 4 } // switch left hand
 };
 
 // Mercenary entries get their own panel and an owner-prefixed key, so they can
@@ -250,6 +268,16 @@ function createMatchEntry(entry, selectedItemKey) {
   };
 }
 
+function getGridPlacement(entry, panelKey) {
+  const slot = EQUIPPED_PANEL_KEYS.has(panelKey) ? BODY_SLOT_CELLS[entry.bodyPosition] : null;
+  return slot ?? {
+    column: entry.column ?? 0,
+    row: entry.row ?? 0,
+    width: entry.item.invWidth ?? 1,
+    height: entry.item.invHeight ?? 1
+  };
+}
+
 function createPanelItem(entry, selectedItemKey) {
   const panelKey = getPanelKey(entry);
   const itemKey = getItemKey(entry);
@@ -264,10 +292,7 @@ function createPanelItem(entry, selectedItemKey) {
     socketsFilled: entry.socketsFilled,
     totalSockets: entry.totalSockets,
     isRuneword: entry.item?.isRuneword ?? false,
-    column: entry.column ?? 0,
-    row: entry.row ?? 0,
-    width: entry.item.invWidth ?? 1,
-    height: entry.item.invHeight ?? 1,
+    ...getGridPlacement(entry, panelKey),
     panelKey
   };
 }
@@ -298,9 +323,10 @@ function createPanels(entries, selectedItemKey) {
     }
 
     const panel = panelsByKey.get(key);
-    panel.items.push(createPanelItem(entry, selectedItemKey));
-    panel.columns = Math.max(panel.columns, (entry.column ?? 0) + (entry.item.invWidth ?? 1));
-    panel.rows = Math.max(panel.rows, (entry.row ?? 0) + (entry.item.invHeight ?? 1));
+    const item = createPanelItem(entry, selectedItemKey);
+    panel.items.push(item);
+    panel.columns = Math.max(panel.columns, item.column + item.width);
+    panel.rows = Math.max(panel.rows, item.row + item.height);
   }
 
   return [...panelsByKey.values()]

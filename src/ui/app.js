@@ -322,6 +322,7 @@ function renderGridPanels() {
           <button
             class="grid-item quality-${escapeHtml(item.qualityLabel)} ${item.selected ? 'is-selected' : ''} ${item.propertiesComplete ? '' : 'is-partial'} ${item.isRuneword ? 'is-runeword' : ''}"
             data-item-key="${escapeHtml(item.itemKey)}"
+            data-panel-key="${escapeHtml(item.panelKey)}"
             data-col="${item.column}"
             data-row="${item.row}"
             data-tooltip-name="${escapeHtml(item.displayName)}"
@@ -356,26 +357,43 @@ function renderGridPanels() {
         return;
       }
 
-      const col = parseInt(button.dataset.col, 10);
-      const row = parseInt(button.dataset.row, 10);
-      let targetCol = col;
-      let targetRow = row;
-
-      if (event.key === 'ArrowRight') { event.preventDefault(); targetCol = col + 1; }
-      else if (event.key === 'ArrowLeft') { event.preventDefault(); targetCol = col - 1; }
-      else if (event.key === 'ArrowDown') { event.preventDefault(); targetRow = row + 1; }
-      else if (event.key === 'ArrowUp') { event.preventDefault(); targetRow = row - 1; }
-      else return;
-
-      const nearest = allGridItems.find(
-        (b) => parseInt(b.dataset.col, 10) === targetCol && parseInt(b.dataset.row, 10) === targetRow
-      ) ?? allGridItems.find(
-        (b) => Math.abs(parseInt(b.dataset.col, 10) - targetCol) <= 1 && Math.abs(parseInt(b.dataset.row, 10) - targetRow) <= 1
-      );
-
+      const direction = GRID_ARROW_DIRECTIONS[event.key];
+      if (!direction) return;
+      event.preventDefault();
+      const panelItems = allGridItems.filter((candidate) => candidate.dataset.panelKey === button.dataset.panelKey);
+      const nearest = findGridNeighbor(panelItems, button, direction);
       if (nearest) nearest.focus();
     });
   }
+}
+
+const GRID_ARROW_DIRECTIONS = {
+  ArrowRight: { column: 1, row: 0 },
+  ArrowLeft: { column: -1, row: 0 },
+  ArrowDown: { column: 0, row: 1 },
+  ArrowUp: { column: 0, row: -1 }
+};
+
+// Nearest item ahead in the arrow's direction within one panel. Slots can be
+// separated by empty cells (the equipped paper doll), so the next item is not
+// always one cell away; staying in line counts double so movement stays straight.
+function findGridNeighbor(panelItems, from, direction) {
+  const position = (button) => ({ column: parseInt(button.dataset.col, 10), row: parseInt(button.dataset.row, 10) });
+  const origin = position(from);
+  let best = null;
+  let bestScore = Infinity;
+  for (const candidate of panelItems) {
+    const target = position(candidate);
+    const ahead = (target.column - origin.column) * direction.column + (target.row - origin.row) * direction.row;
+    if (candidate === from || ahead <= 0) continue;
+    const offLine = direction.column ? Math.abs(target.row - origin.row) : Math.abs(target.column - origin.column);
+    const score = ahead + offLine * 2;
+    if (score < bestScore) {
+      best = candidate;
+      bestScore = score;
+    }
+  }
+  return best;
 }
 
 function renderMatchList() {
