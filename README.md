@@ -102,6 +102,8 @@ node .\src\cli.mjs dupes "C:\path\to\Save" --limit 10
 
 Each group shows every copy's location and whether the copies are identical (same code, quality, ethereal state, properties and socket contents). A shared fingerprint is evidence, not proof: save editors and cloned characters also produce it. Simple items such as runes and gems have no fingerprint and are not compared.
 
+The inspector UI shows the same report in its Duplicates panel, filterable by identical or differing copies and by item name or fingerprint.
+
 Launch the read-only inspector UI against the local fixture pack:
 
 ```powershell

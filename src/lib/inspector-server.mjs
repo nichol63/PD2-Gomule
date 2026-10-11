@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createMuleService } from './mule-service.mjs';
 import { summarizeCollection } from './collection-tracker.mjs';
+import { findSharedFingerprints } from './duplicate-report.mjs';
 
 import {
   buildInspectorView,
@@ -25,6 +26,9 @@ const STATIC_FILES = {
   '/collection.js': { filePath: path.join(UI_DIR, 'collection.js'), contentType: 'text/javascript; charset=utf-8' },
   '/collection-main.js': { filePath: path.join(UI_DIR, 'collection-main.js'), contentType: 'text/javascript; charset=utf-8' },
   '/collection-view.mjs': { filePath: path.join(LIB_DIR, 'collection-view.mjs'), contentType: 'text/javascript; charset=utf-8' },
+  '/dupes.js': { filePath: path.join(UI_DIR, 'dupes.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/dupes-main.js': { filePath: path.join(UI_DIR, 'dupes-main.js'), contentType: 'text/javascript; charset=utf-8' },
+  '/dupes-view.mjs': { filePath: path.join(LIB_DIR, 'dupes-view.mjs'), contentType: 'text/javascript; charset=utf-8' },
   '/styles.css': { filePath: path.join(UI_DIR, 'styles.css'), contentType: 'text/css; charset=utf-8' }
 };
 
@@ -116,6 +120,11 @@ function createRequestHandler(workspace, mule, options) {
 
     if (url.pathname === '/api/collection') {
       writeJson(response, 200, summarizeCollection(workspace.sources.map((source) => source.summary), workspace.pd2Tables));
+      return;
+    }
+
+    if (url.pathname === '/api/dupes') {
+      writeJson(response, 200, findSharedFingerprints(workspace.sources.map((source) => source.summary)));
       return;
     }
 

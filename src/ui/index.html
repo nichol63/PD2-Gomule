@@ -80,6 +80,17 @@
             <p id="collection-status" class="muted-copy" role="status" aria-live="polite"></p>
             <ul id="collection-list" class="collection-list"></ul>
           </section>
+          <section id="dupes-panel" class="panel-block collection-panel">
+            <div class="section-header"><h2>Duplicates</h2><span id="dupes-count" class="section-pill">0</span></div>
+            <p class="muted-copy collection-hint">Items that share a fingerprint (random seed) across loaded saves, as GoMule's dupe check reports them. A shared fingerprint is evidence, not proof: save editors and copied characters also produce it. <button id="dupes-refresh" type="button" class="clear-filters-btn">Refresh</button></p>
+            <p id="dupes-summary" class="collection-hint"></p>
+            <form id="dupes-form" class="filters-form">
+              <label><span>Show</span><select id="dupes-show"><option value="all">All groups</option><option value="identical">Identical copies</option><option value="differing">Differing copies</option></select></label>
+              <label><span>Find</span><input id="dupes-query" type="search" placeholder="Item name or fingerprint"></label>
+            </form>
+            <p id="dupes-status" class="muted-copy collection-hint" role="status" aria-live="polite"></p>
+            <ul id="dupes-list" class="collection-list"></ul>
+          </section>
           <section class="panel-block filters-block">
             <div class="section-header">
               <h2>Browser</h2>
@@ -160,5 +171,6 @@
     <div id="item-tooltip"></div>
     <script type="module" src="/app.js"></script>
     <script type="module" src="/collection-main.js"></script>
+    <script type="module" src="/dupes-main.js"></script>
   </body>
 </html>
